@@ -7,6 +7,9 @@ Industrial AI platform backend, built with FastAPI and managed by [uv](https://d
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
 
+From-scratch environment setup (Windows: uv, git, GitHub connectivity) is documented in
+**[docs/SETUP.md](docs/SETUP.md)**.
+
 ## Setup
 
 ```powershell
