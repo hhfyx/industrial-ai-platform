@@ -1,0 +1,45 @@
+# 构建上下文 = 镜像能看到的一切。这个文件负责把"不该进镜像"的东西挡在门外。
+# 没有它：.venv(68 MB) + .git + docs + tests 全被送进 builder，
+# 镜像从 ~150 MB 涨到 800 MB 级别。
+
+# --- 环境与依赖（镜像里由 builder 重新装，绝不从宿主机搬）---
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# --- 版本控制 ---
+.git/
+.gitignore
+.gitattributes
+
+# --- 缓存 / 测试产物 ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# --- 测试与文档：运行时用不到 ---
+# 注：README.md 故意留在上下文里 —— pyproject.toml 的 readme 字段指向它，
+# uv 解析工程元数据时会看，但 Dockerfile 不会把它 COPY 进镜像。
+tests/
+docs/
+LICENSE
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+Thumbs.db
+desktop.ini
+
+# --- 构建相关：Docker 自己读，不需要塞进上下文 ---
+Dockerfile
+docker-compose.yml
+.dockerignore

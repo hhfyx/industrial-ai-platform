@@ -1,0 +1,21 @@
+# 一条命令起服务：docker compose up --build -d
+# 停：docker compose down
+services:
+  api:
+    build: .
+    image: industrial-ai:v0.1
+    container_name: industrial-ai-api
+    ports:
+      # 左边是宿主机端口，右边是容器端口；两边都吃 .env 里的 PORT（默认 8000）
+      - "${PORT:-8000}:${PORT:-8000}"
+    env_file:
+      # 变量在运行时注入，不进镜像层（.info: .env 在 .dockerignore 里）
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      # 探容器内部 127.0.0.1:8000/health，不是探宿主机
+      test: ["CMD", "python", "/app/healthcheck.py"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
