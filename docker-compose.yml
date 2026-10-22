@@ -6,8 +6,10 @@ services:
     image: industrial-ai:v0.1
     container_name: industrial-ai-api
     ports:
-      # 左边是宿主机端口，右边是容器端口；两边都吃 .env 里的 PORT（默认 8000）
-      - "${PORT:-8000}:${PORT:-8000}"
+      # 宿主机 8000 → 容器 8000。这里写死，是故意的：容器内监听端口由 .env 的 PORT
+      # 决定，把映射也交给 PORT 会让"写错 PORT"直接变成 compose 配置报错，
+      # 反而看不到容器里 uvicorn 启动失败的真实日志。
+      - "8000:8000"
     env_file:
       # 变量在运行时注入，不进镜像层（.info: .env 在 .dockerignore 里）
       - .env
