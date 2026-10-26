@@ -1,0 +1,258 @@
+{
+  "meta": {
+    "model": "buddy/glm-5.3",
+    "base_url": "http://127.0.0.1:8326/v1",
+    "runs": 6,
+    "prompt": "用三句话介绍杭州，每句不超过 30 字。"
+  },
+  "non_stream": [
+    {
+      "kind": "non-stream",
+      "ttft_ms": 3278,
+      "total_ms": 3278,
+      "chars": 76,
+      "chunks": 1,
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 46,
+        "total_tokens": 71
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "kind": "non-stream",
+      "ttft_ms": 2804,
+      "total_ms": 2804,
+      "chars": 111,
+      "chunks": 1,
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 72,
+        "total_tokens": 97
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "kind": "non-stream",
+      "ttft_ms": 3274,
+      "total_ms": 3274,
+      "chars": 95,
+      "chunks": 1,
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 60,
+        "total_tokens": 85
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "kind": "non-stream",
+      "ttft_ms": 2483,
+      "total_ms": 2483,
+      "chars": 91,
+      "chunks": 1,
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 64,
+        "total_tokens": 89
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "kind": "non-stream",
+      "ttft_ms": 4543,
+      "total_ms": 4543,
+      "chars": 106,
+      "chunks": 1,
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 69,
+        "total_tokens": 94
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "kind": "non-stream",
+      "ttft_ms": 2873,
+      "total_ms": 2873,
+      "chars": 95,
+      "chunks": 1,
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 58,
+        "total_tokens": 83
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "stream": [
+    {
+      "kind": "stream",
+      "ttft_ms": 1148,
+      "total_ms": 2243,
+      "chars": 57,
+      "chunks": 19,
+      "delta_count": 17,
+      "arrival_ms": [
+        1148,
+        1227,
+        1227,
+        1341,
+        1341,
+        1431,
+        1431,
+        1534,
+        1534,
+        2029
+      ],
+      "mean_gap_ms": 55.2,
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 37,
+        "total_tokens": 62
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "kind": "stream",
+      "ttft_ms": 1475,
+      "total_ms": 2623,
+      "chars": 88,
+      "chunks": 31,
+      "delta_count": 24,
+      "arrival_ms": [
+        1475,
+        1502,
+        1551,
+        1666,
+        1667,
+        1676,
+        1677,
+        1694,
+        1726,
+        1752
+      ],
+      "mean_gap_ms": 45.3,
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 75,
+        "total_tokens": 100
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "kind": "stream",
+      "ttft_ms": 1430,
+      "total_ms": 2576,
+      "chars": 81,
+      "chunks": 21,
+      "delta_count": 19,
+      "arrival_ms": [
+        1430,
+        1471,
+        1514,
+        1628,
+        1628,
+        1709,
+        1720,
+        1769,
+        1813,
+        1865
+      ],
+      "mean_gap_ms": 49.6,
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 54,
+        "total_tokens": 79
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "kind": "stream",
+      "ttft_ms": 1492,
+      "total_ms": 2990,
+      "chars": 117,
+      "chunks": 19,
+      "delta_count": 17,
+      "arrival_ms": [
+        1492,
+        1538,
+        1574,
+        1661,
+        1699,
+        1782,
+        1820,
+        1907,
+        1986,
+        2066
+      ],
+      "mean_gap_ms": 66.9,
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 75,
+        "total_tokens": 100
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "kind": "stream",
+      "ttft_ms": 2277,
+      "total_ms": 3461,
+      "chars": 104,
+      "chunks": 26,
+      "delta_count": 24,
+      "arrival_ms": [
+        2277,
+        2277,
+        2278,
+        2321,
+        2364,
+        2394,
+        2432,
+        2492,
+        2513,
+        2647
+      ],
+      "mean_gap_ms": 34.2,
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 68,
+        "total_tokens": 93
+      },
+      "finish_reason": "stop"
+    },
+    {
+      "kind": "stream",
+      "ttft_ms": 1581,
+      "total_ms": 5063,
+      "chars": 102,
+      "chunks": 40,
+      "delta_count": 38,
+      "arrival_ms": [
+        1581,
+        1581,
+        1581,
+        1582,
+        1786,
+        1807,
+        1827,
+        1833,
+        1845,
+        1860
+      ],
+      "mean_gap_ms": 88.5,
+      "usage": {
+        "prompt_tokens": 25,
+        "completion_tokens": 64,
+        "total_tokens": 89
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "summary": {
+    "non_stream_ttft_ms": 3209,
+    "stream_ttft_ms": 1567,
+    "non_stream_total_ms": 3209,
+    "stream_total_ms": 3159
+  }
+}

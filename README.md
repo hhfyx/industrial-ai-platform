@@ -234,6 +234,8 @@ fastapi、抽取器接受注入 client"的直接收益。
 ## 文档
 
 - [docs/api-spec.md](docs/api-spec.md) —— **v1 契约**，唯一不能动的文件
+- [docs/sse.md](docs/sse.md) —— SSE vs WebSocket vs 长轮询、双换行为什么是硬要求、
+  裸 SSE 的 flush 时机、TTFT 口径、网关故障记录
 - [docs/SETUP.md](docs/SETUP.md) —— 从零搭环境（Windows：uv / git / GitHub 连通性）
 - `learn/llm/01_params.md` —— 采样参数实测（temperature / seed / max_tokens / stop）
 - `learn/llm/02_function_calling.md` —— Function Calling 实测与网关踩坑
