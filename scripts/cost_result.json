@@ -1,0 +1,147 @@
+{
+  "meta": {
+    "model": "buddy/glm-5.3",
+    "base_url": "http://127.0.0.1:8326/v1",
+    "runs_per_sample": 2,
+    "input_price_cny_per_million": 2.0,
+    "output_price_cny_per_million": 8.0,
+    "per_n_calls": 1000,
+    "note": "单价为示例锚点，非任何具体供应商报价"
+  },
+  "usage": [
+    {
+      "sample": "短文本",
+      "text_chars": 22,
+      "field_count": 2,
+      "prompt_tokens": 171,
+      "completion_tokens": 27,
+      "total_tokens": 198,
+      "used_prompt_builder": true
+    },
+    {
+      "sample": "标准合同",
+      "text_chars": 109,
+      "field_count": 4,
+      "prompt_tokens": 227,
+      "completion_tokens": 89,
+      "total_tokens": 316,
+      "used_prompt_builder": true
+    },
+    {
+      "sample": "长合同",
+      "text_chars": 2636,
+      "field_count": 6,
+      "prompt_tokens": 1918,
+      "completion_tokens": 78,
+      "total_tokens": 1996,
+      "used_prompt_builder": true
+    }
+  ],
+  "latency": [
+    {
+      "sample": "短文本",
+      "run": 1,
+      "text_chars": 22,
+      "field_count": 2,
+      "prompt_chars": 222,
+      "completion_chars": 53,
+      "filled": 2,
+      "elapsed_ms": 1612,
+      "model": "buddy/glm-5.3"
+    },
+    {
+      "sample": "短文本",
+      "run": 2,
+      "text_chars": 22,
+      "field_count": 2,
+      "prompt_chars": 222,
+      "completion_chars": 53,
+      "filled": 2,
+      "elapsed_ms": 1919,
+      "model": "buddy/glm-5.3"
+    },
+    {
+      "sample": "标准合同",
+      "run": 1,
+      "text_chars": 109,
+      "field_count": 4,
+      "prompt_chars": 309,
+      "completion_chars": 82,
+      "filled": 4,
+      "elapsed_ms": 2211,
+      "model": "buddy/glm-5.3"
+    },
+    {
+      "sample": "标准合同",
+      "run": 2,
+      "text_chars": 109,
+      "field_count": 4,
+      "prompt_chars": 309,
+      "completion_chars": 82,
+      "filled": 4,
+      "elapsed_ms": 2944,
+      "model": "buddy/glm-5.3"
+    },
+    {
+      "sample": "长合同",
+      "run": 1,
+      "text_chars": 2636,
+      "field_count": 6,
+      "prompt_chars": 2836,
+      "completion_chars": 117,
+      "filled": 6,
+      "elapsed_ms": 2560,
+      "model": "buddy/glm-5.3"
+    },
+    {
+      "sample": "长合同",
+      "run": 2,
+      "text_chars": 2636,
+      "field_count": 6,
+      "prompt_chars": 2836,
+      "completion_chars": 117,
+      "filled": 6,
+      "elapsed_ms": 2068,
+      "model": "buddy/glm-5.3"
+    }
+  ],
+  "cost_table": [
+    {
+      "sample": "短文本",
+      "text_chars": 22,
+      "field_count": 2,
+      "prompt_tokens": 171,
+      "completion_tokens": 27,
+      "total_tokens": 198,
+      "used_prompt_builder": true,
+      "cost_per_call_cny": 0.000558,
+      "cost_per_1000_cny": 0.558
+    },
+    {
+      "sample": "标准合同",
+      "text_chars": 109,
+      "field_count": 4,
+      "prompt_tokens": 227,
+      "completion_tokens": 89,
+      "total_tokens": 316,
+      "used_prompt_builder": true,
+      "cost_per_call_cny": 0.001166,
+      "cost_per_1000_cny": 1.166
+    },
+    {
+      "sample": "长合同",
+      "text_chars": 2636,
+      "field_count": 6,
+      "prompt_tokens": 1918,
+      "completion_tokens": 78,
+      "total_tokens": 1996,
+      "used_prompt_builder": true,
+      "cost_per_call_cny": 0.00446,
+      "cost_per_1000_cny": 4.46
+    }
+  ],
+  "summary": {
+    "mean_tokens_per_call": 836.7,
+    "mean_cost_per_1000_cny": 2.0613
+  }
+}

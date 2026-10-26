@@ -1,175 +1,242 @@
 # industrial-ai-platform
 
-Industrial AI platform backend, built with FastAPI and managed by [uv](https://docs.astral.sh/uv/).
+**一个用 FastAPI + LLM 做结构化信息抽取的后端平台。**
 
-## Requirements
+重点不在"调通一个接口"，而在**接口不变、实现可换**：同一份 `v1` HTTP 契约，
+底下从正则实现换成了真实的模型调用，`tests/test_api.py` 一行未改、95 个测试仍全绿。
 
-- Python 3.11+
-- [uv](https://docs.astral.sh/uv/getting-started/installation/)
-- Docker Desktop（可选：只有跑容器时才需要，见 [Docker](#docker)）
+| 项目 | 值 |
+| --- | --- |
+| 端点 | `POST /api/v1/extract` |
+| 契约版本 | `v1`（响应头 `X-API-Contract: v1`，见 [docs/api-spec.md](docs/api-spec.md)） |
+| 测试 | **95 passed**，`pytest --cov=app` |
+| 代码量 | 31 个 py 文件 / 约 3,100 行（`app/` + `scripts/` + `tests/`） |
+| 镜像 | 多阶段构建，**157 MB** |
+| 运行时 | Python 3.11 + uvicorn，非 root（uid 10001） |
 
-From-scratch environment setup (Windows: uv, git, GitHub connectivity) is documented in
-**[docs/SETUP.md](docs/SETUP.md)**.
+---
 
-The frozen HTTP contract for the extraction API lives in **[docs/api-spec.md](docs/api-spec.md)**.
+## 这个项目解决什么
 
-## Setup
+把一段非结构化文本（合同、工单、简历）按调用方指定的字段抽成结构化数据：
 
-```powershell
-uv sync
+```http
+POST /api/v1/extract
+{"text": "合同编号：HT-2026-001，甲方：张三，签订日期：2026-10-20", "fields": ["合同编号", "甲方"]}
 ```
 
-`uv sync` creates `.venv` and installs both runtime and dev dependencies.
-
-## Run
-
-```powershell
-uv run uvicorn app.main:app --reload
+```json
+{"request_id": "…", "data": {"合同编号": "HT-2026-001", "甲方": "张三"}, "confidence": 1.0, "elapsed_ms": 101}
 ```
 
-Then open:
+三个设计取向值得先说清楚：
 
-- Swagger UI: <http://127.0.0.1:8000/docs>
-- Health check: <http://127.0.0.1:8000/health>
+1. **抽不到就是 `null`，永不编造。** 不猜、不补全。这条不只写在 prompt 里，
+   `LlmExtractor._ground_value` 会做**原文回指校验**：模型给出的值必须在正文里能找到依据，
+   否则丢弃为 `null`。prompt 拦不住幻觉，代码能。
+2. **所有非 2xx 是同一个 4 字段形状**（`code` / `message` / `request_id` / `details`）。
+   调用方写一次错误处理就能覆盖 400/422/500。
+3. **实现可换，契约冻死。** `docs/api-spec.md` 是唯一不能动的东西，
+   规则版 → LLM 版是一次真实演进，不是重写。
 
-## Verify
+---
+
+## 架构
+
+```
+                    ┌──────────────────────────────────────────┐
+   HTTP 请求  ──────▶│  app/api/v1/extract.py      路由（只做三件事）│
+                    │    解析入参 / 调服务 / 包统一响应             │
+                    └───────────────┬──────────────────────────┘
+                                    │  ExtractorDep（依赖注入，这里换实现）
+                    ┌───────────────▼──────────────────────────┐
+                    │  app/core/deps.py           装配开关       │
+                    │    EXTRACTOR_IMPL=llm|rule  一键回退       │
+                    └───────────────┬──────────────────────────┘
+                    ┌───────────────▼──────────────────────────┐
+                    │  app/services/              服务层（无 fastapi）│
+                    │    llm_extractor.py  LlmExtractor  ◀ 默认 │
+                    │    extractor.py      RuleExtractor  ◀ 兜底│
+                    └───────────────┬──────────────────────────┘
+                    ┌───────────────▼──────────────────────────┐
+                    │  app/core/llm/            接入层           │
+                    │    client.py    get_llm_client() 进程级单例│
+                    │    tools.py     Function Calling 工具注册表│
+                    │    tool_loop.py 单/多轮闭环                │
+                    └──────────────────────────────────────────┘
+```
+
+跨层规则：**服务层不 import fastapi**。依赖注入是路由层的事，
+`LlmExtractor` 只接受一个 `AsyncOpenAI` 实例，所以测试里能直接塞假 client。
+
+---
+
+## 快速开始
+
+```powershell
+uv sync                                   # 创建 .venv 并装依赖
+Copy-Item .env.example .env               # 然后填 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL
+uv run uvicorn app.main:app --reload      # http://127.0.0.1:8000/docs
+```
+
+`.env` 里 5 个必需变量：
+
+| 变量 | 说明 |
+| --- | --- |
+| `LLM_API_KEY` | 必填；空字符串会被启动校验拦下（比留空跑到 401 好） |
+| `LLM_BASE_URL` | OpenAI 兼容端点，含 `/v1`；换供应商只改这一行 |
+| `LLM_MODEL` | 模型名（**必须支持 `role=tool` 消息**，见下文「踩过的坑」） |
+| `LLM_TIMEOUT` | 单次 HTTP 往返超时（秒） |
+| `LLM_MAX_RETRIES` | SDK 内部重试，`0–5`；整体最坏耗时 ≈ `timeout × (1+max_retries)` |
+
+验证：
 
 ```powershell
 curl.exe http://127.0.0.1:8000/health
-```
+# {"status":"ok"}
 
-Expected output:
-
-```json
-{"status":"ok"}
-```
-
-Extraction endpoint:
-
-```powershell
 curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
   -H "Content-Type: application/json" `
-  --data-binary "@body.json"     # {"text":"合同编号：HT-2026-001，甲方：张三","fields":["合同编号","甲方"]}
+  --data-binary "@body.json"
 ```
 
-Expected output:
+> Windows 上必须用 `curl.exe`（PowerShell 的 `curl` 是 `Invoke-WebRequest` 别名），
+> 且 JSON 用 `--data-binary "@file"` 传，行内引号会被 PowerShell 吃掉。
 
-```json
-{"request_id":"…","data":{"合同编号":"HT-2026-001","甲方":"张三"},"confidence":1.0,"elapsed_ms":101}
+---
+
+## LLM 接入：三个可验证的结论
+
+这一块不是"能调通"，而是每条都有实测数据支撑。完整记录在
+[`learn/llm/`](../learn/llm/)。
+
+### 1. `temperature=0` 不等于「每次都一样」
+
+同一 prompt、`temp=0` 跑 5 次，出了 **3 种**不同输出（差异只落在末句一个词上）。
+`seed` 在本机网关上实测**不可复现**：`temp=0 + seed=42` 五次仍出 3 种，
+且换 `seed` 有时完全相同、有时不同。
+
+**所以确定性要自己实现**（缓存 / 校验 / 一致性投票），不能指望参数。
+对我们的直接影响：**测试里不能断言"模型输出了某个具体字符串"**，
+只能断言"字段合法、契约成立"。
+
+### 2. `finish_reason` 才是截断的唯一判据
+
+`max_tokens` 设小时，内容可能停在句号之后、肉眼看像完整句子，但
+`finish_reason == "length"` 说明它是被硬砍的。只看长度会误判。
+
+顺带一个坑：推理模型默认开启时，思维链会吃光 `max_tokens`，`content` 返回 `null`。
+接入层必须把 `content is None` **当失败**处理，不能 `or ""` 静默成空串 ——
+空串会被下游当成"模型说没有"，那是语义错误。
+
+### 3. Function Calling 不是模型执行函数
+
+模型只输出 `tool_calls`（工具名 + 参数 JSON），**执行 100% 在我们这侧**。
+`TOOL_REGISTRY[name](**args)` 是我们自己的 Python 在跑。
+
+这个边界决定了一切安全设计：模型会幻觉出不存在的工具名（实测 `send_email`），
+会给出类型错的参数，所以 `execute_tool` 的铁律是**任何输入都不抛异常**，
+失败也返回结构化数据回灌，让模型下一轮自愈。
+
+工具层还包含：`get_weather`（假数据）、`calculate`（四则运算），
+以及并行 `tool_calls` 的按 id 配对回灌、3 轮上限（防无限计费）。
+
+### 成本
+
+基于**真实 usage** 测算（脚本 `scripts/cost_report.py`，单价可配置）：
+
+| 样本 | tokens/次 | 每 1000 次（示例单价） |
+| --- | --- | --- |
+| 短文本（22 字 / 2 字段） | 198 | 0.56 元 |
+| 标准合同（109 字 / 4 字段） | 316 | 1.17 元 |
+| 长合同（2,636 字 / 6 字段） | 1,996 | 4.46 元 |
+
+> 单价取"输入 2 元 / 输出 8 元每百万 token"作为示例锚点，**不是任何供应商报价**。
+> 关键结论是成本结构：**输出单价通常是输入的 3–5 倍**，
+> 所以「少让模型说话」比「少喂正文」更省。
+
+---
+
+## 契约冻住了吗？—— 这是最硬的证据
+
+项目里最重要的一条测试在 `tests/test_api.py`：
+
+```python
+def test_service_is_swappable_without_touching_the_route(...):
+    """换掉抽取实现，路由与响应形状完全不变。"""
 ```
 
-> Windows curl notes: use `curl.exe` (not `curl`), and pass JSON via `--data-binary "@file"` —
-> PowerShell mangles inline JSON quotes. See `docs/SETUP.md` for details.
+W2 做完之后：
 
-> On Windows PowerShell, `curl` is an alias for `Invoke-WebRequest`. Always use `curl.exe` to get real curl behaviour.
+| 断言 | 状态 |
+| --- | --- |
+| `tests/test_api.py` 一行未改 | ✅ |
+| 全套 95 个测试仍全绿 | ✅ 95 passed |
+| 响应体仍是 4 字段 | ✅ 实测 `X-Extract-Model: buddy/glm-5.3` |
+| 规则版仍可用 | ✅ `EXTRACTOR_IMPL=rule` 一键回退 |
+
+回退开关为什么用环境变量而不是代码开关：**应急时它必须能被最快改掉**。
+改代码要过评审、构建、发版，那段时间线上一直在 500。
+
+---
+
+## 踩过的坑（都是实测，不是传闻）
+
+| 坑 | 现象 | 结论 |
+| --- | --- | --- |
+| 某些模型不支持 tool 回灌 | 第二轮 502 `UNSUPPORTED_CONTENT` | 能返回 `tool_calls` **≠** 支持 Function Calling；能力是**双向**的 |
+| `exc.body` 已被 SDK 剥壳 | `body["error"]["code"]` 恒为 `None` | 直接读 `body["code"]`，并兜底两种形态 |
+| 推理模式吃光 `max_tokens` | `content=None`、`usage` 却正常 | 接入层必须把 `None` 当失败 |
+| Windows 控制台 GBK | 中文输出乱码/崩 | 脚本内 `reconfigure(encoding="utf-8")` + `-X utf8` |
+| msys `sh` 读不懂 GBK 路径 | pre-commit hook 找不到 python | 重装 hook 时置 `PYTHONUTF8=1` |
+
+> 最该记住的一条：**接入任何新模型，第一件事是跑一遍两轮闭环**，
+> 而不是验"能不能返回 tool_calls"。后者的通过率远高于前者。
+
+---
 
 ## Docker
 
-三阶段构建 → 单容器跑 API → compose 起停 → 容器内探针。镜像里没有 uv、没有 tests、没有 `.git`，进程以 uid 10001 运行，**实测 157 MB**。
-
-### 架构
-
-```mermaid
-flowchart LR
-    subgraph Host["宿主机 · Docker Desktop (WSL2 backend)"]
-        C["curl.exe / 浏览器"] -->|"localhost:8000"| M["端口映射 8000:8000"]
-    end
-    subgraph Container["容器 industrial-ai:v0.1"]
-        M --> U["uvicorn app.main:app<br/>--host 0.0.0.0 --port 8000<br/>uid 10001（非 root）"]
-        U --> R["FastAPI 路由<br/>GET /health<br/>POST /api/v1/extract"]
-        H["healthcheck.py<br/>GET 127.0.0.1:8000/health"] -.探活.-> U
-    end
-    B["builder<br/>python:3.11-slim + uv<br/>uv sync --frozen --no-dev<br/>strip 符号表"] -->|"只 COPY .venv 与 app/"| RT["runtime<br/>FROM scratch + 拷入已瘦身的 rootfs"]
-    SB["slim-base<br/>python:3.11-slim<br/>删 pip/perl/apt/文档"] -->|"COPY / /"| RT
-    RT -.产出.-> Container
-```
-
-```text
-builder（装依赖 + strip，装完即弃）          slim-base（删掉运行时用不到的包）
-python:3.11-slim                             python:3.11-slim
-  ├─ pip install uv                            ├─ rm pip/setuptools/ensurepip
-  ├─ uv sync --frozen --no-dev                 ├─ rm idlelib/distutils/tkinter/test
-  └─ strip --strip-unneeded *.so               ├─ rm apt/perl 全家桶、docs/locale
-                                               └─ useradd uid=10001
-                    ↓ COPY（只拷产物）                    ↓ COPY / /（整个文件系统）
-              runtime：FROM scratch
-                ├─ /app/.venv         ← 剥过符号表的依赖
-                ├─ /app/app           ← 源码
-                ├─ /app/healthcheck.py
-                └─ USER 10001，CMD uvicorn（无 --reload）
-```
-
-### 瘦身账本（实测）
-
-| 阶段 | 体积 | 关键动作 |
-| --- | --- | --- |
-| 朴素双阶段 | **242 MB** | venv 43 MB（含 uvloop 12 MB 调试符号 + 编译好的 .pyc） |
-| strip + 删基础镜像冗余包 | **211 MB** | 只降了 venv 的 27 MB；在 base 之上 `rm` **几乎没效果** |
-| 重打包 rootfs（squash） | **157 MB** | 从 `scratch` 接住删干净的整个文件系统 |
-
-> 为什么第二步「删了 20 MB 却一动不动」：镜像体积是**各层之和**。在 `python:3.11-slim` 之上再写一层 `RUN rm`，被删文件仍然躺在下面那层里，`docker images` 不会少一个字节。要真降下来，得把删干净的文件系统 `COPY` 成新的一层（本仓库的 `slim-base → scratch` 就是干这个）。
->
-> 代价：单层镜像的增量拉取粒度变粗；容器里已经没有 apt/pip/perl，需要排查时请用宿主机的同名镜像或临时起一个带工具的调试容器。
-
-### 快速开始
+三个阶段构建（builder → slim-base → scratch 拉入瘦身 rootfs），最终 **157 MB**、
+非 root、镜像内没有 uv / tests / `.git`。
 
 ```powershell
-cp .env.example .env          # 首次：运行时配置，.env 不入库、不进镜像
-docker compose up --build -d  # 构建 + 后台启动
-curl.exe http://localhost:8000/health
-docker compose down
+docker compose up -d --build
+docker compose logs -f api
 ```
 
-Expected: `{"status":"ok"}`
+容器内的坑：
 
-### 验收结果（2026-10-22 本机实测）
+- **容器里的 `127.0.0.1` ≠ 宿主机**，所以 uvicorn 必须 `--host 0.0.0.0`；
+  健康检查故意打容器内 `127.0.0.1` —— 它要判断"容器里的进程活没活"。
+- 把 `.env` 的 `PORT=8000` 改成 `PORT=abc`，容器会进入 `Restarting` 循环，
+  日志里是 `Invalid value for '--port'`。这个错误发生在**容器里**而不是 compose 解析期，是有意设计的。
+- `.env` 同时被 `.gitignore` 和 `.dockerignore` 排除，不会烤进镜像层。
 
-| 检查项 | 命令 | 实测 |
-| --- | --- | --- |
-| 镜像体积 | `docker images industrial-ai:v0.1 --format "{{.Size}}"` | `157MB`（< 200 MB ✅） |
-| 非 root | `docker compose exec api id -u` | `10001` ✅ |
-| 健康探针 | `docker inspect --format "{{.State.Health.Status}}" industrial-ai-api` | `healthy` ✅ |
-| 契约接口 | `curl.exe -s -X POST http://localhost:8000/api/v1/extract ...` | `200` + `{"data":{"合同编号":"HT-2026-001","甲方":"张三"},...}` ✅ |
+---
 
-### 排错
+## 开发
 
 ```powershell
-docker compose logs -f api   # 跟日志（UNBUFFERED=1，stdout 直连）
-docker compose ps            # 状态 / 健康 / 重启次数
-docker compose down          # 停并删容器
+uv run ruff check .         # lint
+uv run ruff format .        # format
+uv run pytest --cov=app     # 95 tests + coverage
+uv run pre-commit install   # 装 git hooks（clone 后跑一次）
 ```
 
-- **容器内的 `127.0.0.1` ≠ 宿主机**：容器里 `127.0.0.1` 是容器自己的回环网卡，所以 uvicorn 必须 `--host 0.0.0.0`，否则宿主机 `localhost:8000` 连不上；而容器内 `127.0.0.1:8000/health` 照样是通的。健康检查故意打容器内 `127.0.0.1` —— 它要知道「容器里的进程活没活」，而不是「宿主机能不能连」。
-- **故意写错一个环境变量**：把 `.env` 的 `PORT=8000` 改成 `PORT=abc`，`docker compose up -d` 之后容器会进入 `Restarting` 循环（`restart: unless-stopped` 在拉它），日志里是：
+CI 在 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)：
+Python 3.11 → `uv sync` → `ruff check` → `ruff format --check` → `pytest`。
+**不需要真实 API key** —— 所有测试都用假 client 离线跑，这正是"服务层不依赖
+fastapi、抽取器接受注入 client"的直接收益。
 
-  ```text
-  Error: Invalid value for '--port': 'abc' is not a valid integer.
-  ```
+---
 
-  改回 `8000` 再 `up -d` 即恢复。宿主机端口映射固定成 `8000:8000`，就是为了让这个错误发生在**容器里**，而不是变成 compose 的配置解析报错。
-- **配置只在运行时注入**：`.env` 同时被 `.gitignore` 和 `.dockerignore` 排除，不会烤进镜像层。
+## 文档
 
-### 环境记录
-
-- 构建机：Windows 11 + Docker Desktop（WSL2 backend，client/server `29.9.2`），`python:3.11-slim` 基础镜像本身 **187 MB**（Debian trixie）。
-- 本机位于受限网络，`registry-1.docker.io` / `auth.docker.io` 直连不通：拉不动镜像时给 Docker Desktop 配代理（Settings → Resources → Proxies → Manual，填本机 `127.0.0.1:7897`）再 `docker pull`。
-- 初次部署需要 `cp .env.example .env`；`.env` 已被忽略，CI 里请用 secrets 注入。
-
-## Development
-
-```powershell
-uv run ruff check .        # lint
-uv run ruff format .       # format
-uv run pytest --cov=app    # tests + coverage
-uv run pre-commit install  # enable git hooks (run once after git init)
-```
-
-## Contract stability
-
-`POST /api/v1/extract` is **v1-frozen**. The rule-based extractor in
-`app/services/extractor.py` is a placeholder: W2 swaps it for an LLM implementation behind the
-same `async extract(text, fields)` signature, and `tests/test_api.py` must stay green **unchanged**.
-That test file is the executable form of `docs/api-spec.md`.
+- [docs/api-spec.md](docs/api-spec.md) —— **v1 契约**，唯一不能动的文件
+- [docs/SETUP.md](docs/SETUP.md) —— 从零搭环境（Windows：uv / git / GitHub 连通性）
+- `learn/llm/01_params.md` —— 采样参数实测（temperature / seed / max_tokens / stop）
+- `learn/llm/02_function_calling.md` —— Function Calling 实测与网关踩坑
 
 ## License
 

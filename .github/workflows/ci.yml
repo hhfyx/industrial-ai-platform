@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Format check
+        run: uv run ruff format --check .
+
+      - name: Tests
+        # 不需要 LLM_API_KEY:所有测试都用假 client 离线跑。
+        # 这正是"服务层不 import fastapi、抽取器接受注入 client"的收益。
+        env:
+          EXTRACTOR_IMPL: rule
+        run: uv run pytest --cov=app --cov-report=term-missing -q
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t industrial-ai:ci .
+
+      - name: Smoke test container
+        run: |
+          docker run -d --name api -p 8000:8000 \
+            -e LLM_API_KEY=sk-ci-placeholder \
+            -e EXTRACTOR_IMPL=rule \
+            industrial-ai:ci
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8000/health; then exit 0; fi
+            sleep 2
+          done
+          echo "health check failed"; docker logs api; exit 1
