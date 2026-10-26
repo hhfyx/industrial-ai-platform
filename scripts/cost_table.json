@@ -1,0 +1,71 @@
+{
+  "meta": {
+    "input_price": 2.0,
+    "output_price": 8.0,
+    "success_rate": 0.95,
+    "max_attempts": 3,
+    "round_trip_ms": 3000
+  },
+  "rows": [
+    {
+      "name": "短文本",
+      "note": "22 字正文 / 2 字段",
+      "input_tokens": 171,
+      "output_tokens": 27,
+      "single_cost": 0.000558,
+      "input_share": 0.6129032258064516,
+      "expected_attempts": 1.0525,
+      "retry_overhead_pct": 5.249999999999999,
+      "expected_cost": 0.000587295,
+      "per_1k": 0.587295,
+      "per_10k": 5.87295,
+      "per_100k": 58.7295,
+      "worst_latency_ms": 9000
+    },
+    {
+      "name": "标准合同",
+      "note": "109 字正文 / 4 字段",
+      "input_tokens": 227,
+      "output_tokens": 89,
+      "single_cost": 0.001166,
+      "input_share": 0.3893653516295026,
+      "expected_attempts": 1.0525,
+      "retry_overhead_pct": 5.249999999999999,
+      "expected_cost": 0.0012272149999999998,
+      "per_1k": 1.2272149999999997,
+      "per_10k": 12.272149999999998,
+      "per_100k": 122.72149999999998,
+      "worst_latency_ms": 9000
+    },
+    {
+      "name": "长合同",
+      "note": "2636 字正文 / 6 字段",
+      "input_tokens": 1918,
+      "output_tokens": 78,
+      "single_cost": 0.00446,
+      "input_share": 0.8600896860986547,
+      "expected_attempts": 1.0525,
+      "retry_overhead_pct": 5.249999999999999,
+      "expected_cost": 0.00469415,
+      "per_1k": 4.6941500000000005,
+      "per_10k": 46.941500000000005,
+      "per_100k": 469.415,
+      "worst_latency_ms": 9000
+    },
+    {
+      "name": "推理模型·长合同",
+      "note": "思维链计入 completion",
+      "input_tokens": 1918,
+      "output_tokens": 400,
+      "single_cost": 0.007036000000000001,
+      "input_share": 0.5451961341671404,
+      "expected_attempts": 1.0525,
+      "retry_overhead_pct": 5.249999999999999,
+      "expected_cost": 0.00740539,
+      "per_1k": 7.405390000000001,
+      "per_10k": 74.0539,
+      "per_100k": 740.539,
+      "worst_latency_ms": 9000
+    }
+  ]
+}

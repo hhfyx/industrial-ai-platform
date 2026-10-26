@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "model": "buddy/glm-5.3",
+    "base_url": "http://127.0.0.1:8326/v1",
+    "encoding": "cl100k_base"
+  },
+  "density": [
+    {
+      "label": "中文",
+      "chars": 176,
+      "tiktoken_estimate": 177,
+      "real_prompt_tokens": 119,
+      "tiktoken_vs_real_ratio": 1.487,
+      "tokens_per_char": 0.676,
+      "real_usage": {
+        "prompt_tokens": 119,
+        "completion_tokens": 16,
+        "total_tokens": 135,
+        "reasoning_tokens": 15
+      }
+    },
+    {
+      "label": "英文",
+      "chars": 395,
+      "tiktoken_estimate": 108,
+      "real_prompt_tokens": 120,
+      "tiktoken_vs_real_ratio": 0.9,
+      "tokens_per_char": 0.304,
+      "real_usage": {
+        "prompt_tokens": 120,
+        "completion_tokens": 16,
+        "total_tokens": 136,
+        "reasoning_tokens": 16
+      }
+    },
+    {
+      "label": "代码",
+      "chars": 367,
+      "tiktoken_estimate": 93,
+      "real_prompt_tokens": 105,
+      "tiktoken_vs_real_ratio": 0.886,
+      "tokens_per_char": 0.286,
+      "real_usage": {
+        "prompt_tokens": 105,
+        "completion_tokens": 16,
+        "total_tokens": 121,
+        "reasoning_tokens": 14
+      }
+    }
+  ],
+  "reasoning_overhead": {
+    "关推理": {
+      "prompt_tokens": 21,
+      "completion_tokens": 55,
+      "reasoning_tokens": 0,
+      "content_chars": 111
+    },
+    "开推理": {
+      "prompt_tokens": 21,
+      "completion_tokens": 49,
+      "reasoning_tokens": 0,
+      "content_chars": 89
+    }
+  }
+}

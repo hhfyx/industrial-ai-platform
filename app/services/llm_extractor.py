@@ -39,6 +39,7 @@ from typing import Any, Final
 
 from openai import AsyncOpenAI
 
+from app.core.llm.retry import RetryPolicy, with_retry
 from app.services.extractor import (
     ExtractionOutput,
     RuleExtractor,
@@ -86,6 +87,7 @@ class LlmExtractor:
         max_tokens: int = DEFAULT_MAX_TOKENS,
         fallback: RuleExtractor | None = None,
         extra_request: dict[str, Any] | None = None,
+        retry_policy: RetryPolicy | None = None,
     ) -> None:
         self._client = client
         self._model = model
@@ -96,6 +98,10 @@ class LlmExtractor:
         # 网关特性（如本机网关的 reasoning_effort="none"）从这里注入，
         # 不写死在请求里 —— 换云端时这个 dict 应该是空的。
         self._extra_request = extra_request or {}
+        # 重试策略。**默认关**（max_attempts=1），因为降级到规则版已经在
+        # "失败"这条路上兜住了：再多试 2 次只会让用户多等几秒，而规则版几乎总能给出结果。
+        # 需要"宁可多等也要模型结果"的场景（如 confidence 要求高）可以显式打开。
+        self._retry_policy = retry_policy or RetryPolicy(max_attempts=1)
 
     @property
     def model_name(self) -> str:
@@ -112,15 +118,22 @@ class LlmExtractor:
         start = time.perf_counter()
 
         try:
-            response = await self._client.chat.completions.create(
-                model=self._model,
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": self._build_user_prompt(text, fields)},
-                ],
-                temperature=self._temperature,
-                max_tokens=self._max_tokens,
-                **self._extra_request,
+            # 走 `with_retry`：429/5xx/超时由它按指数退避+抖动重试，
+            # 4xx 立刻抛出（凭证错了多试几次只是多烧钱）。
+            # 重试次数用尽后抛 `RetryExhaustedError`，被下面的 except 接住并降级。
+            response = await with_retry(
+                lambda: self._client.chat.completions.create(
+                    model=self._model,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": self._build_user_prompt(text, fields)},
+                    ],
+                    temperature=self._temperature,
+                    max_tokens=self._max_tokens,
+                    **self._extra_request,
+                ),
+                policy=self._retry_policy,
+                label="extract",
             )
             payload = self._parse_payload(response.choices[0].message.content)
             raw_data = self._coerce_mapping(payload, fields)

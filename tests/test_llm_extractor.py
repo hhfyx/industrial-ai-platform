@@ -187,18 +187,26 @@ async def test_null_strings_are_normalized_to_none() -> None:
 # ============================================================ 4. 降级
 @pytest.mark.anyio
 @pytest.mark.parametrize(
-    "exc",
+    ("exc", "expect_wrapped"),
     [
-        TimeoutError("超时"),
-        RuntimeError("401 unauthorized"),
-        ValueError("rate limited"),
+        (TimeoutError("超时"), True),
+        (RuntimeError("401 unauthorized"), False),
+        (ValueError("rate limited"), False),
     ],
     ids=["timeout", "auth", "rate-limit"],
 )
-async def test_any_llm_failure_falls_back_to_rule_extractor(exc: BaseException) -> None:
+async def test_any_llm_failure_falls_back_to_rule_extractor(
+    exc: BaseException, expect_wrapped: bool
+) -> None:
     """**任何 LLM 侧失败都降级**，不返回 500 —— 用户要的是结果，不是错误码。
 
     降级后的 `model` 必须带 `+fallback(原因)`：这是排查降级频率的唯一入口。
+
+    **接入 `with_retry` 之后语义有一个真实变化**：
+    - 可重试的异常（超时/连接/429/5xx）会被包装成 `RetryExhaustedError`，
+      所以 `model` 里出现的是 `RetryExhaustedError` 而不是原始的 `TimeoutError`。
+      这**对排查更好**：它直接告诉你"这是重试之后仍然失败"，而不是"偶发一次失败"。
+    - 不可重试的异常（RuntimeError / ValueError）原样抛出，`model` 里是原始类型名。
     """
     client = FakeClient(exc=exc)
     output = await _extractor(client).extract(text=CONTRACT_TEXT, fields=["合同编号", "甲方"])
@@ -208,7 +216,11 @@ async def test_any_llm_failure_falls_back_to_rule_extractor(exc: BaseException) 
     assert output.data["甲方"] == "张三"
     assert output.confidence == 1.0
     assert "+fallback(" in output.model
-    assert type(exc).__name__ in output.model
+
+    if expect_wrapped:
+        assert "RetryExhaustedError" in output.model, output.model
+    else:
+        assert type(exc).__name__ in output.model, output.model
 
 
 @pytest.mark.anyio
