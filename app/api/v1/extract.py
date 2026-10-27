@@ -29,12 +29,19 @@ ERROR_RESPONSES = {
 @router.post(
     "/extract",
     response_model=ExtractResult,
+    # **可选字段 `degraded` 的落地方式**：值为 None 时整键不输出。
+    # 这是 FastAPI 自己的机制（不是 pydantic 的 `ser_json_exclude_none`，
+    # 后者只影响 `model_dump_json()`，对 FastAPI 的响应序列化无效 —— 实测过）。
+    # 效果：正常结果仍是 4 字段（老客户端零影响），降级结果才多一个 `degraded: true`。
+    response_model_exclude_none=True,
     status_code=status.HTTP_200_OK,
     summary="从正文中抽取指定字段",
     description=(
         "按 `fields` 顺序抽取，返回 `data` 的键与请求完全一致；抽不到的字段为 `null`，"
         "整体置信度随之下降（不会报错）。\n\n"
-        "**契约见 `docs/api-spec.md`，v1 冻结**：实现（规则版 → W2 的 LLM）可换，契约不变。\n\n"
+        "**契约见 `docs/api-spec.md`，v1 冻结**：实现（规则版 → LLM）可换，契约不变。\n\n"
+        "**可选字段 `degraded`**：仅当本次结果由兜底实现（规则版）产出时出现，值为 `true`。"
+        "正常结果里没有这个键，按 4 字段解析的客户端不受影响。\n\n"
         "错误形状统一为 `{code, message, request_id, details}`；"
         "400 = JSON 都没解析出来，422 = 解析成功但字段不合规。"
     ),
@@ -48,8 +55,8 @@ async def extract_fields(
 ) -> ExtractResult:
     """抽取入口。
 
-    唯一的业务动作是一次 `await extractor.extract(...)` —— 它内部有 100ms 的异步延迟，
-    真实系统里那是模型调用的往返时间，这里让 async 语义提前成立。
+    唯一的业务动作是一次 `await extractor.extract(...)`。实现可能是规则版或 LLM 版，
+    路由**不需要知道是哪个** —— 那是 `deps.get_extractor` 的事。
 
     异常不在这里接：服务层抛什么就走全局 handler（`errors.py`），
     路由里写 try/except 会把"统一错误体"的责任从一处扩散到每一条路由。
@@ -67,6 +74,8 @@ async def extract_fields(
         data=output.data,
         confidence=output.confidence,
         elapsed_ms=output.elapsed_ms,
+        # 只有降级时才传 True；正常时保持 None，配合 exclude_none 不进 JSON
+        degraded=True if output.degraded else None,
     )
 
 

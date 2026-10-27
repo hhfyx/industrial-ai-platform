@@ -1,0 +1,228 @@
+{
+  "meta": {
+    "price_in": 2.0,
+    "price_out": 8.0,
+    "per_n": 1000
+  },
+  "scenarios": [
+    {
+      "profile": "短文本(2 字段)",
+      "scenario": "一次成功",
+      "attempts": 1,
+      "correction_rounds": 0,
+      "cost_per_call": 0.000558,
+      "cost_per_1000": 0.558,
+      "input_tokens": 171,
+      "output_tokens": 27,
+      "total_tokens": 198,
+      "degraded": false
+    },
+    {
+      "profile": "短文本(2 字段)",
+      "scenario": "1 次校验回灌后成功",
+      "attempts": 1,
+      "correction_rounds": 1,
+      "cost_per_call": 0.0014360000000000002,
+      "cost_per_1000": 1.4360000000000002,
+      "input_tokens": 171,
+      "output_tokens": 27,
+      "total_tokens": 556,
+      "degraded": false
+    },
+    {
+      "profile": "短文本(2 字段)",
+      "scenario": "2 次校验回灌后成功",
+      "attempts": 1,
+      "correction_rounds": 2,
+      "cost_per_call": 0.002314,
+      "cost_per_1000": 2.314,
+      "input_tokens": 171,
+      "output_tokens": 27,
+      "total_tokens": 914,
+      "degraded": false
+    },
+    {
+      "profile": "短文本(2 字段)",
+      "scenario": "1 次 HTTP 重试后成功",
+      "attempts": 2,
+      "correction_rounds": 0,
+      "cost_per_call": 0.001116,
+      "cost_per_1000": 1.116,
+      "input_tokens": 171,
+      "output_tokens": 27,
+      "total_tokens": 396,
+      "degraded": false
+    },
+    {
+      "profile": "短文本(2 字段)",
+      "scenario": "回灌用尽 → 降级（含 3 次计费）",
+      "attempts": 1,
+      "correction_rounds": 3,
+      "cost_per_call": 0.003192,
+      "cost_per_1000": 3.192,
+      "input_tokens": 171,
+      "output_tokens": 27,
+      "total_tokens": 1272,
+      "degraded": true
+    },
+    {
+      "profile": "标准合同(4 字段)",
+      "scenario": "一次成功",
+      "attempts": 1,
+      "correction_rounds": 0,
+      "cost_per_call": 0.001166,
+      "cost_per_1000": 1.166,
+      "input_tokens": 227,
+      "output_tokens": 89,
+      "total_tokens": 316,
+      "degraded": false
+    },
+    {
+      "profile": "标准合同(4 字段)",
+      "scenario": "1 次校验回灌后成功",
+      "attempts": 1,
+      "correction_rounds": 1,
+      "cost_per_call": 0.002652,
+      "cost_per_1000": 2.6519999999999997,
+      "input_tokens": 227,
+      "output_tokens": 89,
+      "total_tokens": 792,
+      "degraded": false
+    },
+    {
+      "profile": "标准合同(4 字段)",
+      "scenario": "2 次校验回灌后成功",
+      "attempts": 1,
+      "correction_rounds": 2,
+      "cost_per_call": 0.004137999999999999,
+      "cost_per_1000": 4.137999999999999,
+      "input_tokens": 227,
+      "output_tokens": 89,
+      "total_tokens": 1268,
+      "degraded": false
+    },
+    {
+      "profile": "标准合同(4 字段)",
+      "scenario": "1 次 HTTP 重试后成功",
+      "attempts": 2,
+      "correction_rounds": 0,
+      "cost_per_call": 0.002332,
+      "cost_per_1000": 2.332,
+      "input_tokens": 227,
+      "output_tokens": 89,
+      "total_tokens": 632,
+      "degraded": false
+    },
+    {
+      "profile": "标准合同(4 字段)",
+      "scenario": "回灌用尽 → 降级（含 3 次计费）",
+      "attempts": 1,
+      "correction_rounds": 3,
+      "cost_per_call": 0.0056240000000000005,
+      "cost_per_1000": 5.6240000000000006,
+      "input_tokens": 227,
+      "output_tokens": 89,
+      "total_tokens": 1744,
+      "degraded": true
+    },
+    {
+      "profile": "长合同(6 字段)",
+      "scenario": "一次成功",
+      "attempts": 1,
+      "correction_rounds": 0,
+      "cost_per_call": 0.00446,
+      "cost_per_1000": 4.460000000000001,
+      "input_tokens": 1918,
+      "output_tokens": 78,
+      "total_tokens": 1996,
+      "degraded": false
+    },
+    {
+      "profile": "长合同(6 字段)",
+      "scenario": "1 次校验回灌后成功",
+      "attempts": 1,
+      "correction_rounds": 1,
+      "cost_per_call": 0.00924,
+      "cost_per_1000": 9.24,
+      "input_tokens": 1918,
+      "output_tokens": 78,
+      "total_tokens": 4152,
+      "degraded": false
+    },
+    {
+      "profile": "长合同(6 字段)",
+      "scenario": "2 次校验回灌后成功",
+      "attempts": 1,
+      "correction_rounds": 2,
+      "cost_per_call": 0.01402,
+      "cost_per_1000": 14.02,
+      "input_tokens": 1918,
+      "output_tokens": 78,
+      "total_tokens": 6308,
+      "degraded": false
+    },
+    {
+      "profile": "长合同(6 字段)",
+      "scenario": "1 次 HTTP 重试后成功",
+      "attempts": 2,
+      "correction_rounds": 0,
+      "cost_per_call": 0.00892,
+      "cost_per_1000": 8.920000000000002,
+      "input_tokens": 1918,
+      "output_tokens": 78,
+      "total_tokens": 3992,
+      "degraded": false
+    },
+    {
+      "profile": "长合同(6 字段)",
+      "scenario": "回灌用尽 → 降级（含 3 次计费）",
+      "attempts": 1,
+      "correction_rounds": 3,
+      "cost_per_call": 0.018799999999999997,
+      "cost_per_1000": 18.799999999999997,
+      "input_tokens": 1918,
+      "output_tokens": 78,
+      "total_tokens": 8464,
+      "degraded": true
+    }
+  ],
+  "sensitivity": {
+    "standard": [
+      {
+        "measure": "基线（无优化）",
+        "cost_per_call": 0.001166,
+        "cost_per_10000": 11.66,
+        "saving_pct": 0.0,
+        "note": "当前实测 token 数"
+      },
+      {
+        "measure": "prompt 精简 30%",
+        "cost_per_call": 0.0010279999999999998,
+        "cost_per_10000": 10.279999999999998,
+        "saving_pct": 11.8,
+        "note": "只减输入；当前输入占总价 39%，所以实际收益约 30%×39%"
+      },
+      {
+        "measure": "结果缓存命中 50%",
+        "cost_per_call": 0.000583,
+        "cost_per_10000": 5.83,
+        "saving_pct": 50.0,
+        "note": "一半请求不调模型；收益线性，无质量风险"
+      },
+      {
+        "measure": "小模型分流 60%",
+        "cost_per_call": 0.0006413,
+        "cost_per_10000": 6.413,
+        "saving_pct": 45.0,
+        "note": "分流部分按 1/4 单价；**有质量风险**，复杂字段准确率会掉"
+      },
+      {
+        "measure": "缓存 50% + 精简 30%",
+        "cost_per_call": 0.0005139999999999999,
+        "cost_per_10000": 5.139999999999999,
+        "saving_pct": 55.9,
+        "note": "两者独立，收益近似相乘"
+      }
+    ]
+  }
+}

@@ -1,15 +1,15 @@
-# industrial-ai-platform
+﻿# industrial-ai-platform
 
 **一个用 FastAPI + LLM 做结构化信息抽取的后端平台。**
 
 重点不在"调通一个接口"，而在**接口不变、实现可换**：同一份 `v1` HTTP 契约，
-底下从正则实现换成了真实的模型调用，`tests/test_api.py` 一行未改、222 个测试仍全绿。
+底下从正则实现换成了真实的模型调用，`tests/test_api.py` 一行未改、**276 个测试全绿（且能断网跑）**。
 
 | 项目 | 值 |
 | --- | --- |
 | 端点 | `POST /api/v1/extract` |
 | 契约版本 | `v1`（响应头 `X-API-Contract: v1`，见 [docs/api-spec.md](docs/api-spec.md)） |
-| 测试 | **222 个测试**，`pytest --cov=app` |
+| 测试 | **276 个，全离线**，`pytest --cov=app` |
 | 端点 | extract · extract/stream · chat/stream · summarize/stream |
 | 镜像 | 多阶段构建，**157 MB** |
 | 运行时 | Python 3.11 + uvicorn，非 root（uid 10001） |
@@ -54,17 +54,30 @@ POST /api/v1/extract
                                        │  ExtractorDep / get_llm_client
                        ┌───────────────▼──────────────────────────────┐
                        │  app/core/                  装配与横切         │
-                       │    deps.py     EXTRACTOR_IMPL=llm|rule  回退 │
-                       │    config.py   LLMSettings + SecretStr       │
-                       │    logging.py  装配 handler（否则 info 丢失） │
-                       │    sse.py      DisconnectWatcher（断开即停）  │
+                       │    deps.py     Extractor Protocol + 回退开关  │
+                       │    config.py   LLMSettings + SecretStr        │
+                       │    logging.py  装配 handler（否则 info 丢失）  │
+                       │    sse.py      DisconnectWatcher（断开即停）   │
                        └───────────────┬──────────────────────────────┘
+                                       │
+      ┌────────────────────────────────┼────────────────────────────────┐
+      │  W2 换实现的三层约束            │                                │
+      │  ① prompt   让模型「倾向」对    │                                │
+      │  ② JSON Schema 强约束结构       │                                │
+      │  ③ Pydantic 本地校验语义        │                                │
+      └────────────────────────────────┼────────────────────────────────┘
+                                       │
                        ┌───────────────▼──────────────────────────────┐
-                       │  app/services/ + app/rag/    业务能力          │
-                       │    services/llm_extractor.py  LlmExtractor   │
-                       │    services/extractor.py      RuleExtractor  │
+                       │  app/services/               抽取的两套实现    │
+                       │    llm_extractor.py  LlmExtractor   ◀ 默认    │
+                       │      ├─ CorrectionsLoop  校验失败回灌（≤2 轮） │
+                       │      ├─ _coerce_scalar  数字→字符串（本地修）  │
+                       │      └─ degraded=True   用尽后标降级          │
+                       │    extractor.py      RuleExtractor  ◀ 兜底    │
+                       │      └─ extract_rule_based() 降级入口         │
+                       │                                              │
                        │    rag/loaders/   PDF / DOCX / Markdown      │
-                       │    rag/summarize.py  map-reduce 超长文档      │
+                       │    rag/summarize.py  map-reduce 超长文档       │
                        └───────────────┬──────────────────────────────┘
                        ┌───────────────▼──────────────────────────────┐
                        │  app/core/llm/              模型接入层        │
@@ -77,26 +90,31 @@ POST /api/v1/extract
 ```
 
 跨层规则：**服务层与 rag 层都不 import fastapi**。依赖注入是路由层的事，
-`LlmExtractor` 只接受一个 `AsyncOpenAI` 实例，所以测试里能直接塞假 client ——
-这也是 222 个测试全部能离线跑的原因。
+`LlmExtractor` 只接受一个 `AsyncOpenAI` 实例（构造参数注入，内部**绝不 new**），
+所以测试里能直接塞 `FakeLLMClient` —— 这也是 **276 个测试全部能离线跑**的原因。
 
 ### 目录
 
 ```
 app/
 ├── api/v1/          extract.py · stream.py · chat.py · summarize.py
-├── core/            config.py · deps.py · errors.py · middlewares · logging.py · sse.py
+├── core/            config.py · deps.py · errors.py · middleware.py · logging.py · sse.py
 │   └── llm/         client.py · streaming.py · retry.py · tools.py · tool_loop.py
 ├── rag/             Document / LoadResult 统一模型
 │   ├── loaders/     pdf.py · docx.py · markdown.py（加格式只改 __init__.py 一处）
-│   └── summarize.py map-reduce + 流式
-├── services/        extractor.py（规则）· llm_extractor.py（LLM）
-├── schemas/         extract.py · chat.py
+│   ├── summarize.py map-reduce + 流式
+│   └── replay.py    DEMO_REPLAY：录屏/联调用的同构回放
+├── services/        extractor.py（规则+extract_rule_based）· llm_extractor.py（LLM+校验回灌）
+├── schemas/         extract.py（含可选 degraded）· chat.py
 └── cli/             summarize.py
-scripts/             smoke_llm · demo_tools · consume_sse · cost · latency_breakdown · drill_*
+scripts/             smoke_llm · demo_tools · consume_sse · cost · cost_model
+                     latency_breakdown · record_demo · measure_tokens · drill_*
 static/index.html    前端单页（fetch + ReadableStream，含中断/重试）
-tests/               222 个离线测试 + fixtures/make_fixtures.py（脚本生成样本）
-docs/                api-spec.md（冻结契约）· sse.md · SETUP.md
+tests/               276 个**全离线**测试
+  ├── fake_llm.py    FakeLLMClient（可复用，支持固定回复/脚本/异常/流式）
+  ├── conftest.py    autouse: 默认注入离线规则版（拔网线也全绿）
+  └── fixtures/      make_fixtures.py 脚本生成样本（review 可读）
+docs/                api-spec.md（冻结契约 v1.1）· cost.md · sse.md · SETUP.md
 ```
 
 ---
@@ -184,6 +202,142 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 > 单价取"输入 2 元 / 输出 8 元每百万 token"作为示例锚点，**不是任何供应商报价**。
 > 关键结论是成本结构：**输出单价通常是输入的 3–5 倍**，
 > 所以「少让模型说话」比「少喂正文」更省。
+>
+> **完整成本模型（含重试期望成本、优化敏感性）见 [docs/cost.md](docs/cost.md)。**
+> 一句话结论：回灌重试不是"多一点时间"，是**多 3.5 倍钱**。
+
+---
+
+## 测试能离线跑绿 —— W2 唯一无法伪造的成果
+
+```powershell
+pytest -q          # 276 passed，拔掉网线也一样
+```
+
+这 行命令为什么值得单独一节：**它能证明实现真的可替换**。
+如果测试依赖真实模型，那它测的就不是你的代码，而是供应商的可用性。
+W4 加检索、W9 加工具、W12 加缓存，都不会破坏已有契约 —— 因为契约被**离线**测试锁住了。
+
+### 这不是"顺便做到"，是踩出来的
+
+**2026-10-27 的实测事故**：网关凭据过期返回 `502 未配置凭据`，
+`LlmExtractor` 于是降级到规则版，响应体多出 `degraded` 键 ——
+**契约测试 `test_api.py` 直接挂了**，而那个测试本身一行都没改、也没写错。
+
+那一刻暴露了真问题：**任何依赖外部服务的测试都是定时炸弹**。
+
+### 三层离线策略
+
+| 层 | 手段 | 覆盖什么 |
+| --- | --- | --- |
+| **单测** | `tests/fake_llm.py` 的 `FakeLLMClient` | 校验回灌、降级、键序、编造拦截 |
+| **HTTP 层** | `httpx2.MockTransport` 注入 | SDK 请求构造、`response_format` 是否真的发出 |
+| **API 层** | `conftest.py` 的 `autouse` fixture | 默认注入规则版，`test_api.py` 一行不改仍全绿 |
+
+### 为什么 HTTP 层不用 respx（实测做不到）
+
+任务要求"集成测试用 respx 拦截 HTTP"。**实测失败**：
+
+```
+httpx  : 0.28.1
+httpx2 : 2.16.0
+httpx is httpx2 -> False      ← openai 3.37 用的是 httpx2（独立分叉）
+respx 只 patch httpx          → 请求真实发到了网络
+```
+
+改用 SDK 官方支持的 `http_client=` 注入 `httpx2.MockTransport` ——
+在**传输层**拦截，比 respx 的库级 monkey patch 更底层也更稳。
+这个事实写成了测试（`test_respx_cannot_intercept_this_sdk`），
+将来 SDK 若换回 `httpx`，那条测试会红，提醒我们可以简化。
+
+### `FakeLLMClient` 的契约
+
+它不是 mock，是 **stub** —— 不验证"你调了几次哪个参数"，
+而是"给定这个输入，按剧本返回这个输出"。这样测试断的是**业务行为**，不是实现细节。
+
+```python
+# 固定回复
+FakeLLMClient(replies=['{"甲方": "张三"}'])
+
+# 脚本：第一轮坏、第二轮好（测回灌）
+FakeLLMClient(replies=['{"甲方": {"nested": 1}}', '{"甲方": "张三"}'])
+
+# 直接抛异常（测降级）
+FakeLLMClient(exc=TimeoutError("boom"))
+
+# 流式（测 SSE / streaming）
+FakeLLMClient(stream_text="杭州很美")
+```
+
+---
+
+## 换实现：三层约束 + 校验回灌 + 降级标记
+
+### 三层约束，从"软"到"硬"
+
+| 层 | 手段 | 拦的是什么 |
+| --- | --- | --- |
+| ① prompt | 明确要求只输出 JSON 对象 | 让模型**倾向**正确（不可靠） |
+| ② JSON Schema | `response_format={"type":"json_schema", strict: true}` | 结构坏（漏键、多键） |
+| ③ Pydantic | 本地校验 `{field: value}` | Schema 也漏掉的语义问题 |
+
+**三层都要**：`response_format` 并非所有网关都真正支持（本机网关接受参数但未必强制），
+只靠 prompt 时坏 JSON 相当常见。强约束被网关拒绝时，代码会自动关掉它再试一次 ——
+**强约束是优化项，不是前提**。
+
+### 校验失败 → 回灌重试（最多 2 轮）
+
+模型给了不合规输出时，把 **Pydantic 的错误原样喂回去**：
+
+```
+你上一次的输出不符合要求，问题如下：
+- 字段 合同编号：Input should be a valid string（你给的是 {'nested': 1}）
+
+请只重新输出一个合法的 JSON 对象：键必须与我列出的字段完全一致……
+```
+
+比"重试同一个 prompt 碰运气"有效得多，因为错误信息直接告诉了它**哪里不对、错在哪个字段、收到了什么值**。
+
+**为什么是 2 轮**：每轮都是一次真实计费调用 + 秒级延迟。实测坏输出大多第一轮就修好，
+第三轮之后收益急剧下降，而用户已经等了 6 秒以上 —— 那时"给个规则版结果 + 标降级"更有价值。
+
+### 一个关键的本地修复：标量归一
+
+**"值的类型不合契约" 和 "值的内容不对"是两回事。**
+
+| 情况 | 处理 | 为什么 |
+| --- | --- | --- |
+| 模型给 `128000`（数字）而不是 `"128000"` | **本地转字符串** | 常见、确定性可修、零成本 |
+| 模型给 `{"nested": 1}`（嵌套对象） | 回灌让模型改 | 真的结构理解错误 |
+| 模型给了正文里没有的值 | 丢弃为 `null` | 编造，不许放过 |
+
+把能自己修的推给模型去修，是白花钱 —— 一次回灌要 160 额外输入 token（约 1.2 倍成本）。
+
+### 降级：`degraded: true`
+
+两轮仍失败 / 网络故障 → 规则版兜底并标记（`docs/api-spec.md §2.5`）：
+
+```json
+{
+  "request_id": "…",
+  "data": {"合同编号": "HT-2026-001", "甲方": null},
+  "confidence": 0.375,
+  "elapsed_ms": 102,
+  "degraded": true
+}
+```
+
+**只在 `true` 时出现这个键** —— 正常结果仍是 4 字段，老客户端零影响。
+同时 `X-Extract-Model` 带 `+fallback(原因)` 后缀：头里是**原因**，body 里是**布尔事实**。
+
+实测验证（网关凭据过期时）：
+
+```
+body  : {..., "degraded": true}
+header: x-extract-model: buddy/glm-5.3+fallback(RetryExhaustedError)
+```
+
+换用可用模型后：4 字段、无 `degraded`、header 干净 `trae/qwen-3.5`。
 
 ---
 
@@ -201,12 +355,10 @@ W2 做完之后：
 | 断言 | 状态 |
 | --- | --- |
 | `tests/test_api.py` 一行未改 | ✅ |
-| 全套 222 个测试仍全绿 | ✅ 222 passed |
-| 响应体仍是 4 字段 | ✅ 实测 `X-Extract-Model: buddy/glm-5.3` |
+| 全套 276 个测试仍全绿（**断网也是**） | ✅ 276 passed |
+| 响应体正常时仍是 4 字段 | ✅ 实测无 `degraded` 键 |
+| 降级时可多 1 个可选字段 | ✅ `degraded: true`，v1.1 向后兼容 |
 | 规则版仍可用 | ✅ `EXTRACTOR_IMPL=rule` 一键回退 |
-
-回退开关为什么用环境变量而不是代码开关：**应急时它必须能被最快改掉**。
-改代码要过评审、构建、发版，那段时间线上一直在 500。
 
 ---
 
@@ -362,7 +514,7 @@ fastapi、抽取器接受注入 client"的直接收益。
 
 ## 文档
 
-- [docs/api-spec.md](docs/api-spec.md) —— **v1 契约**，唯一不能动的文件
+- [docs/api-spec.md](docs/api-spec.md) —— **v1 契约**（现 v1.1，新增可选 `degraded`），唯一不能动的文件`n- [docs/cost.md](docs/cost.md) —— 成本模型：规则 vs LLM、回灌重试的真实代价、优化敏感性
 - [docs/sse.md](docs/sse.md) —— SSE vs WebSocket vs 长轮询、双换行为什么是硬要求、
   裸 SSE 的 flush 时机、TTFT 口径、网关故障记录
 - [docs/SETUP.md](docs/SETUP.md) —— 从零搭环境（Windows：uv / git / GitHub 连通性）

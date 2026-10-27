@@ -86,12 +86,20 @@ class ExtractRequest(BaseModel):
 class ExtractResult(BaseModel):
     """成功响应体（api-spec.md §2.1）。
 
-    恒为 4 个字段，顺序固定：`request_id` / `data` / `confidence` / `elapsed_ms`。
+    **4 个必选字段**，顺序固定：`request_id` / `data` / `confidence` / `elapsed_ms`。
+    外加 1 个**可选**字段 `degraded`（v1.1，见 api-spec §2.5）。
+
     实现标识（`rule-v1` 或模型名）**只走响应头 `X-Extract-Model`**，
-    不进 body —— 这样 W2 换模型时响应体的字节形状完全不变。
+    不进 body —— 这样换模型时响应体的字节形状完全不变。
     """
 
     model_config = STRICT_CONFIG
+
+    # 注意：**不要**指望 `ConfigDict(ser_json_exclude_none=True)`。
+    # 实测 pydantic 2.14 里它只影响 `model_dump_json()`，而 FastAPI 是走
+    # `model_dump()` 再交给 JSONResponse 序列化的 —— 结果 `None` 会原样输出成 `null`。
+    # 正确做法是在路由上声明 `response_model_exclude_none=True`（见 api/v1/extract.py），
+    # 那是 FastAPI 自己的机制，已验证：正常结果不含键、降级结果含 `degraded: true`。
 
     request_id: str = Field(description="本次请求 id，与响应头 X-Request-ID 一致；报障只报它")
     data: dict[str, str | None] = Field(
@@ -105,12 +113,20 @@ class ExtractResult(BaseModel):
         le=1.0,
         description=(
             "整体置信度 0.0–1.0，越高越可信。规则版：命中比例，有字段缺失时再打 0.75 折；"
-            "W2 直接采用模型给出的分数。"
+            "LLM 版沿用同一公式以保证跨实现可比。"
         ),
     )
     elapsed_ms: int = Field(
         ge=0,
-        description="服务端处理耗时（毫秒，含内部模拟延迟），不含网络往返",
+        description="服务端处理耗时（毫秒，含内部延迟），不含网络往返",
+    )
+    degraded: bool | None = Field(
+        default=None,
+        description=(
+            "可选。true 表示本次结果由兜底实现（规则版）产出，"
+            "原因是模型/网络失败或结构化输出两轮校验未通过。"
+            "**正常结果为 None 且不出现在 JSON 里**，因此老客户端不受影响。"
+        ),
     )
 
 

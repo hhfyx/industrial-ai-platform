@@ -190,6 +190,10 @@ class ExtractionOutput:
 
     services 层用自己的 dataclass、schemas 层用自己的 BaseModel：
     内层换实现时不会牵动外层的校验规则 —— 这也是 api-spec §4.7 敢承诺「签名不变」的底气。
+
+    `degraded`：本次结果是否由兜底实现产出（api-spec §2.5）。
+    放在服务层而不是路由层，是因为**只有实现自己知道**是否降级了 ——
+    路由不该去嗅探 `model` 字符串里有没有 `+fallback`。
     """
 
     data: dict[str, str | None]
@@ -197,16 +201,35 @@ class ExtractionOutput:
     model: str = MODEL_NAME
     elapsed_ms: int = 0
     missing: list[str] = field(default_factory=list)
+    degraded: bool = False
 
 
 class RuleExtractor:
-    """规则版抽取器。
+    """规则版抽取器（`extract_rule_based`）。
 
-    只有 `extract()` 是对外接口，其余都是内部函数 ——
-    W2 新建 `LlmExtractor` 时只要实现同名方法，路由层不需要知道底下是正则还是模型。
+    只有 `extract()` 是对外接口，其余都是内部函数 —— `LlmExtractor` 实现了同名方法，
+    路由层不需要知道底下是正则还是模型。
+
+    **为什么还提供一个 `extract_sync`**：`LlmExtractor` 降级时是在 `except` 分支里
+    调它，那个位置再 `await` 有可能二次抛异常（例如事件循环正在取消）。
+    同步版本没有 `await` 点，降级路径因此不会被打断 —— 降级本身必须比正常路径更可靠。
     """
 
     model_name: str = MODEL_NAME
+
+    def extract_sync(self, text: str, fields: Sequence[str]) -> ExtractionOutput:
+        """纯计算版（无 `await`）。降级路径专用。"""
+        start = time.perf_counter()
+        data = {name: extract_value(text, name) for name in fields}
+        missing = [name for name in fields if data[name] is None]
+        return ExtractionOutput(
+            data=data,
+            confidence=compute_confidence(fields, data),
+            model=self.model_name,
+            elapsed_ms=int((time.perf_counter() - start) * 1000),
+            missing=missing,
+            degraded=False,
+        )
 
     async def extract(self, *, text: str, fields: Sequence[str]) -> ExtractionOutput:
         """按 `fields` 顺序抽值，`data` 的键顺序与入参完全一致（契约 §2.1）。
@@ -216,7 +239,7 @@ class RuleExtractor:
         """
         start = time.perf_counter()
 
-        # 模拟真实抽取的 IO 延迟：占住 async 语义，W2 换成真实模型调用时不改调用方
+        # 模拟真实抽取的 IO 延迟：占住 async 语义，换 LLM 时不改调用方
         await asyncio.sleep(SIMULATED_LATENCY_MS / 1000)
 
         data = {name: extract_value(text, name) for name in fields}
@@ -229,7 +252,17 @@ class RuleExtractor:
             model=self.model_name,
             elapsed_ms=elapsed_ms,
             missing=missing,
+            degraded=False,
         )
+
+
+def extract_rule_based(text: str, fields: Sequence[str]) -> ExtractionOutput:
+    """规则版抽取的**函数式入口**，语义等同 `RuleExtractor().extract_sync(...)`。
+
+    存在的理由：降级是"最后一道防线"，用起来应该尽可能简单直接 ——
+    一个函数比"先构造对象再调方法"少一层出错机会。
+    """
+    return RuleExtractor().extract_sync(text, fields)
 
 
 __all__ = [
@@ -239,5 +272,6 @@ __all__ = [
     "ExtractionOutput",
     "RuleExtractor",
     "compute_confidence",
+    "extract_rule_based",
     "extract_value",
 ]

@@ -65,10 +65,36 @@ def test_supports_english_field_aliases() -> None:
 
 @pytest.mark.anyio
 async def test_async_elapsed_ms_covers_simulated_latency() -> None:
-    """`elapsed_ms` 必须把内部延迟算进去 —— 否则 W2 换成真实模型调用时这个字段会失真."""
+    """`elapsed_ms` 必须把内部延迟算进去 —— 否则换成真实模型调用时这个字段会失真。
+
+    ## 为什么断言是 `> 0` + 上界，而不是 `>= 100`
+
+    最初写的是 `>= 100`，然后它**偶发失败**：单独跑永远过，全量跑偶尔得到 98。
+
+    查下来的原因是这类"墙钟断言"天生不可靠：
+    - `asyncio.sleep(0.1)` 的实现在不同事件循环/负载下行为不同
+    - 实测全量跑时最小值能到 98（比 `sleep` 参数还小 —— 说明计时被别的
+      fixture/事件循环状态影响）
+    - `int()` 截断又吃掉最多 0.99ms
+
+    一个"偶尔假失败"的测试**比没有测试更糟**：它会训练人忽略红灯，
+    最后真出问题时也被当成噪声。
+
+    ## 换成的断言（仍然守住原意）
+
+    这条测试要守的是"**延迟被计入 elapsed_ms**"这件事：
+    - 若实现里删掉 `await asyncio.sleep(...)`，`elapsed_ms` 会变成 0
+      → `> 0` 就能抓住（这才是核心回归点）
+    - 上界 `< 1000` 能抓住"算多了一个数量级"的 bug
+    - 另外断言它**确实和真实等待量级一致**（≥ 50ms），比精确到 1ms 稳健得多
+    """
     output = await RuleExtractor().extract(text=CONTRACT_TEXT, fields=ALL_FIELDS)
 
-    assert output.elapsed_ms >= SIMULATED_LATENCY_MS
+    # 核心回归点：延迟被计入了（没 sleep 的实现会是 0 或个位数）
+    assert output.elapsed_ms > 0
+    # 量级正确：至少是模拟延迟的一半（对计时抖动免疫，但仍能发现"没等待"）
+    assert output.elapsed_ms >= SIMULATED_LATENCY_MS // 2
+    # 上界：能抓住"多算一个数量级"
     assert output.elapsed_ms < SIMULATED_LATENCY_MS + 1000
 
 
