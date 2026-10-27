@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>流式文档摘要</title>
+<style>
+  :root {
+    --fg: #1a1a1a; --muted: #6b7280; --line: #e5e7eb;
+    --accent: #2563eb; --bg: #fafafa; --card: #fff;
+    --warn: #b45309; --err: #b91c1c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; background: var(--bg); color: var(--fg);
+    font: 15px/1.7 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+
+  /* 拖放区 */
+  #drop {
+    border: 2px dashed var(--line); border-radius: 10px; padding: 28px;
+    text-align: center; color: var(--muted); cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  #drop.drag { border-color: var(--accent); background: #eff6ff; }
+  #drop strong { color: var(--fg); }
+  input[type=file] { display: none; }
+
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  button {
+    font: inherit; padding: 7px 14px; border-radius: 7px; cursor: pointer;
+    border: 1px solid var(--line); background: #fff; color: var(--fg);
+  }
+  button:hover:not(:disabled) { border-color: #cbd5e1; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { background: #fff; border-color: var(--err); color: var(--err); }
+
+  /* 进度条 */
+  #progressWrap { display: none; margin-top: 14px; }
+  #progressWrap.on { display: block; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  .meta { font-size: 12px; color: var(--muted); margin-top: 6px; display: flex; justify-content: space-between; }
+
+  /* 输出 */
+  #output {
+    white-space: pre-wrap; word-break: break-word;
+    min-height: 120px; max-height: 60vh; overflow-y: auto;
+    font-size: 15px; line-height: 1.75;
+  }
+  #output:empty::before {
+    content: "摘要会逐字出现在这里…"; color: var(--muted);
+  }
+  /* 光标：让"正在生成"有可见反馈 */
+  #output.streaming::after {
+    content: "▊"; color: var(--accent); animation: blink 1s steps(2) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .msg { padding: 9px 12px; border-radius: 7px; font-size: 13px; margin-bottom: 12px; }
+  .msg.warn { background: #fffbeb; border: 1px solid #fde68a; color: var(--warn); }
+  .msg.err  { background: #fef2f2; border: 1px solid #fecaca; color: var(--err); }
+  .msg.hide { display: none; }
+
+  .stats { font-size: 12px; color: var(--muted); font-family: ui-monospace, Consolas, monospace; }
+  .stats b { color: var(--fg); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>流式文档摘要</h1>
+  <div class="sub">
+    上传 PDF / DOCX / Markdown，服务端用 map-reduce 分段摘要后流式返回。
+  </div>
+
+  <div class="card">
+    <div id="drop">
+      <strong>把文件拖到这里</strong>，或点击选择<br />
+      <span style="font-size:12px">支持 .pdf / .docx / .md</span>
+      <input type="file" id="file" accept=".pdf,.docx,.md,.markdown" />
+    </div>
+
+    <div class="row" style="margin-top:14px">
+      <button id="go" class="primary" disabled>开始摘要</button>
+      <button id="abort" class="danger" disabled>中断</button>
+      <button id="regen" disabled>重新生成</button>
+      <label style="font-size:13px;color:var(--muted)">
+        <input type="checkbox" id="useMarkdown" checked /> 渲染 Markdown
+      </label>
+    </div>
+
+    <div id="progressWrap">
+      <div class="bar"><i id="bar"></i></div>
+      <div class="meta">
+        <span id="phase">—</span>
+        <span id="numbers"></span>
+      </div>
+    </div>
+  </div>
+
+  <div id="msg" class="msg hide"></div>
+
+  <div class="card">
+    <div id="output"></div>
+  </div>
+
+  <div class="card">
+    <div class="stats" id="stats">尚无数据</div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   为什么不用 EventSource（**这是必须踩的坑**）
+
+   EventSource 有两个硬限制，正好卡死这个场景：
+     1. **只能 GET，不能 POST** —— 上传文件/长 prompt 必须 POST
+     2. **不能自定义请求头** —— 没法带 Content-Type / Authorization
+
+   所以只能用 `fetch` + `response.body.getReader()` 手工解 SSE 帧。
+   fetch 的 response.body 是 ReadableStream，逐块读出 Uint8Array，
+   自己按 "\n\n" 切事件、按 "data: " 取载荷。
+   ============================================================ */
+
+const $ = (id) => document.getElementById(id);
+const els = {
+  drop: $("drop"), file: $("file"), go: $("go"), abort: $("abort"),
+  regen: $("regen"), output: $("output"), msg: $("msg"),
+  progressWrap: $("progressWrap"), bar: $("bar"),
+  phase: $("phase"), numbers: $("numbers"), stats: $("stats"),
+  useMarkdown: $("useMarkdown"),
+};
+
+let selectedFile = null;
+let controller = null;   // AbortController：中断与取消都靠它
+let lastRun = null;      // 用于"重新生成"
+let rawText = "";        // 原始摘要文本（Markdown 渲染用）
+
+function setMsg(text, kind) {
+  els.msg.textContent = text || "";
+  els.msg.className = "msg " + (kind || "hide");
+}
+function clearMsg() { setMsg("", "hide"); }
+
+function fmtMs(v) { return v == null ? "—" : `${Math.round(v)} ms`; }
+
+function updateStats(obj) {
+  els.stats.innerHTML = Object.entries(obj)
+    .map(([k, v]) => `${k}: <b>${v}</b>`)
+    .join(" &nbsp;·&nbsp; ");
+}
+
+/* ---------------- 文件选择 ---------------- */
+els.drop.addEventListener("click", () => els.file.click());
+els.file.addEventListener("change", (e) => pickFile(e.target.files[0]));
+
+["dragenter", "dragover"].forEach((ev) =>
+  els.drop.addEventListener(ev, (e) => { e.preventDefault(); els.drop.classList.add("drag"); })
+);
+["dragleave", "drop"].forEach((ev) =>
+  els.drop.addEventListener(ev, (e) => { e.preventDefault(); els.drop.classList.remove("drag"); })
+);
+els.drop.addEventListener("drop", (e) => pickFile(e.dataTransfer.files[0]));
+
+function pickFile(f) {
+  if (!f) return;
+  const ok = /\.(pdf|docx|md|markdown)$/i.test(f.name);
+  if (!ok) { setMsg("只支持 .pdf / .docx / .md", "err"); return; }
+  selectedFile = f;
+  els.drop.innerHTML =
+    `<strong>${escapeHtml(f.name)}</strong><br/>` +
+    `<span style="font-size:12px">${(f.size / 1024).toFixed(1)} KB — 点"开始摘要"</span>`;
+  els.go.disabled = false;
+  clearMsg();
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ---------------- 极简 Markdown 渲染 ----------------
+   不引入 marked.js（离线环境拉不到 CDN）。
+   只支持：标题、加粗、列表、代码、段落。
+   够用了 —— 摘要本来就不该有复杂结构，而"引一个 30KB 的库"会让首屏更慢。 */
+
+function renderMarkdown(text) {
+  const esc = escapeHtml(text);
+  const lines = esc.split("\n");
+  const out = [];
+  let inList = false;
+
+  for (const line of lines) {
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    if (h) {
+      if (inList) { out.push("</ul>"); inList = false; }
+      out.push(`<h${h[1].length + 2}>${h[2]}</h${h[1].length + 2}>`);
+      continue;
+    }
+    const li = line.match(/^\s*[-*+]\s+(.*)$/);
+    if (li) {
+      if (!inList) { out.push("<ul>"); inList = true; }
+      out.push(`<li>${inline(li[1])}</li>`);
+      continue;
+    }
+    if (inList) { out.push("</ul>"); inList = false; }
+
+    if (line.trim() === "") { out.push("<br/>"); continue; }
+    if (line.startsWith("```")) { out.push("<pre style='background:#f3f4f6;padding:8px;border-radius:6px;overflow-x:auto'>"); continue; }
+    out.push(`<p style="margin:.4em 0">${inline(line)}</p>`);
+  }
+  if (inList) out.push("</ul>");
+  return out.join("");
+}
+
+function inline(s) {
+  return s
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, '<code style="background:#f3f4f6;padding:1px 4px;border-radius:3px">$1</code>');
+}
+
+function paint(text) {
+  if (els.useMarkdown.checked) {
+    els.output.innerHTML = renderMarkdown(text);
+  } else {
+    els.output.textContent = text;
+  }
+  // 自动滚动到底部
+  els.output.scrollTop = els.output.scrollHeight;
+}
+
+/* ---------------- SSE 解析 ----------------
+   手写的原因见顶部注释：EventSource 不能 POST。
+   要点：网络分块不保证按帧边界到达，必须自己缓冲、按 \n\n 切。 */
+
+function parseFrames(buffer) {
+  // 返回 [完整帧列表, 剩余缓冲]
+  const parts = buffer.split("\n\n");
+  const rest = parts.pop() || "";
+  return [parts, rest];
+}
+
+function handleFrame(frame, onEvent) {
+  // 一帧可能有多行 data:
+  const dataLines = frame
+    .split("\n")
+    .filter((l) => l.startsWith("data:"))
+    .map((l) => l.slice(5).replace(/^ /, ""));
+  if (!dataLines.length) return;   // 心跳（: ping）或注释
+  const raw = dataLines.join("\n");
+  if (raw.trim() === "[DONE]") { onEvent({ type: "done" }); return; }
+  try { onEvent({ type: "data", payload: JSON.parse(raw) }); } catch {}
+}
+
+/* ---------------- 主流程 ---------------- */
+els.go.addEventListener("click", () => start());
+els.regen.addEventListener("click", () => { if (lastRun) start(); });
+els.abort.addEventListener("click", () => {
+  if (controller) controller.abort();
+});
+
+async function start() {
+  if (!selectedFile) return;
+
+  // 中断上一次（如果还在跑）
+  if (controller) controller.abort();
+  controller = new AbortController();
+
+  const form = new FormData();
+  form.append("file", selectedFile);
+
+  // 重置 UI
+  rawText = "";
+  els.output.textContent = "";
+  els.output.classList.add("streaming");
+  els.progressWrap.classList.add("on");
+  els.bar.style.width = "0%";
+  els.phase.textContent = "上传中…";
+  els.numbers.textContent = "";
+  els.go.disabled = true;
+  els.abort.disabled = false;
+  els.regen.disabled = true;
+  clearMsg();
+
+  const t0 = performance.now();
+  let firstDeltaMs = null;
+  let deltaCount = 0;
+
+  try {
+    const response = await fetch("/api/v1/summarize/stream", {
+      method: "POST",
+      body: form,
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      // **流式接口的关键约束**：状态码在第一个字节前就已确定，
+      // 所以真正的错误（如 422 校验失败、415 格式不支持）在这里就能拿到 JSON。
+      let detail = "";
+      try { detail = JSON.stringify(await response.json()); } catch {}
+      throw new Error(`HTTP ${response.status} ${detail}`.trim());
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const [frames, rest] = parseFrames(buffer);
+      buffer = rest;
+
+      for (const frame of frames) {
+        handleFrame(frame, ({ type, payload }) => {
+          if (type === "done") return;
+
+          // 进度事件
+          if (payload.progress) {
+            const { done: d, total, label } = payload.progress;
+            els.bar.style.width = `${(d / total) * 100}%`;
+            els.phase.textContent = `分段摘要 ${d}/${total}`;
+            els.numbers.textContent = label || "";
+            return;
+          }
+          // 正文增量
+          if (payload.delta) {
+            if (firstDeltaMs === null) firstDeltaMs = performance.now() - t0;
+            deltaCount++;
+            rawText += payload.delta;
+            paint(rawText);
+            els.phase.textContent = "生成摘要";
+            return;
+          }
+          // 元信息（usage / 分块数等）
+          if (payload.meta) {
+            els.numbers.textContent = `${payload.meta.chunks || "?"} 段 · ${payload.meta.api_calls || "?"} 次调用`;
+          }
+          // 服务端错误（流开始后只能用数据帧报告）
+          if (payload.error) {
+            setMsg(`服务端错误：${payload.error.message}`, "err");
+          }
+        });
+      }
+    }
+
+    els.output.classList.remove("streaming");
+    els.bar.style.width = "100%";
+    els.phase.textContent = "完成";
+
+    const totalMs = performance.now() - t0;
+    updateStats({
+      TTFT: fmtMs(firstDeltaMs),
+      "总耗时": fmtMs(totalMs),
+      "输出块": deltaCount,
+      "字数": rawText.length,
+    });
+    els.regen.disabled = false;
+
+  } catch (err) {
+    els.output.classList.remove("streaming");
+
+    // AbortError 是**用户主动中断**，不是错误 —— 不要用红色报错吓人
+    if (err.name === "AbortError") {
+      els.phase.textContent = "已中断";
+      setMsg("已中断生成。已收到的内容保留在下方，可点「重新生成」。", "warn");
+      els.regen.disabled = false;
+    } else {
+      els.phase.textContent = "失败";
+      setMsg(`请求失败：${err.message}`, "err");
+    }
+  } finally {
+    els.go.disabled = false;
+    els.abort.disabled = true;
+    controller = null;
+  }
+}
+
+// 关闭页面/刷新时也要中断，避免服务端继续烧 token
+window.addEventListener("beforeunload", () => { if (controller) controller.abort(); });
+</script>
+</body>
+</html>

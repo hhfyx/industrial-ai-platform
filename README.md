@@ -1,16 +1,16 @@
-# industrial-ai-platform
+﻿# industrial-ai-platform
 
 **一个用 FastAPI + LLM 做结构化信息抽取的后端平台。**
 
 重点不在"调通一个接口"，而在**接口不变、实现可换**：同一份 `v1` HTTP 契约，
-底下从正则实现换成了真实的模型调用，`tests/test_api.py` 一行未改、95 个测试仍全绿。
+底下从正则实现换成了真实的模型调用，`tests/test_api.py` 一行未改、222 个测试仍全绿。
 
 | 项目 | 值 |
 | --- | --- |
 | 端点 | `POST /api/v1/extract` |
 | 契约版本 | `v1`（响应头 `X-API-Contract: v1`，见 [docs/api-spec.md](docs/api-spec.md)） |
-| 测试 | **95 passed**，`pytest --cov=app` |
-| 代码量 | 31 个 py 文件 / 约 3,100 行（`app/` + `scripts/` + `tests/`） |
+| 测试 | **222 个测试**，`pytest --cov=app` |
+| 端点 | extract · extract/stream · chat/stream · summarize/stream |
 | 镜像 | 多阶段构建，**157 MB** |
 | 运行时 | Python 3.11 + uvicorn，非 root（uid 10001） |
 
@@ -44,30 +44,60 @@ POST /api/v1/extract
 ## 架构
 
 ```
-                    ┌──────────────────────────────────────────┐
-   HTTP 请求  ──────▶│  app/api/v1/extract.py      路由（只做三件事）│
-                    │    解析入参 / 调服务 / 包统一响应             │
-                    └───────────────┬──────────────────────────┘
-                                    │  ExtractorDep（依赖注入，这里换实现）
-                    ┌───────────────▼──────────────────────────┐
-                    │  app/core/deps.py           装配开关       │
-                    │    EXTRACTOR_IMPL=llm|rule  一键回退       │
-                    └───────────────┬──────────────────────────┘
-                    ┌───────────────▼──────────────────────────┐
-                    │  app/services/              服务层（无 fastapi）│
-                    │    llm_extractor.py  LlmExtractor  ◀ 默认 │
-                    │    extractor.py      RuleExtractor  ◀ 兜底│
-                    └───────────────┬──────────────────────────┘
-                    ┌───────────────▼──────────────────────────┐
-                    │  app/core/llm/            接入层           │
-                    │    client.py    get_llm_client() 进程级单例│
-                    │    tools.py     Function Calling 工具注册表│
-                    │    tool_loop.py 单/多轮闭环                │
-                    └──────────────────────────────────────────┘
+                       ┌──────────────────────────────────────────────┐
+  浏览器 / CLI  ──────▶│  app/api/v1/            路由层（4 个端点）      │
+                       │    extract.py     结构化抽取（v1 契约，冻结）   │
+                       │    stream.py      抽取流式（SSE，event: end）  │
+                       │    chat.py        聊天流式（SSE，[DONE]）      │
+                       │    summarize.py   文档摘要流式（上传 + SSE）    │
+                       └───────────────┬──────────────────────────────┘
+                                       │  ExtractorDep / get_llm_client
+                       ┌───────────────▼──────────────────────────────┐
+                       │  app/core/                  装配与横切         │
+                       │    deps.py     EXTRACTOR_IMPL=llm|rule  回退 │
+                       │    config.py   LLMSettings + SecretStr       │
+                       │    logging.py  装配 handler（否则 info 丢失） │
+                       │    sse.py      DisconnectWatcher（断开即停）  │
+                       └───────────────┬──────────────────────────────┘
+                       ┌───────────────▼──────────────────────────────┐
+                       │  app/services/ + app/rag/    业务能力          │
+                       │    services/llm_extractor.py  LlmExtractor   │
+                       │    services/extractor.py      RuleExtractor  │
+                       │    rag/loaders/   PDF / DOCX / Markdown      │
+                       │    rag/summarize.py  map-reduce 超长文档      │
+                       └───────────────┬──────────────────────────────┘
+                       ┌───────────────▼──────────────────────────────┐
+                       │  app/core/llm/              模型接入层        │
+                       │    client.py    get_llm_client() 进程级单例   │
+                       │    streaming.py stream_chat + TTFT 口径      │
+                       │    retry.py     指数退避+抖动 / 多 key 熔断   │
+                       │    tools.py     Function Calling 注册表      │
+                       │    tool_loop.py 单/多轮闭环                  │
+                       └──────────────────────────────────────────────┘
 ```
 
-跨层规则：**服务层不 import fastapi**。依赖注入是路由层的事，
-`LlmExtractor` 只接受一个 `AsyncOpenAI` 实例，所以测试里能直接塞假 client。
+跨层规则：**服务层与 rag 层都不 import fastapi**。依赖注入是路由层的事，
+`LlmExtractor` 只接受一个 `AsyncOpenAI` 实例，所以测试里能直接塞假 client ——
+这也是 222 个测试全部能离线跑的原因。
+
+### 目录
+
+```
+app/
+├── api/v1/          extract.py · stream.py · chat.py · summarize.py
+├── core/            config.py · deps.py · errors.py · middlewares · logging.py · sse.py
+│   └── llm/         client.py · streaming.py · retry.py · tools.py · tool_loop.py
+├── rag/             Document / LoadResult 统一模型
+│   ├── loaders/     pdf.py · docx.py · markdown.py（加格式只改 __init__.py 一处）
+│   └── summarize.py map-reduce + 流式
+├── services/        extractor.py（规则）· llm_extractor.py（LLM）
+├── schemas/         extract.py · chat.py
+└── cli/             summarize.py
+scripts/             smoke_llm · demo_tools · consume_sse · cost · latency_breakdown · drill_*
+static/index.html    前端单页（fetch + ReadableStream，含中断/重试）
+tests/               222 个离线测试 + fixtures/make_fixtures.py（脚本生成样本）
+docs/                api-spec.md（冻结契约）· sse.md · SETUP.md
+```
 
 ---
 
@@ -171,12 +201,81 @@ W2 做完之后：
 | 断言 | 状态 |
 | --- | --- |
 | `tests/test_api.py` 一行未改 | ✅ |
-| 全套 95 个测试仍全绿 | ✅ 95 passed |
+| 全套 222 个测试仍全绿 | ✅ 222 passed |
 | 响应体仍是 4 字段 | ✅ 实测 `X-Extract-Model: buddy/glm-5.3` |
 | 规则版仍可用 | ✅ `EXTRACTOR_IMPL=rule` 一键回退 |
 
 回退开关为什么用环境变量而不是代码开关：**应急时它必须能被最快改掉**。
 改代码要过评审、构建、发版，那段时间线上一直在 500。
+
+---
+
+## 流式文档摘要（本周主交付）
+
+上传 PDF / DOCX / Markdown → 服务端 map-reduce 分段摘要 → SSE 逐字返回。
+前端在 `static/index.html`（打开 `/ui`）。
+
+```powershell
+uv run uvicorn app.main:app --port 8000
+# 浏览器打开 http://127.0.0.1:8000/ui
+
+# 或走 CLI
+uv run python -m app.cli.summarize tests/fixtures/sample50.pdf --stream
+```
+
+### 做了什么
+
+| 层 | 内容 |
+| --- | --- |
+| `rag/loaders/` | pypdf 逐页抽（页码从 1 开始）· python-docx 抽段落**和表格** · Markdown 按标题切块 |
+| 统一模型 | `{source, page, text}`，非分页格式 `page=None`（诚实，不假装有页） |
+| `rag/summarize.py` | map-reduce：分段摘要 → 汇总；段数 > 10 走层级汇总 |
+| `api/v1/summarize.py` | multipart 上传 + SSE（进度与正文同流） |
+| `static/index.html` | fetch + ReadableStream 手工解帧（**EventSource 不能 POST**） |
+| CORS | 放开 `*` 但不开 credentials（规范不允许 `*` + credentials 组合） |
+
+### 首 token 慢，是模型慢还是链路慢？—— 打点回答
+
+用 `scripts/latency_breakdown.py` 在每一层打点（5 次取 p50）：
+
+| 层 | TTFT p50 | 相对上一层的开销 |
+| --- | ---: | --- |
+| ① 上游直连（裸 httpx，绕过一切我方代码） | **1301 ms** | — 这是**模型+网络的真实下限** |
+| ② 经 SDK 封装（+重试层+StreamStats） | 1341 ms | **+40 ms** |
+| ③ 端到端（FastAPI + HTTP + SSE 编码） | 1463 ms | **+122 ms** |
+
+**结论：单次请求慢在模型，我方链路只占 162 ms（约 12%），可忽略。**
+这个数字就是优化的靶子 —— 想压到 1.5s 以内，换更快的模型或更短的 prompt 才有意义，
+优化 FastAPI 是白费力气。
+
+**但长文档的"首字慢"是另一回事 —— 那是我方链路的问题：**
+
+50 页 PDF 按 800 token 切 → 5–9 段 → **串行** map 调用。
+用户要等 10899 ms 才看到第一个字，而单次调用只有约 2-3 秒。
+**慢的不是模型，是我们串行调了 9 次。**
+
+优化方向（按收益排序）：
+
+1. **map 并发**（`summarize_streaming` 已实现，信号量限 4 路）—— 最大收益
+2. **降低段数**：调大 `chunk_tokens`（段少 = 调用少 = 首字快，但单段更贵）
+3. **把进度写进流**（已做）：前端能看到"正在总结第 3/9 段"，体感完全不同
+4. 换更快的模型 —— 收益最低，因为单次本来就不慢
+
+> 这个打点习惯是后续优化延迟的核心武器：**先分层测量，再动手**。
+> 不分层的优化全凭猜测，而猜测通常是错的。
+
+### 长文档压测（50 页 PDF）
+
+| 指标 | 值 |
+| --- | --- |
+| 解析 + 切分 | 50 段 → 5 块（chunk_tokens=800） |
+| 进度首帧 | +3592 ms（用户 3.6 秒就看到"正在总结"） |
+| TTFT（首个摘要字） | **10899 ms** |
+| 总耗时 | 13713 ms |
+| 模型调用 | 6 次（5 map + 1 reduce） |
+
+摘要质量：准确抓出"违约金自第 1 期 1‰ 逐期递增至第 50 期 50‰"这条规律，
+并指出了"50 项条款结构完全一致"。
 
 ---
 
@@ -187,6 +286,10 @@ W2 做完之后：
 | 某些模型不支持 tool 回灌 | 第二轮 502 `UNSUPPORTED_CONTENT` | 能返回 `tool_calls` **≠** 支持 Function Calling；能力是**双向**的 |
 | `exc.body` 已被 SDK 剥壳 | `body["error"]["code"]` 恒为 `None` | 直接读 `body["code"]`，并兜底两种形态 |
 | 推理模式吃光 `max_tokens` | `content=None`、`usage` 却正常 | 接入层必须把 `None` 当失败 |
+| `request.is_disconnected()` 失效 | 生成器里恒为 `False`，客户端断了还在跑 | `StreamingResponse` 占用了 `receive` 通道；改监听 ASGI `http.disconnect` |
+| **项目从未配置 logging** | 所有 `logger.info` 被静默丢弃 | root logger 未配置时 WARNING 以下蒸发；表现为"检测没生效"，实际是"日志没输出" |
+| 测试数据每页内容相同 | 无法区分"正常去页眉"和"丢了正文" | 正文必须每页不同；否则测试通过与否都不说明问题 |
+| `chunk_tokens` 有隐式下限 | 小预算被静默抬到 200 字/段 | "参数不生效"比报错更难查，下限要可推导 |
 | Windows 控制台 GBK | 中文输出乱码/崩 | 脚本内 `reconfigure(encoding="utf-8")` + `-X utf8` |
 | msys `sh` 读不懂 GBK 路径 | pre-commit hook 找不到 python | 重装 hook 时置 `PYTHONUTF8=1` |
 

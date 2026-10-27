@@ -11,6 +11,7 @@ from fastapi import APIRouter
 from app.api.v1.chat import router as chat_router
 from app.api.v1.extract import router as extract_router
 from app.api.v1.stream import router as stream_router
+from app.api.v1.summarize import router as summarize_router
 
 router = APIRouter()
 router.include_router(extract_router)
@@ -19,5 +20,7 @@ router.include_router(stream_router)
 # 聊天流式是另一条独立接口线：抽取走结构化契约，聊天走开放对话，
 # 两者的帧格式与终止符刻意不同（见 chat.py 的模块 docstring）
 router.include_router(chat_router)
+# 文档摘要是本周主交付：上传 → loader → map-reduce → SSE
+router.include_router(summarize_router)
 
 __all__ = ["router"]

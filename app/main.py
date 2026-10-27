@@ -2,17 +2,26 @@
 
 只做接线，不含业务逻辑：
 
-    1. FastAPI(...)                 实例化
-    2. register_middlewares         请求上下文（request_id / 契约头）
-    3. register_exception_handlers  统一错误体
-    4. include_router               挂 /api/v1
+    1. configure_logging              装日志 handler（否则 logger.info 全被丢弃）
+    2. FastAPI(...)                   实例化
+    3. register_cors                  跨域（前端从 file:// 或另一个端口访问时需要）
+    4. register_middlewares           请求上下文（request_id / 契约头）
+    5. register_exception_handlers    统一错误体
+    6. include_router                 挂 /api/v1
+    7. mount_static                   挂 static/（前端的单页 UI）
 
 启动：
 
     uv run uvicorn app.main:app --reload
 """
 
+from __future__ import annotations
+
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app import __version__
 from app.api.v1 import router as v1_router
@@ -36,6 +45,27 @@ app = FastAPI(
     ),
 )
 
+# ---------------------------------------------------------------- CORS
+#
+# **为什么需要**：前端页面可能来自
+#   - `file://` 直接打开（origin 为 `null`）
+#   - 另一个端口（如 Live Server 的 5500）
+# 而 API 在 8000。浏览器会拦下跨域请求。
+#
+# **为什么放开 `allow_origins=["*"]`**：这是本地演示用的工具，
+# 没有凭证、没有用户数据。生产环境必须收敛到具体域名 ——
+# `*` 配合 `allow_credentials=True` 会被浏览器直接拒绝（规范不允许），
+# 所以这里也不开 credentials，避免"看起来能配实际配不成"。
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+    # 让前端能读到耗时相关的响应头（需要在浏览器里看时有用）
+    expose_headers=["X-Request-ID", "X-Extract-Model", "X-Elapsed-Ms"],
+)
+
 register_middlewares(app)
 register_exception_handlers(app)
 app.include_router(v1_router)
@@ -45,6 +75,16 @@ app.include_router(v1_router)
 def health() -> dict[str, str]:
     """Liveness probe used by deployment and CI."""
     return {"status": "ok"}
+
+
+# ---------------------------------------------------------------- 静态前端
+#
+# `mount` 放在最后：StaticFiles 挂在 "/" 会兜住所有未匹配路径，
+# 如果它先注册，后面的 API 路由就都被它抢走了。
+STATIC_DIR = Path(__file__).resolve().parents[1] / "static"
+if STATIC_DIR.is_dir():
+    # html=True 让 "/" 自动返回 index.html
+    app.mount("/ui", StaticFiles(directory=str(STATIC_DIR), html=True), name="ui")
 
 
 __all__ = ["app"]
