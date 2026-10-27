@@ -47,6 +47,7 @@ from app.core.config import get_settings
 from app.core.llm.client import get_llm_client
 from app.core.sse import DisconnectWatcher
 from app.rag.loaders import SUPPORTED_EXTENSIONS, load_document
+from app.rag.replay import is_replay_enabled, replay_stream
 from app.rag.summarize import chunk_documents, summarize_streaming
 
 logger = logging.getLogger(__name__)
@@ -189,13 +190,27 @@ async def summarize_stream(
         )
 
         try:
-            async for kind, payload in summarize_streaming(
-                result.documents,
-                client=client,
-                model=llm.model,
-                chunk_tokens=chunk_tokens,
-                extra_request=extra,
-            ):
+            # 演示回放模式（DEMO_REPLAY=1）：用预置节奏产出与真实链路**同构**的事件。
+            # 为什么要有这个：录屏时打真模型每次画面都不同（文本/速度/偶发超时），
+            # 结果不可复现且每次真花钱。回放只替换"产出来源"，
+            # 不碰网络层也不碰前端 —— 前端仍走 fetch + ReadableStream 的真代码路径。
+            if is_replay_enabled():
+                source = replay_stream(
+                    filename=filename,
+                    page_count=result.page_count,
+                    total_chars=result.total_chars,
+                    chunk_count=len(chunks),
+                )
+            else:
+                source = summarize_streaming(
+                    result.documents,
+                    client=client,
+                    model=llm.model,
+                    chunk_tokens=chunk_tokens,
+                    extra_request=extra,
+                )
+
+            async for kind, payload in source:
                 if watcher.disconnected:
                     logger.info("summarize/stream 客户端断开，停止生成")
                     return
@@ -211,6 +226,7 @@ async def summarize_stream(
                                 "chunks": payload.get("chunks", 0),
                                 "api_calls": payload.get("api_calls", 0),
                                 "elapsed_ms": int((time.perf_counter() - stats_started) * 1000),
+                                "replay": is_replay_enabled(),
                             }
                         }
                     )

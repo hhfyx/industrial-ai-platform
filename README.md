@@ -1,4 +1,4 @@
-﻿# industrial-ai-platform
+# industrial-ai-platform
 
 **一个用 FastAPI + LLM 做结构化信息抽取的后端平台。**
 
@@ -215,13 +215,38 @@ W2 做完之后：
 上传 PDF / DOCX / Markdown → 服务端 map-reduce 分段摘要 → SSE 逐字返回。
 前端在 `static/index.html`（打开 `/ui`）。
 
+![流式摘要演示](docs/demo/streaming_summary.gif)
+
+> 15 秒演示（600px / 36 帧 / 646 KB）：选择 50 页 PDF → 进度条推进 → 摘要逐字出现
+> → **点中断后立即停止**。截图见 [`docs/demo/ui_screenshot.png`](docs/demo/ui_screenshot.png)。
+
 ```powershell
 uv run uvicorn app.main:app --port 8000
 # 浏览器打开 http://127.0.0.1:8000/ui
 
 # 或走 CLI
 uv run python -m app.cli.summarize tests/fixtures/sample50.pdf --stream
+
+# 重录演示（不需要 API key，也不花钱）
+$env:DEMO_REPLAY="1"; uv run uvicorn app.main:app --port 8020
+uv run python -X utf8 scripts/record_demo.py --port 8020
 ```
+
+### 演示为什么是脚本录的，而不是人工录屏
+
+`scripts/record_demo.py` 用 **Playwright 驱动系统 Chrome 逐帧截图 + Pillow 合成 GIF**，
+不是 ScreenToGif 那类 GUI 录屏工具。三个理由：
+
+1. **可复现**：别人想重录一遍，跑同一条命令即可，不用对着屏幕重新框选区域
+2. **无需人工**：不需要有人守着点录制/停止
+3. **画面稳定**：固定 viewport，没有通知弹窗、鼠标乱入、窗口遮挡
+
+配合 `DEMO_REPLAY=1`（`app/rag/replay.py`），服务端走预置节奏而**前端代码路径完全真实**
+（仍是 `fetch` + `ReadableStream` 解帧）。所以演示确定、快、不花 API 费用。
+
+> 录 demo 时踩到一个坑：Playwright 的**同步 API 不能跨线程**。
+> 第一版用后台线程持续截图，一帧都没抓到（异常被 try/except 吞了）。
+> 改成 asyncio + 异步 API 才解决 —— 截图任务和页面动作在同一个事件循环里。
 
 ### 做了什么
 
@@ -230,9 +255,10 @@ uv run python -m app.cli.summarize tests/fixtures/sample50.pdf --stream
 | `rag/loaders/` | pypdf 逐页抽（页码从 1 开始）· python-docx 抽段落**和表格** · Markdown 按标题切块 |
 | 统一模型 | `{source, page, text}`，非分页格式 `page=None`（诚实，不假装有页） |
 | `rag/summarize.py` | map-reduce：分段摘要 → 汇总；段数 > 10 走层级汇总 |
+| `rag/replay.py` | 演示回放：同构事件序列，供录屏与无 key 联调 |
 | `api/v1/summarize.py` | multipart 上传 + SSE（进度与正文同流） |
 | `static/index.html` | fetch + ReadableStream 手工解帧（**EventSource 不能 POST**） |
-| CORS | 放开 `*` 但不开 credentials（规范不允许 `*` + credentials 组合） |
+| `CORS` | 放开 `*` 但不开 credentials（规范不允许 `*` + credentials 组合） |
 
 ### 首 token 慢，是模型慢还是链路慢？—— 打点回答
 
