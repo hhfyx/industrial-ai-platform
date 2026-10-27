@@ -17,7 +17,13 @@ from fastapi import FastAPI
 from app import __version__
 from app.api.v1 import router as v1_router
 from app.core.errors import register_exception_handlers
+from app.core.logging import setup_from_settings
 from app.core.middleware import register_middlewares
+
+# 必须在任何业务代码之前装好 handler。
+# 少了这一步，项目里所有 `logger.info(...)` 都会被静默丢弃 ——
+# 排查时表现为"检测没生效"，实际是"日志没输出"。
+setup_from_settings()
 
 app = FastAPI(
     title="Industrial AI Platform",
