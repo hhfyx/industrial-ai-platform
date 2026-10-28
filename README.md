@@ -1,4 +1,4 @@
-﻿# industrial-ai-platform
+# industrial-ai-platform
 
 **一个用 FastAPI + LLM 做文档智能处理的平台：结构化抽取、流式对话、超长文档摘要。**
 
@@ -117,6 +117,7 @@ tests/               285 个**全离线**测试
   ├── conftest.py    autouse: 默认注入离线规则版（拔网线也全绿）
   └── fixtures/      make_fixtures.py 脚本生成样本（review 可读）
 docs/                api-spec.md（冻结契约 v1.1）· cost.md · sse.md · SETUP.md
+                     prompt-patterns.md（四范式实测）· system-prompt.md（四要素 + A/B）
 ```
 
 ---
@@ -541,10 +542,15 @@ fastapi、抽取器接受注入 client"的直接收益。
 
 ## 文档
 
-- [docs/api-spec.md](docs/api-spec.md) —— **v1 契约**（现 v1.1，新增可选 `degraded`），唯一不能动的文件`n- [docs/cost.md](docs/cost.md) —— 成本模型：规则 vs LLM、回灌重试的真实代价、优化敏感性
+- [docs/api-spec.md](docs/api-spec.md) —— **v1 契约**（现 v1.1，新增可选 `degraded`），唯一不能动的文件
+- [docs/cost.md](docs/cost.md) —— 成本模型：规则 vs LLM、回灌重试的真实代价、优化敏感性
 - [docs/sse.md](docs/sse.md) —— SSE vs WebSocket vs 长轮询、双换行为什么是硬要求、
   裸 SSE 的 flush 时机、TTFT 口径、网关故障记录
 - [docs/SETUP.md](docs/SETUP.md) —— 从零搭环境（Windows：uv / git / GitHub 连通性）
+- [docs/prompt-patterns.md](docs/prompt-patterns.md) —— zero-shot / few-shot / CoT /
+  Self-Consistency 四范式实测：哪个赢、赢多少、为什么推理模型不该再加 CoT 提示
+- [docs/system-prompt.md](docs/system-prompt.md) —— System Prompt 四要素拆解 + 宽松 vs 严格
+  的 A/B 对抗测试：拒绝率为什么会骗人、判定器返工记录
 - `learn/llm/01_params.md` —— 采样参数实测（temperature / seed / max_tokens / stop）
 - `learn/llm/02_function_calling.md` —— Function Calling 实测与网关踩坑
 
