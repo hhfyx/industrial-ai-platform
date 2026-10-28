@@ -1,15 +1,18 @@
 ﻿# industrial-ai-platform
 
-**一个用 FastAPI + LLM 做结构化信息抽取的后端平台。**
+**一个用 FastAPI + LLM 做文档智能处理的平台：结构化抽取、流式对话、超长文档摘要。**
 
-重点不在"调通一个接口"，而在**接口不变、实现可换**：同一份 `v1` HTTP 契约，
-底下从正则实现换成了真实的模型调用，`tests/test_api.py` 一行未改、**276 个测试全绿（且能断网跑）**。
+重点不在"调通几个接口"，而在两条能拿证据说话的工程判断：
+
+- **接口不变、实现可换**：同一份 `v1` HTTP 契约，底下从正则换成真实模型调用
+  （再换成 JSON Schema 强约束 + 校验回灌），`tests/test_api.py` **一行未改**。
+- **测试能离线跑绿**：**285 个测试，拔掉网线也全绿** —— 这才是"实现真的可替换"无法伪造的证据。
 
 | 项目 | 值 |
 | --- | --- |
 | 端点 | `extract` · `extract/stream` · `chat/stream` · `summarize/stream` |
 | 核心契约 | `POST /api/v1/extract`，`v1.1`（冻结；新增可选字段 `degraded`） |
-| 测试 | **276 个，全离线**（拔网线也全绿），`pytest --cov=app` |
+| 测试 | **285 个，全离线**（拔网线也全绿），`pytest --cov=app` |
 | 镜像 | 多阶段构建；v0.2.0 **待实测**（v0.1.0 曾为 157 MB，见 [Docker](#docker)） |
 | 运行时 | Python 3.11 + uvicorn，非 root（uid 10001） |
 
@@ -90,7 +93,7 @@ POST /api/v1/extract
 
 跨层规则：**服务层与 rag 层都不 import fastapi**。依赖注入是路由层的事，
 `LlmExtractor` 只接受一个 `AsyncOpenAI` 实例（构造参数注入，内部**绝不 new**），
-所以测试里能直接塞 `FakeLLMClient` —— 这也是 **276 个测试全部能离线跑**的原因。
+所以测试里能直接塞 `FakeLLMClient` —— 这也是 **285 个测试全部能离线跑**的原因。
 
 ### 目录
 
@@ -109,7 +112,7 @@ app/
 scripts/             smoke_llm · demo_tools · consume_sse · cost · cost_model
                      latency_breakdown · record_demo · measure_tokens · drill_*
 static/index.html    前端单页（fetch + ReadableStream，含中断/重试）
-tests/               276 个**全离线**测试
+tests/               285 个**全离线**测试
   ├── fake_llm.py    FakeLLMClient（可复用，支持固定回复/脚本/异常/流式）
   ├── conftest.py    autouse: 默认注入离线规则版（拔网线也全绿）
   └── fixtures/      make_fixtures.py 脚本生成样本（review 可读）
@@ -210,7 +213,7 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 ## 测试能离线跑绿 —— W2 唯一无法伪造的成果
 
 ```powershell
-pytest -q          # 276 passed，拔掉网线也一样
+pytest -q          # 285 passed，拔掉网线也一样
 ```
 
 这 行命令为什么值得单独一节：**它能证明实现真的可替换**。
@@ -354,7 +357,7 @@ W2 做完之后：
 | 断言 | 状态 |
 | --- | --- |
 | `tests/test_api.py` 一行未改 | ✅ |
-| 全套 276 个测试仍全绿（**断网也是**） | ✅ 276 passed |
+| 全套 285 个测试仍全绿（**断网也是**） | ✅ 285 passed |
 | 响应体正常时仍是 4 字段 | ✅ 实测无 `degraded` 键 |
 | 降级时可多 1 个可选字段 | ✅ `degraded: true`，v1.1 向后兼容 |
 | 规则版仍可用 | ✅ `EXTRACTOR_IMPL=rule` 一键回退 |
