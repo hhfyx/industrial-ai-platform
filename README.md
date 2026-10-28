@@ -7,11 +7,10 @@
 
 | 项目 | 值 |
 | --- | --- |
-| 端点 | `POST /api/v1/extract` |
-| 契约版本 | `v1`（响应头 `X-API-Contract: v1`，见 [docs/api-spec.md](docs/api-spec.md)） |
-| 测试 | **276 个，全离线**，`pytest --cov=app` |
-| 端点 | extract · extract/stream · chat/stream · summarize/stream |
-| 镜像 | 多阶段构建，**157 MB** |
+| 端点 | `extract` · `extract/stream` · `chat/stream` · `summarize/stream` |
+| 核心契约 | `POST /api/v1/extract`，`v1.1`（冻结；新增可选字段 `degraded`） |
+| 测试 | **276 个，全离线**（拔网线也全绿），`pytest --cov=app` |
+| 镜像 | 多阶段构建；v0.2.0 **待实测**（v0.1.0 曾为 157 MB，见 [Docker](#docker)） |
 | 运行时 | Python 3.11 + uvicorn，非 root（uid 10001） |
 
 ---
@@ -478,13 +477,38 @@ uv run python -X utf8 scripts/record_demo.py --port 8020
 
 ## Docker
 
-三个阶段构建（builder → slim-base → scratch 拉入瘦身 rootfs），最终 **157 MB**、
-非 root、镜像内没有 uv / tests / `.git`。
+三个阶段构建（builder → slim-base → scratch 拉入瘦身 rootfs）、非 root、
+镜像内没有 uv / tests / `.git`。
 
 ```powershell
 docker compose up -d --build
 docker compose logs -f api
 ```
+
+### 镜像大小：待重测（不要把旧数字当结论）
+
+| 时间点 | 大小 | 状态 |
+| --- | --- | --- |
+| v0.1.0（纯 FastAPI，无 LLM/文档依赖） | **157 MB** | ✅ 当时实测 |
+| v0.2.0（接入 LLM + 文档解析） | **待实测** | ⚠️ **当前无法构建，见下** |
+
+**为什么不能沿用 157 MB**：v0.2.0 的运行时依赖新增了
+`openai`(约 10 MB) + `lxml`(约 8.5 MB，python-docx 带) + `pypdf`(约 3.8 MB)
++ `tiktoken`(约 2.4 MB) + `python-docx`(约 2.3 MB) + `regex`(约 1.4 MB)
++ `markdown`(约 0.3 MB)，净增约 **28–30 MB**。
+所以真实值大概在 **180 MB 上下** —— 但**这是估算，不是实测**，不能写进表格当结论。
+
+> **这个数字要么实测、要么标明待测。** 实测命令：
+> ```powershell
+> docker build -t industrial-ai:sizecheck .
+> docker image ls industrial-ai:sizecheck --format '{{.Size}}'
+> ```
+> CI 的 docker job 也会打出这个数（只记录不设阈值 ——
+> 镜像大小随基础镜像更新波动，硬设阈值会变成"定期假失败"）。
+
+**当前环境为何构建不了**：Docker Desktop 的代理设为 `127.0.0.1:7897`（manual 模式），
+而该代理未运行；容器内无外网，`uv sync` 拉不到 `requests`/`pydantic-core` 等 wheel，
+构建在 builder 阶段就失败。**这不是 Dockerfile 的问题** —— 代理起来后即可完成。
 
 容器内的坑：
 

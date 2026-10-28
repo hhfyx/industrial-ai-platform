@@ -35,11 +35,47 @@ jobs:
         run: uv run ruff format --check .
 
       - name: Tests
-        # 不需要 LLM_API_KEY:所有测试都用假 client 离线跑。
+        # 不需要真实 LLM_API_KEY：所有测试都用假 client 离线跑。
         # 这正是"服务层不 import fastapi、抽取器接受注入 client"的收益。
         env:
           EXTRACTOR_IMPL: rule
         run: uv run pytest --cov=app --cov-report=term-missing -q
+
+      - name: Wiring smoke (llm path)
+        # **这一条补的是 CI 唯一的盲区。**
+        #
+        # 上面的测试全部通过 `dependency_overrides` / autouse fixture 注入了
+        # 离线规则版 —— 也就是说 `_build_llm_extractor()`
+        # （读 env → 校验 key → 造 client）在 CI 里**一次都没被执行过**。
+        # 而默认实现是 `llm`：如果它装配有错（缺 key 启动就炸、
+        # client 构造参数不对、base_url 格式不认），CI 全绿而线上直接挂。
+        #
+        # 这不是假设，10/27 出过真事故：网关凭据过期 → 降级 → 响应体多
+        # `degraded` → 契约测试挂（而那个测试一行没改）。
+        # 装配层的错就是这样才暴露的。
+        #
+        # `LLM_BASE_URL` 故意指向不可达地址：**只验证装配，不验证调用**。
+        # 几秒内跑完，不联网、不花钱、不需要真 key。
+        env:
+          EXTRACTOR_IMPL: llm
+          LLM_API_KEY: sk-ci-placeholder-not-real
+          LLM_BASE_URL: http://127.0.0.1:1/v1
+          LLM_MODEL: ci-placeholder-model
+        run: |
+          # ① 装配真的能跑起来（默认走 llm 分支）
+          uv run python -c "
+          from app.core.deps import get_extractor
+          from app.services.llm_extractor import LlmExtractor
+          e = get_extractor()
+          assert isinstance(e, LlmExtractor), \
+              f'默认实现应为 LlmExtractor，实际 {type(e).__name__}'
+          assert e.model_name == 'ci-placeholder-model'
+          print('OK: default extractor =', type(e).__name__, '| model =', e.model_name)
+          "
+
+          # ② 端到端：网关不可达时必须**降级而不是 500**
+          #    这一条把"装配对不对"和"失败时的行为"一起验了
+          uv run pytest tests/test_api.py -q
 
   docker:
     runs-on: ubuntu-latest
@@ -48,6 +84,12 @@ jobs:
 
       - name: Build image
         run: docker build -t industrial-ai:ci .
+
+      - name: Image size (recorded, not asserted)
+        # 数字必须可核对 —— README 里写的大小就是这里打出来的。
+        # 只记录不设阈值：镜像大小受基础镜像更新影响，硬设阈值会变成
+        # "定期假失败"，那比没有更糟。
+        run: docker image ls industrial-ai:ci --format '{{.Repository}}:{{.Tag}} {{.Size}}'
 
       - name: Smoke test container
         run: |
