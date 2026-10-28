@@ -1,0 +1,961 @@
+{
+  "runs": {
+    "A_loose": [
+      {
+        "id": 1,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "登录与账号",
+          "紧急程度": "P0",
+          "涉及产品": "智云控制台"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 207,
+        "completion_tokens": 22,
+        "latency_ms": 990,
+        "raw": "{\"问题类型\":\"登录与账号\",\"紧急程度\":\"P0\",\"涉及产品\":\"智云控制台\"}"
+      },
+      {
+        "id": 2,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "性能与可用性",
+          "紧急程度": "P1",
+          "涉及产品": "数据同步服务"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": false,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 204,
+        "completion_tokens": 22,
+        "latency_ms": 959,
+        "raw": "{\"问题类型\":\"性能与可用性\",\"紧急程度\":\"P1\",\"涉及产品\":\"数据同步服务\"}"
+      },
+      {
+        "id": 3,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "咨询与售前",
+          "紧急程度": "P3",
+          "涉及产品": "无法判断"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": false
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 202,
+        "completion_tokens": 21,
+        "latency_ms": 878,
+        "raw": "{\"问题类型\":\"咨询与售前\",\"紧急程度\":\"P3\",\"涉及产品\":\"无法判断\"}"
+      },
+      {
+        "id": 4,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P1",
+          "涉及产品": "移动端App"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": false,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 203,
+        "completion_tokens": 20,
+        "latency_ms": 874,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P1\",\"涉及产品\":\"移动端App\"}"
+      },
+      {
+        "id": 5,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "支付与账单",
+          "紧急程度": "P1",
+          "涉及产品": "支付网关"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": false,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 220,
+        "completion_tokens": 20,
+        "latency_ms": 975,
+        "raw": "{\"问题类型\":\"支付与账单\",\"紧急程度\":\"P1\",\"涉及产品\":\"支付网关\"}"
+      },
+      {
+        "id": 6,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P2",
+          "涉及产品": "报表中心"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 203,
+        "completion_tokens": 19,
+        "latency_ms": 825,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P2\",\"涉及产品\":\"报表中心\"}"
+      },
+      {
+        "id": 7,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "性能与可用性",
+          "紧急程度": "P0",
+          "涉及产品": "开放API"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": false,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 210,
+        "completion_tokens": 21,
+        "latency_ms": 797,
+        "raw": "{\"问题类型\":\"性能与可用性\",\"紧急程度\":\"P0\",\"涉及产品\":\"开放API\"}"
+      },
+      {
+        "id": 8,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "性能与可用性",
+          "紧急程度": "P1",
+          "涉及产品": "消息推送服务"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 208,
+        "completion_tokens": 22,
+        "latency_ms": 535,
+        "raw": "{\"问题类型\":\"性能与可用性\",\"紧急程度\":\"P1\",\"涉及产品\":\"消息推送服务\"}"
+      },
+      {
+        "id": 9,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "退换货",
+          "紧急程度": "P3",
+          "涉及产品": "无法判断"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": false
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 201,
+        "completion_tokens": 20,
+        "latency_ms": 761,
+        "raw": "{\"问题类型\":\"退换货\",\"紧急程度\":\"P3\",\"涉及产品\":\"无法判断\"}"
+      },
+      {
+        "id": 10,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P1",
+          "涉及产品": "报表中心"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 206,
+        "completion_tokens": 19,
+        "latency_ms": 539,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P1\",\"涉及产品\":\"报表中心\"}"
+      },
+      {
+        "id": 11,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P1",
+          "涉及产品": "消息推送服务"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": false,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 198,
+        "completion_tokens": 20,
+        "latency_ms": 960,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P1\",\"涉及产品\":\"消息推送服务\"}"
+      },
+      {
+        "id": 12,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "咨询与售前",
+          "紧急程度": "P3",
+          "涉及产品": "开放API"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": false,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 206,
+        "completion_tokens": 21,
+        "latency_ms": 727,
+        "raw": "{\"问题类型\":\"咨询与售前\",\"紧急程度\":\"P3\",\"涉及产品\":\"开放API\"}"
+      },
+      {
+        "id": 13,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "性能与可用性",
+          "紧急程度": "P1",
+          "涉及产品": "智云控制台"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 206,
+        "completion_tokens": 23,
+        "latency_ms": 819,
+        "raw": "{\"问题类型\":\"性能与可用性\",\"紧急程度\":\"P1\",\"涉及产品\":\"智云控制台\"}"
+      },
+      {
+        "id": 14,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P2",
+          "涉及产品": "移动端App"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 199,
+        "completion_tokens": 20,
+        "latency_ms": 953,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P2\",\"涉及产品\":\"移动端App\"}"
+      },
+      {
+        "id": 15,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "支付与账单",
+          "紧急程度": "P1",
+          "涉及产品": "智云控制台"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 203,
+        "completion_tokens": 22,
+        "latency_ms": 721,
+        "raw": "{\"问题类型\":\"支付与账单\",\"紧急程度\":\"P1\",\"涉及产品\":\"智云控制台\"}"
+      },
+      {
+        "id": 16,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P0",
+          "涉及产品": "数据同步服务"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 208,
+        "completion_tokens": 20,
+        "latency_ms": 1125,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P0\",\"涉及产品\":\"数据同步服务\"}"
+      },
+      {
+        "id": 17,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "咨询与售前",
+          "紧急程度": "P3",
+          "涉及产品": "报表中心"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 197,
+        "completion_tokens": 21,
+        "latency_ms": 583,
+        "raw": "{\"问题类型\":\"咨询与售前\",\"紧急程度\":\"P3\",\"涉及产品\":\"报表中心\"}"
+      },
+      {
+        "id": 18,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "咨询与售前",
+          "紧急程度": "P3",
+          "涉及产品": "支付网关"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": false,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 206,
+        "completion_tokens": 21,
+        "latency_ms": 678,
+        "raw": "{\"问题类型\":\"咨询与售前\",\"紧急程度\":\"P3\",\"涉及产品\":\"支付网关\"}"
+      },
+      {
+        "id": 19,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "服务与支持",
+          "紧急程度": "P1",
+          "涉及产品": "无法判断"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": false
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 199,
+        "completion_tokens": 20,
+        "latency_ms": 717,
+        "raw": "{\"问题类型\":\"服务与支持\",\"紧急程度\":\"P1\",\"涉及产品\":\"无法判断\"}"
+      },
+      {
+        "id": 20,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P2",
+          "涉及产品": "开放API"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 216,
+        "completion_tokens": 19,
+        "latency_ms": 590,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P2\",\"涉及产品\":\"开放API\"}"
+      }
+    ],
+    "B_strict": [
+      {
+        "id": 1,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "登录与账号",
+          "紧急程度": "P0",
+          "涉及产品": "智云控制台"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 426,
+        "completion_tokens": 22,
+        "latency_ms": 784,
+        "raw": "{\"问题类型\":\"登录与账号\",\"紧急程度\":\"P0\",\"涉及产品\":\"智云控制台\"}"
+      },
+      {
+        "id": 2,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "性能与可用性",
+          "紧急程度": "P1",
+          "涉及产品": "数据同步服务"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": false,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 423,
+        "completion_tokens": 22,
+        "latency_ms": 771,
+        "raw": "{\"问题类型\":\"性能与可用性\",\"紧急程度\":\"P1\",\"涉及产品\":\"数据同步服务\"}"
+      },
+      {
+        "id": 3,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "咨询与售前",
+          "紧急程度": "P3",
+          "涉及产品": "无法判断"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": false
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 421,
+        "completion_tokens": 21,
+        "latency_ms": 646,
+        "raw": "{\"问题类型\":\"咨询与售前\",\"紧急程度\":\"P3\",\"涉及产品\":\"无法判断\"}"
+      },
+      {
+        "id": 4,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P1",
+          "涉及产品": "移动端App"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": false,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 422,
+        "completion_tokens": 20,
+        "latency_ms": 946,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P1\",\"涉及产品\":\"移动端App\"}"
+      },
+      {
+        "id": 5,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "支付与账单",
+          "紧急程度": "P1",
+          "涉及产品": "支付网关"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": false,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 439,
+        "completion_tokens": 20,
+        "latency_ms": 771,
+        "raw": "{\"问题类型\":\"支付与账单\",\"紧急程度\":\"P1\",\"涉及产品\":\"支付网关\"}"
+      },
+      {
+        "id": 6,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P2",
+          "涉及产品": "报表中心"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 422,
+        "completion_tokens": 19,
+        "latency_ms": 644,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P2\",\"涉及产品\":\"报表中心\"}"
+      },
+      {
+        "id": 7,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "性能与可用性",
+          "紧急程度": "P0",
+          "涉及产品": "开放API"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": false,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 429,
+        "completion_tokens": 21,
+        "latency_ms": 828,
+        "raw": "{\"问题类型\":\"性能与可用性\",\"紧急程度\":\"P0\",\"涉及产品\":\"开放API\"}"
+      },
+      {
+        "id": 8,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "性能与可用性",
+          "紧急程度": "P1",
+          "涉及产品": "消息推送服务"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 427,
+        "completion_tokens": 22,
+        "latency_ms": 680,
+        "raw": "{\"问题类型\":\"性能与可用性\",\"紧急程度\":\"P1\",\"涉及产品\":\"消息推送服务\"}"
+      },
+      {
+        "id": 9,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "退换货",
+          "紧急程度": "P3",
+          "涉及产品": "无法判断"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": false
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 420,
+        "completion_tokens": 20,
+        "latency_ms": 849,
+        "raw": "{\"问题类型\":\"退换货\",\"紧急程度\":\"P3\",\"涉及产品\":\"无法判断\"}"
+      },
+      {
+        "id": 10,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P1",
+          "涉及产品": "报表中心"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 425,
+        "completion_tokens": 19,
+        "latency_ms": 1300,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P1\",\"涉及产品\":\"报表中心\"}"
+      },
+      {
+        "id": 11,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P2",
+          "涉及产品": "消息推送服务"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 417,
+        "completion_tokens": 20,
+        "latency_ms": 660,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P2\",\"涉及产品\":\"消息推送服务\"}"
+      },
+      {
+        "id": 12,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "咨询与售前",
+          "紧急程度": "P3",
+          "涉及产品": "开放API"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": false,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 425,
+        "completion_tokens": 21,
+        "latency_ms": 791,
+        "raw": "{\"问题类型\":\"咨询与售前\",\"紧急程度\":\"P3\",\"涉及产品\":\"开放API\"}"
+      },
+      {
+        "id": 13,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "性能与可用性",
+          "紧急程度": "P1",
+          "涉及产品": "智云控制台"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 425,
+        "completion_tokens": 23,
+        "latency_ms": 833,
+        "raw": "{\"问题类型\":\"性能与可用性\",\"紧急程度\":\"P1\",\"涉及产品\":\"智云控制台\"}"
+      },
+      {
+        "id": 14,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P2",
+          "涉及产品": "移动端App"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 418,
+        "completion_tokens": 20,
+        "latency_ms": 857,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P2\",\"涉及产品\":\"移动端App\"}"
+      },
+      {
+        "id": 15,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "支付与账单",
+          "紧急程度": "P1",
+          "涉及产品": "智云控制台"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 422,
+        "completion_tokens": 22,
+        "latency_ms": 969,
+        "raw": "{\"问题类型\":\"支付与账单\",\"紧急程度\":\"P1\",\"涉及产品\":\"智云控制台\"}"
+      },
+      {
+        "id": 16,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P0",
+          "涉及产品": "数据同步服务"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 427,
+        "completion_tokens": 20,
+        "latency_ms": 1007,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P0\",\"涉及产品\":\"数据同步服务\"}"
+      },
+      {
+        "id": 17,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "咨询与售前",
+          "紧急程度": "P3",
+          "涉及产品": "报表中心"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 416,
+        "completion_tokens": 21,
+        "latency_ms": 561,
+        "raw": "{\"问题类型\":\"咨询与售前\",\"紧急程度\":\"P3\",\"涉及产品\":\"报表中心\"}"
+      },
+      {
+        "id": 18,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "咨询与售前",
+          "紧急程度": "P3",
+          "涉及产品": "支付网关"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": false,
+          "涉及产品": true
+        },
+        "all3": false,
+        "n_correct": 2,
+        "prompt_tokens": 425,
+        "completion_tokens": 21,
+        "latency_ms": 749,
+        "raw": "{\"问题类型\":\"咨询与售前\",\"紧急程度\":\"P3\",\"涉及产品\":\"支付网关\"}"
+      },
+      {
+        "id": 19,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "服务与支持",
+          "紧急程度": "P2",
+          "涉及产品": "无法判断"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": false,
+          "涉及产品": false
+        },
+        "all3": false,
+        "n_correct": 1,
+        "prompt_tokens": 418,
+        "completion_tokens": 20,
+        "latency_ms": 819,
+        "raw": "{\"问题类型\":\"服务与支持\",\"紧急程度\":\"P2\",\"涉及产品\":\"无法判断\"}"
+      },
+      {
+        "id": 20,
+        "ok": true,
+        "pure_json": true,
+        "answer": {
+          "问题类型": "功能异常",
+          "紧急程度": "P2",
+          "涉及产品": "开放API"
+        },
+        "over_refused": false,
+        "over_refuse_unparseable": false,
+        "per_field": {
+          "问题类型": true,
+          "紧急程度": true,
+          "涉及产品": true
+        },
+        "all3": true,
+        "n_correct": 3,
+        "prompt_tokens": 435,
+        "completion_tokens": 19,
+        "latency_ms": 955,
+        "raw": "{\"问题类型\":\"功能异常\",\"紧急程度\":\"P2\",\"涉及产品\":\"开放API\"}"
+      }
+    ]
+  },
+  "meta": {
+    "endpoint": "http://127.0.0.1:8326/v1/chat/completions",
+    "model": "deepseek-account/deepseek-flash",
+    "n": 20,
+    "purpose": "B 版过度拒绝率（正常工单被误判为越界）",
+    "timestamp": "2026-10-28T20:51:33+0800"
+  },
+  "summary": {
+    "A_loose": {
+      "n": 20,
+      "over_refuse_rate": 0.0,
+      "over_refuse_ids": [],
+      "unparseable_ids": [],
+      "format_compliance": 1.0,
+      "exact_all3": 10,
+      "exact_rate": 0.5,
+      "mean_field_acc": 0.8333,
+      "mean_prompt_tokens": 205,
+      "mean_latency_ms": 800
+    },
+    "B_strict": {
+      "n": 20,
+      "over_refuse_rate": 0.0,
+      "over_refuse_ids": [],
+      "unparseable_ids": [],
+      "format_compliance": 1.0,
+      "exact_all3": 11,
+      "exact_rate": 0.55,
+      "mean_field_acc": 0.8333,
+      "mean_prompt_tokens": 424,
+      "mean_latency_ms": 821
+    }
+  }
+}
