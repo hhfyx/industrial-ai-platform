@@ -517,26 +517,47 @@ def summarize(rows: list[Row], set_name: str, a: str, b: str) -> dict[str, Any]:
         ok = [r for r in rs if r.ok]
         lat = sorted(r.latency_ms for r in ok)
         n = len(rs)
-        # 两种打分口径必须**同时**给出，否则会得出错误结论：
-        #   mean_score_of_ok  : 只算成功的（失败条目被剔除）
-        #   mean_score_all    : 失败按 0 分计入
-        # 例：摘要 B 版 7 条超时，只算成功的话得分 1.0（"完美"），
-        # 但按全量口径是 0.3 —— 后者才是真实可用性。
-        # 只报前者会让"一半请求超时"的版本看起来完美。
+        n_ok = len(ok)
+
+        # ---- 三个口径必须**同时**给出，否则会得出错误结论 ----
+        #
+        # ① mean_score_of_ok / mean_score_all
+        #    仅算成功 vs 失败记 0。
+        #    例：摘要 B 版 7 条超时，只算成功得 1.0（"完美"），全量得 0.3。
+        #
+        # ② 成本与 token：**必须按成功样本归一**
+        #    失败的请求没有输出 token，于是"总成本更低"可能只等于"有几次没跑起来"。
+        #    实测血案（2026-11-08 复核）：摘要 v2 总成本 0.294 → 0.134，
+        #    字面看省 62%；但 v1 9 条成功、v2 只有 3 条成功 ——
+        #    按每条成功归一，v1 = 0.03266、v2 = 0.04471，**v2 实际贵 37%**。
+        #    更隐蔽的一例：extract 的 token_ratio 原报 1.01（"两版一样贵"），
+        #    按成功归一后是 0.418（v2 省 58%）—— 因为 v1 那条失败样本
+        #    在修复轮里烧了 23270 completion token，被算进了分母。
+        #    所以下面同时给 total / per_ok 两套，且 delta 里用 per_ok。
         mean_ok = round(statistics.mean(r.score for r in ok), 4) if ok else 0.0
         mean_all = round(sum(r.score for r in rs) / n, 4) if n else 0.0
+
+        total_pin = sum(r.prompt_tokens for r in ok)
+        total_pout = sum(r.completion_tokens for r in ok)
+        total_cost = sum(r.cost_cny for r in ok)
+
         out["arms"][arm] = {
             "n": n,
-            "ok": len(ok),
+            "ok": n_ok,
             "mean_score": mean_ok,
             "mean_score_all": mean_all,
-            "exact_rate": round(sum(1 for r in ok if r.score >= 1.0) / len(ok), 4) if ok else 0.0,
+            "exact_rate": round(sum(1 for r in ok if r.score >= 1.0) / n_ok, 4) if n_ok else 0.0,
             "exact_rate_all": round(sum(1 for r in rs if r.ok and r.score >= 1.0) / n, 4)
             if n
             else 0.0,
-            "total_prompt_tokens": sum(r.prompt_tokens for r in ok),
-            "total_completion_tokens": sum(r.completion_tokens for r in ok),
-            "total_cost_cny": round(sum(r.cost_cny for r in ok), 6),
+            # 总量（含"因为失败所以没花"的偏差，仅作参考）
+            "total_prompt_tokens": total_pin,
+            "total_completion_tokens": total_pout,
+            "total_cost_cny": round(total_cost, 6),
+            # **按成功样本归一**（成本/品质对比的正确分母）
+            "cost_per_ok": round(total_cost / n_ok, 8) if n_ok else None,
+            "prompt_tokens_per_ok": round(total_pin / n_ok) if n_ok else None,
+            "completion_tokens_per_ok": round(total_pout / n_ok) if n_ok else None,
             "mean_latency_ms": round(statistics.mean(lat)) if lat else 0,
             # P95：10 条样本时取第 10 个（最慢那条），即 nearest-rank
             "p95_latency_ms": _percentile(lat, 95),
@@ -557,19 +578,42 @@ def summarize(rows: list[Row], set_name: str, a: str, b: str) -> dict[str, Any]:
     a_m = out["arms"]["A"]["mean_score_all"]
     b_m = out["arms"]["B"]["mean_score_all"]
     delta = round(b_m - a_m, 4)
+
+    # ---- 成本/token 比值**必须按成功样本归一** ----
+    # 用 total 算比值会被失败率污染：失败的请求不产出 token，
+    # 于是"总 token 少"可能只等于"有几次没跑起来"。
+    # 见上面 out["arms"] 构造处的血案记录。这里给出两套，主口径用 per_ok。
+    a_arm, b_arm = out["arms"]["A"], out["arms"]["B"]
+
+    def _ratio(a_v: float | None, b_v: float | None) -> float | None:
+        if a_v is None or b_v is None or a_v == 0:
+            return None
+        return round(b_v / a_v, 3)
+
     out["delta"] = {
         "mean_score": delta,
-        "mean_score_of_ok": round(
-            out["arms"]["B"]["mean_score"] - out["arms"]["A"]["mean_score"], 4
-        ),
-        "scoring": "mean_score 用全量口径（失败记 0）",
+        "mean_score_of_ok": round(b_arm["mean_score"] - a_arm["mean_score"], 4),
+        "scoring": "mean_score 用全量口径（失败记 0）；成本比值用每条成功归一",
         "significant": abs(delta) >= MIN_SIGNAL_DELTA,
         "threshold": MIN_SIGNAL_DELTA,
         "verdict": _verdict(delta),
-        "token_ratio": round(
-            out["arms"]["B"]["total_prompt_tokens"]
-            / max(1, out["arms"]["A"]["total_prompt_tokens"]),
-            2,
+        # 主口径：每条成功
+        "cost_ratio_per_ok": _ratio(a_arm.get("cost_per_ok"), b_arm.get("cost_per_ok")),
+        "token_ratio_per_ok": _ratio(
+            (a_arm["total_prompt_tokens"] + a_arm["total_completion_tokens"]) / max(1, a_arm["ok"]),
+            (b_arm["total_prompt_tokens"] + b_arm["total_completion_tokens"]) / max(1, b_arm["ok"]),
+        ),
+        "prompt_token_ratio_per_ok": _ratio(
+            a_arm.get("prompt_tokens_per_ok"), b_arm.get("prompt_tokens_per_ok")
+        ),
+        # 辅口径：总量（含失败偏差，**仅作参考，不要单独引用**）
+        "token_ratio_total_uncontrolled": round(
+            b_arm["total_prompt_tokens"] / max(1, a_arm["total_prompt_tokens"]), 3
+        ),
+        "failure_rate_a": round(a_arm["errors"] / max(1, a_arm["n"]), 4),
+        "failure_rate_b": round(b_arm["errors"] / max(1, b_arm["n"]), 4),
+        "cost_ratio_caveat": (
+            "若两臂失败率相差悬殊，total 口径的成本比值会失真；应以 cost_ratio_per_ok 为准"
         ),
     }
     return out
@@ -721,21 +765,35 @@ def print_summary(s: dict[str, Any]) -> None:
     print("\n" + "=" * 66)
     print(f"摘要：set={s['set']}  A={s['a']}  B={s['b']}")
     print("=" * 66)
-    print(f"{'指标':<24}{'A':>12}{'B':>12}")
+    print(f"{'指标':<26}{'A':>12}{'B':>12}")
     a, b = s["arms"]["A"], s["arms"]["B"]
     for label, k in [
+        ("成功条数/总条数", "ok"),
         ("平均得分(仅成功)", "mean_score"),
         ("平均得分(全量)", "mean_score_all"),
         ("整条全对率(仅成功)", "exact_rate"),
         ("整条全对率(全量)", "exact_rate_all"),
+        ("失败条数", "errors"),
+        ("--- 总量（含失败偏差）---", None),
         ("prompt token 合计", "total_prompt_tokens"),
         ("completion token 合计", "total_completion_tokens"),
-        ("成本(元)", "total_cost_cny"),
+        ("成本合计(元)", "total_cost_cny"),
+        ("--- 按每条成功归一 ---", None),
+        ("每条成功成本(元)", "cost_per_ok"),
+        ("每条成功prompt token", "prompt_tokens_per_ok"),
+        ("每条成功compl token", "completion_tokens_per_ok"),
+        ("--- 延迟 ---", None),
         ("平均延迟(ms)", "mean_latency_ms"),
         ("P95 延迟(ms)", "p95_latency_ms"),
-        ("失败条数", "errors"),
     ]:
-        print(f"{label:<24}{a[k]:>12}{b[k]:>12}")
+        if k is None:
+            print(f"{label}")
+            continue
+        av, bv = a.get(k), b.get(k)
+        if isinstance(av, float):
+            print(f"{label:<26}{av:>12.6f}{bv:>12.6f}")
+        else:
+            print(f"{label:<26}{str(av):>12}{str(bv):>12}")
 
     # ---- 混淆矩阵（分类专用）----
     conf = s.get("confusion")
@@ -776,9 +834,22 @@ def print_summary(s: dict[str, Any]) -> None:
         print(f"  编造条目 B: {hal['arms']['B']['hallucinated_items']}")
 
     d = s["delta"]
-    print(f"\nΔ平均得分 = {d['mean_score']:+.4f}  （阈值 {d['threshold']}）")
-    print(f"prompt token 倍数 = {d['token_ratio']}x")
-    print(f"结论：{d['verdict']}")
+    print(f"\nΔ平均得分 = {d['mean_score']:+.4f}  （阈值 {d['threshold']}，全量口径）")
+    print(f"失败率 A/B = {d['failure_rate_a']:.0%} / {d['failure_rate_b']:.0%}")
+
+    # 成本比值：主口径按成功归一，辅口径给总量并标注污染风险
+    cr = d.get("cost_ratio_per_ok")
+    tr = d.get("token_ratio_per_ok")
+    raw = d.get("token_ratio_total_uncontrolled")
+    print(f"\n成本比值（每条成功）B/A = {cr}x" if cr else "\n成本比值：无法计算（有一臂全失败）")
+    print(f"token 比值（每条成功）B/A = {tr}x")
+    print(f"token 比值（总量，未控失败率）B/A = {raw}x  ← 仅参考")
+    if d["failure_rate_a"] != d["failure_rate_b"]:
+        print(
+            f"⚠️ 两臂失败率不同（{d['failure_rate_a']:.0%} vs {d['failure_rate_b']:.0%}），"
+            f"总量的成本/token 比值会被污染，**以上面 per_ok 为准**"
+        )
+    print(f"\n结论：{d['verdict']}")
 
 
 async def main() -> None:

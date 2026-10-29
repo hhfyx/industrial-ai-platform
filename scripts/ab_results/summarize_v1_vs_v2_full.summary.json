@@ -13,6 +13,9 @@
       "total_prompt_tokens": 4517,
       "total_completion_tokens": 35613,
       "total_cost_cny": 0.293938,
+      "cost_per_ok": 0.03265978,
+      "prompt_tokens_per_ok": 502,
+      "completion_tokens_per_ok": 3957,
       "mean_latency_ms": 22942,
       "p95_latency_ms": 55098,
       "errors": 1,
@@ -30,6 +33,9 @@
       "total_prompt_tokens": 1732,
       "total_completion_tokens": 16334,
       "total_cost_cny": 0.134136,
+      "cost_per_ok": 0.044712,
+      "prompt_tokens_per_ok": 577,
+      "completion_tokens_per_ok": 5445,
       "mean_latency_ms": 25366,
       "p95_latency_ms": 28823,
       "errors": 7,
@@ -47,10 +53,16 @@
   "delta": {
     "mean_score": -0.6,
     "mean_score_of_ok": 0.0,
-    "scoring": "mean_score 用全量口径（失败记 0）",
+    "scoring": "mean_score 用全量口径（失败记 0）；成本比值用每条成功归一",
     "significant": true,
     "threshold": 0.2,
     "verdict": "A 更好（差距达到信号阈值）",
-    "token_ratio": 0.38
+    "cost_ratio_per_ok": 1.369,
+    "token_ratio_per_ok": 1.351,
+    "prompt_token_ratio_per_ok": 1.149,
+    "token_ratio_total_uncontrolled": 0.383,
+    "failure_rate_a": 0.1,
+    "failure_rate_b": 0.7,
+    "cost_ratio_caveat": "若两臂失败率相差悬殊，total 口径的成本比值会失真；应以 cost_ratio_per_ok 为准"
   }
 }

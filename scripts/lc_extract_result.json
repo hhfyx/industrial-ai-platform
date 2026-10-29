@@ -1,0 +1,413 @@
+{
+  "meta": {
+    "model": "deepseek-account/deepseek-flash",
+    "n": 10,
+    "lc_version": "1.4.7"
+  },
+  "arms": {
+    "lc_json_schema_strict": {
+      "method": "json_schema",
+      "strict": true,
+      "n": 10,
+      "success": 0,
+      "mean_score_of_ok": 0.0,
+      "mean_score_all": 0.0,
+      "mean_latency_ms": 0,
+      "rows": [
+        {
+          "arm": "lc_json_schema_strict",
+          "item_id": "ex-01",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'主体': 'uv', '版本'...录下的 .local/bin'}, input_type=dict]\n    For further information visit https://error",
+          "latency_ms": 1986,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema_strict",
+          "item_id": "ex-02",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'主体': 'SSE 帧', '...两个换行符结尾'}, input_type=dict]\n    For further information visit https://errors.pydan",
+          "latency_ms": 1949,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema_strict",
+          "item_id": "ex-03",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'问题': '推理模式... 会被思维链吃光'}, input_type=dict]\n    For further information visit https://errors.pydantic.",
+          "latency_ms": 1838,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema_strict",
+          "item_id": "ex-04",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n  Input should be an object [type=model_type, input_value=[{'场景': '标准合同...次成本': 0.004138}], input_type=list]\n    For further information visit https:/",
+          "latency_ms": 2554,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema_strict",
+          "item_id": "ex-05",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'主体': 'WebSocket', '...直接掐断连接。'}, input_type=dict]\n    For further information visit https://errors.p",
+          "latency_ms": 1078,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema_strict",
+          "item_id": "ex-06",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'执行策略': 'RemoteS...': '2.55.0.windows.1'}, input_type=dict]\n    For further information visit https:/",
+          "latency_ms": 879,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema_strict",
+          "item_id": "ex-07",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'参数名': '单段目...数', '默认值': 3000}, input_type=dict]\n    For further information visit https://errors.pyd",
+          "latency_ms": 1021,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema_strict",
+          "item_id": "ex-08",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'错误码': '502', '错...: 'UNSUPPORTED_CONTENT'}, input_type=dict]\n    For further information visit https",
+          "latency_ms": 1552,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema_strict",
+          "item_id": "ex-09",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n  Input should be an object [type=model_type, input_value=[{'手段': '结果缓存...节省比例': '45.0%'}], input_type=list]\n    For further information visit https:/",
+          "latency_ms": 2748,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema_strict",
+          "item_id": "ex-10",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'平台': 'Windows', '正确命令': 'curl.exe'}, input_type=dict]\n    For further information visit https://erro",
+          "latency_ms": 1357,
+          "raw": ""
+        }
+      ]
+    },
+    "lc_json_schema": {
+      "method": "json_schema",
+      "strict": null,
+      "n": 10,
+      "success": 0,
+      "mean_score_of_ok": 0.0,
+      "mean_score_all": 0.0,
+      "mean_latency_ms": 0,
+      "rows": [
+        {
+          "arm": "lc_json_schema",
+          "item_id": "ex-01",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'主体': 'uv', '版本'...录下的 .local/bin'}, input_type=dict]\n    For further information visit https://error",
+          "latency_ms": 2428,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema",
+          "item_id": "ex-02",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'主体': 'SSE 帧', '...两个换行符结尾'}, input_type=dict]\n    For further information visit https://errors.pydan",
+          "latency_ms": 1993,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema",
+          "item_id": "ex-03",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'问题': '表现为 con...被思维链吃光。'}, input_type=dict]\n    For further information visit https://errors.pydanti",
+          "latency_ms": 1460,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema",
+          "item_id": "ex-04",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'场景': '成本场景'...单次成本': 0.001166}, input_type=dict]\n    For further information visit https://errors.py",
+          "latency_ms": 3051,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema",
+          "item_id": "ex-05",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'主体': 'WebSocket', '...会直接掐断连接'}, input_type=dict]\n    For further information visit https://errors.p",
+          "latency_ms": 1385,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema",
+          "item_id": "ex-06",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'执行策略': 'RemoteS...': '2.55.0.windows.1'}, input_type=dict]\n    For further information visit https:/",
+          "latency_ms": 1137,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema",
+          "item_id": "ex-07",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'参数名': '单段目...数', '默认值': 3000}, input_type=dict]\n    For further information visit https://errors.pyd",
+          "latency_ms": 982,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema",
+          "item_id": "ex-08",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'错误码': '502', '错...: 'UNSUPPORTED_CONTENT'}, input_type=dict]\n    For further information visit https",
+          "latency_ms": 1338,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema",
+          "item_id": "ex-09",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n  Input should be an object [type=model_type, input_value=[{'手段': '结果缓存...节省比例': '45.0%'}], input_type=list]\n    For further information visit https:/",
+          "latency_ms": 3664,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_schema",
+          "item_id": "ex-10",
+          "ok": false,
+          "score": 0.0,
+          "detail": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'平台': 'Windows', '正确命令': 'curl.exe'}, input_type=dict]\n    For further information visit https://erro",
+          "latency_ms": 1269,
+          "raw": ""
+        }
+      ]
+    },
+    "lc_function_calling": {
+      "method": "function_calling",
+      "strict": null,
+      "n": 10,
+      "success": 0,
+      "mean_score_of_ok": 0.0,
+      "mean_score_all": 0.0,
+      "mean_latency_ms": 0,
+      "rows": [
+        {
+          "arm": "lc_function_calling",
+          "item_id": "ex-01",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OpenAIInvalidRequestError: Error code: 400 - {'error': {'message': 'only tool_choice auto and none are supported', 'type': 'invalid_request_error', 'code': 'invalid_request'}}",
+          "latency_ms": 8,
+          "raw": ""
+        },
+        {
+          "arm": "lc_function_calling",
+          "item_id": "ex-02",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OpenAIInvalidRequestError: Error code: 400 - {'error': {'message': 'only tool_choice auto and none are supported', 'type': 'invalid_request_error', 'code': 'invalid_request'}}",
+          "latency_ms": 5,
+          "raw": ""
+        },
+        {
+          "arm": "lc_function_calling",
+          "item_id": "ex-03",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OpenAIInvalidRequestError: Error code: 400 - {'error': {'message': 'only tool_choice auto and none are supported', 'type': 'invalid_request_error', 'code': 'invalid_request'}}",
+          "latency_ms": 5,
+          "raw": ""
+        },
+        {
+          "arm": "lc_function_calling",
+          "item_id": "ex-04",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OpenAIInvalidRequestError: Error code: 400 - {'error': {'message': 'only tool_choice auto and none are supported', 'type': 'invalid_request_error', 'code': 'invalid_request'}}",
+          "latency_ms": 5,
+          "raw": ""
+        },
+        {
+          "arm": "lc_function_calling",
+          "item_id": "ex-05",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OpenAIInvalidRequestError: Error code: 400 - {'error': {'message': 'only tool_choice auto and none are supported', 'type': 'invalid_request_error', 'code': 'invalid_request'}}",
+          "latency_ms": 5,
+          "raw": ""
+        },
+        {
+          "arm": "lc_function_calling",
+          "item_id": "ex-06",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OpenAIInvalidRequestError: Error code: 400 - {'error': {'message': 'only tool_choice auto and none are supported', 'type': 'invalid_request_error', 'code': 'invalid_request'}}",
+          "latency_ms": 5,
+          "raw": ""
+        },
+        {
+          "arm": "lc_function_calling",
+          "item_id": "ex-07",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OpenAIInvalidRequestError: Error code: 400 - {'error': {'message': 'only tool_choice auto and none are supported', 'type': 'invalid_request_error', 'code': 'invalid_request'}}",
+          "latency_ms": 5,
+          "raw": ""
+        },
+        {
+          "arm": "lc_function_calling",
+          "item_id": "ex-08",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OpenAIInvalidRequestError: Error code: 400 - {'error': {'message': 'only tool_choice auto and none are supported', 'type': 'invalid_request_error', 'code': 'invalid_request'}}",
+          "latency_ms": 5,
+          "raw": ""
+        },
+        {
+          "arm": "lc_function_calling",
+          "item_id": "ex-09",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OpenAIInvalidRequestError: Error code: 400 - {'error': {'message': 'only tool_choice auto and none are supported', 'type': 'invalid_request_error', 'code': 'invalid_request'}}",
+          "latency_ms": 5,
+          "raw": ""
+        },
+        {
+          "arm": "lc_function_calling",
+          "item_id": "ex-10",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OpenAIInvalidRequestError: Error code: 400 - {'error': {'message': 'only tool_choice auto and none are supported', 'type': 'invalid_request_error', 'code': 'invalid_request'}}",
+          "latency_ms": 5,
+          "raw": ""
+        }
+      ]
+    },
+    "lc_json_mode": {
+      "method": "json_mode",
+      "strict": null,
+      "n": 10,
+      "success": 0,
+      "mean_score_of_ok": 0.0,
+      "mean_score_all": 0.0,
+      "mean_latency_ms": 0,
+      "rows": [
+        {
+          "arm": "lc_json_mode",
+          "item_id": "ex-01",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OutputParserException: Failed to parse ExtractV2 from completion {\"主体\": \"uv\", \"版本\": \"0.13.1\", \"路径\": \"用户目录下的 .local/bin\"}. Got: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, inpu",
+          "latency_ms": 1923,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_mode",
+          "item_id": "ex-02",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OutputParserException: Failed to parse ExtractV2 from completion {\"主体\": \"SSE 帧\", \"要求\": \"以 data: 开头，内容之后必须是两个换行符结尾\"}. Got: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_val",
+          "latency_ms": 1721,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_mode",
+          "item_id": "ex-03",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OutputParserException: Failed to parse ExtractV2 from completion {\"问题\": \"推理模式下表现为 content=None，但 usage 里的 token 统计却正常\", \"原因\": \"max_tokens 会被思维链吃光\"}. Got: 1 validation error for ExtractV2\n置信度\n  Field r",
+          "latency_ms": 1190,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_mode",
+          "item_id": "ex-04",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OutputParserException: Failed to parse ExtractV2 from completion [{\"场景\": \"标准合同一次成功\", \"单次成本\": 0.001166}, {\"场景\": \"1次回灌后\", \"单次成本\": 0.002652}, {\"场景\": \"2次回灌后\", \"单次成本\": 0.004138}]. Got: 1 validation error f",
+          "latency_ms": 2362,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_mode",
+          "item_id": "ex-05",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OutputParserException: Failed to parse ExtractV2 from completion {\"主体\": \"WebSocket\", \"问题\": \"很多内网代理和防火墙不认 Upgrade，会直接掐断连接\"}. Got: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, in",
+          "latency_ms": 1205,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_mode",
+          "item_id": "ex-06",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OutputParserException: Failed to parse ExtractV2 from completion {\"执行策略\": \"RemoteSigned\", \"作用域\": \"CurrentUser\", \"git 版本\": \"2.55.0.windows.1\"}. Got: 1 validation error for ExtractV2\n置信度\n  Field require",
+          "latency_ms": 908,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_mode",
+          "item_id": "ex-07",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OutputParserException: Failed to parse ExtractV2 from completion {\"参数名\": \"单段目标 token 数\", \"默认值\": 3000}. Got: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'参数名': '单段",
+          "latency_ms": 1358,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_mode",
+          "item_id": "ex-08",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OutputParserException: Failed to parse ExtractV2 from completion {\"错误码（string）\": \"502\", \"错误类型（string）\": \"UNSUPPORTED_CONTENT\"}. Got: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing",
+          "latency_ms": 2420,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_mode",
+          "item_id": "ex-09",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OutputParserException: Failed to parse ExtractV2 from completion [{\"手段\": \"结果缓存命中\", \"节省比例\": \"50.0%\"}, {\"手段\": \"小模型分流\", \"节省比例\": \"45.0%\"}]. Got: 1 validation error for ExtractV2\n  Input should be a valid ",
+          "latency_ms": 2455,
+          "raw": ""
+        },
+        {
+          "arm": "lc_json_mode",
+          "item_id": "ex-10",
+          "ok": false,
+          "score": 0.0,
+          "detail": "OutputParserException: Failed to parse ExtractV2 from completion {\"平台\": \"Windows\", \"正确命令\": \"curl.exe\"}. Got: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'平台': 'Wi",
+          "latency_ms": 1459,
+          "raw": ""
+        }
+      ]
+    }
+  }
+}

@@ -6,13 +6,13 @@
 
 - **接口不变、实现可换**：同一份 `v1` HTTP 契约，底下从正则换成真实模型调用
   （再换成 JSON Schema 强约束 + 校验回灌），`tests/test_api.py` **一行未改**。
-- **测试能离线跑绿**：**285 个测试，拔掉网线也全绿** —— 这才是"实现真的可替换"无法伪造的证据。
+- **测试能离线跑绿**：**327 个测试，拔掉网线也全绿** —— 这才是"实现真的可替换"无法伪造的证据。
 
 | 项目 | 值 |
 | --- | --- |
 | 端点 | `extract` · `extract/stream` · `chat/stream` · `summarize/stream` |
 | 核心契约 | `POST /api/v1/extract`，`v1.1`（冻结；新增可选字段 `degraded`） |
-| 测试 | **285 个，全离线**（拔网线也全绿），`pytest --cov=app` |
+| 测试 | **327 个，全离线**（拔网线也全绿），`pytest --cov=app` |
 | 镜像 | 多阶段构建；v0.2.0 **待实测**（v0.1.0 曾为 157 MB，见 [Docker](#docker)） |
 | 运行时 | Python 3.11 + uvicorn，非 root（uid 10001） |
 
@@ -63,10 +63,22 @@ POST /api/v1/extract
                        └───────────────┬──────────────────────────────┘
                                        │
       ┌────────────────────────────────┼────────────────────────────────┐
-      │  W2 换实现的三层约束            │                                │
-      │  ① prompt   让模型「倾向」对    │                                │
-      │  ② JSON Schema 强约束结构       │                                │
-      │  ③ Pydantic 本地校验语义        │                                │
+      │  W3 Prompt 层（本层是"约束模型"的全部手段）                        │
+      │                                                                │
+      │  ┌──────────────────┐   ┌──────────────────┐  ┌──────────────┐ │
+      │  │ app/prompts/     │   │ core/llm/        │  │ scripts/     │ │
+      │  │  模板库           │──▶│  structured.py   │◀─│ .cache/      │ │
+      │  │                  │   │                  │  │ 实验缓存      │ │
+      │  │ {qa,summarize,   │   │ structured_call  │  │              │ │
+      │  │  classify,extract│   │  ├ json_object   │  │ 命中即不发请求│ │
+      │  │ }/vN.jinja2      │   │  ├ Pydantic 校验  │  │ 实测快 5179x │ │
+      │  │  + schema.py     │   │  └ 报错原文回灌   │  └──────────────┘ │
+      │  │                  │   │     ≤2 轮        │                     │
+      │  │ loader.py        │   │                  │  ┌──────────────┐ │
+      │  │  版本切换         │   │ 三层防线：        │  │ eval/        │ │
+      │  │  硬编码业务词检查  │   │  ①prompt ②格式   │──│ prompt-sets/ │ │
+      │  └──────────────────┘   │  ③Pydantic(真源) │  │ 40 条输入池   │ │
+      │                         └──────────────────┘  └──────────────┘ │
       └────────────────────────────────┼────────────────────────────────┘
                                        │
                        ┌───────────────▼──────────────────────────────┐
@@ -93,7 +105,11 @@ POST /api/v1/extract
 
 跨层规则：**服务层与 rag 层都不 import fastapi**。依赖注入是路由层的事，
 `LlmExtractor` 只接受一个 `AsyncOpenAI` 实例（构造参数注入，内部**绝不 new**），
-所以测试里能直接塞 `FakeLLMClient` —— 这也是 **285 个测试全部能离线跑**的原因。
+所以测试里能直接塞 `FakeLLMClient` —— 这也是 **327 个测试全部能离线跑**的原因。
+
+Prompt 层的一句话：**模板只拼字符串、`structured_call` 只管"拿到类型安全对象"、
+`with_structured_output` 这类框架能力实测在本网关不可用**（见
+[why-i-use-langchain.md](docs/why-i-use-langchain.md)）。
 
 ### 目录
 
@@ -112,7 +128,7 @@ app/
 scripts/             smoke_llm · demo_tools · consume_sse · cost · cost_model
                      latency_breakdown · record_demo · measure_tokens · drill_*
 static/index.html    前端单页（fetch + ReadableStream，含中断/重试）
-tests/               349 个**全离线**测试
+tests/               327 个**全离线**测试
   ├── fake_llm.py    FakeLLMClient（可复用，支持固定回复/脚本/异常/流式）
   ├── conftest.py    autouse: 默认注入离线规则版（拔网线也全绿）
   └── fixtures/      make_fixtures.py 脚本生成样本（review 可读）
@@ -220,7 +236,7 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 ## 测试能离线跑绿 —— W2 唯一无法伪造的成果
 
 ```powershell
-pytest -q          # 285 passed，拔掉网线也一样
+pytest -q          # 327 passed，拔掉网线也一样
 ```
 
 这 行命令为什么值得单独一节：**它能证明实现真的可替换**。
@@ -364,7 +380,7 @@ W2 做完之后：
 | 断言 | 状态 |
 | --- | --- |
 | `tests/test_api.py` 一行未改 | ✅ |
-| 全套 285 个测试仍全绿（**断网也是**） | ✅ 285 passed |
+| 全套 327 个测试仍全绿（**断网也是**） | ✅ 327 passed |
 | 响应体正常时仍是 4 字段 | ✅ 实测无 `degraded` 键 |
 | 降级时可多 1 个可选字段 | ✅ `degraded: true`，v1.1 向后兼容 |
 | 规则版仍可用 | ✅ `EXTRACTOR_IMPL=rule` 一键回退 |
