@@ -140,6 +140,7 @@ docs/                api-spec.md（冻结契约 v1.1）· cost.md · sse.md · S
                      prompt-patterns.md（四范式实测）· system-prompt.md（四要素 + A/B）
                      prompt-templates.md（模板库）· structured-output.md（structured_call）
                      ab-scaffold.md（输入池 + 脚手架）· prompt-ab.md（四类 A/B 报告）
+                     why-i-use-langchain.md · container-networking.md
 ```
 
 ---
@@ -583,12 +584,17 @@ fastapi、抽取器接受注入 client"的直接收益。
   胜出 +63pp，qa/summarize 因"分步结构"在推理模型上反而更差
 - [docs/why-i-use-langchain.md](docs/why-i-use-langchain.md) —— 为什么本项目的结构化输出链路
   不用 LangChain：它抽象掉的那层恰好是我必须自己控制的那层（含完整失败栈）
-- [docs/w1-summary.md](docs/w1-summary.md) —— **W1 总览**：先冻契约再写实现、
+- [docs/container-networking.md](docs/container-networking.md) —— 容器化验收：为什么
+  `docker compose` 里**必然**返回 `degraded:true`（`127.0.0.1` 的语义 + 网关鉴权两个独立原因）
+- [docs/weekly/w1.md](docs/weekly/w1.md) —— **W1 总览**：先冻契约再写实现、
   5 个 handler 焊死错误形状、镜像 242→211→157 MB 的瘦身账本、
   以及"装完 Docker Desktop ≠ 引擎起来了"等四条机制级认知
-- [docs/w2-summary.md](docs/w2-summary.md) —— **W2 总览**：三个必答题的实测答案、
+- [docs/weekly/w2.md](docs/weekly/w2.md) —— **W2 总览**：三个必答题的实测答案、
   四次自我推翻（成本口径/单样本/tiktoken/reasoning 参数）、
   「测试能离线跑绿」的完整论证
+- [docs/weekly/w3.md](docs/weekly/w3.md) —— **W3 周复盘**：五次判定/统计口径错误、
+  三道自测错题（FC 谁执行 / 流式错误 / 哪些文件不能动）、
+  以及 W4 开工清单（摘要延迟必须换 reasoning 档位）
 - `learn/llm/01_params.md` —— 采样参数实测（temperature / seed / max_tokens / stop）
 - `learn/llm/02_function_calling.md` —— Function Calling 实测与网关踩坑
 

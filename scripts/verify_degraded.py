@@ -10,11 +10,14 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 
 import httpx
 
-BASE = "http://127.0.0.1:8011"
+# 默认打 8011（uvicorn 直跑的场景，见本文件 docstring）。
+# 验容器时用 `--port 8000` 或设 VERIFY_BASE。
+BASE = os.environ.get("VERIFY_BASE", "http://127.0.0.1:8011")
 
 
 def main() -> None:
