@@ -85,7 +85,19 @@ logger = logging.getLogger(__name__)
 
 # 模型参数的默认值。结构化抽取要的是确定性，不是创造性。
 DEFAULT_TEMPERATURE: Final[float] = 0.0
-DEFAULT_MAX_TOKENS: Final[int] = 2048
+
+# 单次调用的输出上限。
+#
+# **这个值被实测修正过，不是拍的**（2026-10-29，四类模板端到端验证）：
+# 最初设 2048，在"摘要"任务上 `content` 返回 `None` —— 因为本网关默认
+# `reasoning=high`，**思维链会先吃掉 max_tokens**。实测同一 prompt：
+#   · max_tokens=2048 → finish_reason=length，completion_tokens=2048（打满），
+#     reasoning_content 4621 字符，content=None
+#   · max_tokens=4096 → finish_reason=stop，completion_tokens=1685，正常出 JSON
+#
+# 所以默认值必须留出**思维链的余量**。2048 对"短 JSON 输出"看起来够用，
+# 实际会被思维链吃光。取 4096。
+DEFAULT_MAX_TOKENS: Final[int] = 4096
 # 重试时的温度：第 1 轮已经是 0，修复轮稍微抬一点点有助于跳出同一个死循环。
 # 但不能抬太高 —— 修复轮的任务是"改正具体字段"，不是"重新创作"。
 REPAIR_TEMPERATURE: Final[float] = 0.2

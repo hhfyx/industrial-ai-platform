@@ -226,6 +226,15 @@ async def structured_call(
 
 测试里专门断言了 `fake.call_count == 1`：第一次就截断，就不该再烧 2 轮。
 
+**后来补的实测（2026-10-29，四类模板端到端）**：这个假设在真实模型上被验证了 ——
+`max_tokens=2048` 跑"摘要"任务时确实截断（`finish_reason=length`、
+`completion_tokens` 打满 2048、`reasoning_content` 4621 字符、`content=None`），
+而 `max_tokens=4096` 正常返回（`completion_tokens=1685`）。
+
+**所以 `DEFAULT_MAX_TOKENS` 从 2048 改成了 4096。** 教训是：
+本网关默认 `reasoning=high`，**思维链先吃预算**，短 JSON 输出也不能按 JSON 长度估算
+`max_tokens`。详见 [docs/prompt-templates.md §8.3](prompt-templates.md)。
+
 ---
 
 ## 6. 实验缓存
