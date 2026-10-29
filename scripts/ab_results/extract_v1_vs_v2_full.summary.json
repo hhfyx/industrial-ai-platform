@@ -1,0 +1,36 @@
+{
+  "set": "extract",
+  "a": "v1",
+  "b": "v2",
+  "arms": {
+    "A": {
+      "n": 10,
+      "ok": 9,
+      "mean_score": 0.1481,
+      "exact_rate": 0.0,
+      "total_prompt_tokens": 4306,
+      "total_completion_tokens": 14533,
+      "total_cost_cny": 0.124876,
+      "mean_latency_ms": 10121,
+      "errors": 1
+    },
+    "B": {
+      "n": 10,
+      "ok": 10,
+      "mean_score": 0.7667,
+      "exact_rate": 0.6,
+      "total_prompt_tokens": 4855,
+      "total_completion_tokens": 7119,
+      "total_cost_cny": 0.066662,
+      "mean_latency_ms": 4701,
+      "errors": 0
+    }
+  },
+  "delta": {
+    "mean_score": 0.6186,
+    "significant": true,
+    "threshold": 0.2,
+    "verdict": "B 更好（差距达到信号阈值）",
+    "token_ratio": 1.13
+  }
+}

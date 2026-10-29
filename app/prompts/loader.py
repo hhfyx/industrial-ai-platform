@@ -300,6 +300,14 @@ def load_schema(name: str, version: str | None = None) -> type[BaseModel]:
 
     默认约定：`v1.jinja2` → `schema.py`；`vN.jinja2` (N>1) → `vN_schema.py`。
     这样改接口时新增文件即可，v1 的 `schema.py` 保持不动。
+
+    **模型怎么发现**：不靠写死的名字列表，而是扫模块里定义的 `BaseModel` 子类，
+    取"在本模块定义的那一个"。
+
+    为什么改掉写死列表：周四的实现硬编码了 `("QAAnswer","SummaryResult",
+    "ClassifyLabel","ExtractResult")` 四个名字，等于**新增第五类模板或 v2 schema
+    时必须改 loader** —— 那是把模板库的可扩展性钉死在了一个元组里。
+    改成按定义位置发现之后，`extract/v2_schema.py` 里的 `ExtractV2` 自动被认出来。
     """
     if name not in CATEGORIES:
         raise PromptNotFoundError(f"未知模板类别：{name}")
@@ -313,13 +321,24 @@ def load_schema(name: str, version: str | None = None) -> type[BaseModel]:
             f"{name}/{resolved} 缺少输出 schema：app/prompts/{name}/{module_name}.py"
         ) from exc
 
-    for attr in ("QAAnswer", "SummaryResult", "ClassifyLabel", "ExtractResult"):
-        if hasattr(module, attr):
-            return getattr(module, attr)
-
+    # 只认"在本模块里定义"的 BaseModel 子类（避免把 import 进来的别家模型当成本模块的）
+    candidates = [
+        obj
+        for obj in vars(module).values()
+        if isinstance(obj, type)
+        and issubclass(obj, BaseModel)
+        and getattr(obj, "__module__", "") == module.__name__
+    ]
+    if len(candidates) == 1:
+        return candidates[0]
+    if not candidates:
+        raise PromptNotFoundError(
+            f"{module.__name__} 里没有定义 BaseModel 子类（应定义该类模板的输出模型）"
+        )
     raise PromptNotFoundError(
-        f"{module.__name__} 里找不到已知的输出模型（应为 QAAnswer / SummaryResult / "
-        f"ClassifyLabel / ExtractResult 之一）"
+        f"{module.__name__} 里定义了多个 BaseModel 子类 "
+        f"{[c.__name__ for c in candidates]}，无法确定用哪个。"
+        f"一个 schema 模块只放一个输出模型。"
     )
 
 

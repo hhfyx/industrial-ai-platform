@@ -1,0 +1,5 @@
+﻿set_name,arm,item_id,ok,score,judge_detail,prompt_tokens,completion_tokens,latency_ms,cost_cny,raw_output,error,extra
+extract,A,ex-01,True,0.3333,字段 1/3；版本: 给 None 应 '0.13.1'；路径: 给 None 应 '%USERPROFILE%\\.local\\bin\\uv.exe',502,1779,10493,0.015236,"{""主体"": ""uv"", ""时间"": null, ""缺失字段"": [""时间""], ""置信度"": 0.6}",,{}
+extract,A,ex-02,True,0.5,字段 1/2；要求: 给 None 应 '两个换行符结尾',473,567,7944,0.005482,"{""主体"": ""SSE 帧"", ""时间"": null, ""缺失字段"": [""时间""], ""置信度"": 0.8}",,{}
+extract,B,ex-01,True,0.3333,字段 1/3；版本: 给 None 应 '0.13.1'；路径: 给 None 应 '%USERPROFILE%\\.local\\bin\\uv.exe',502,1779,1,0.015236,"{""主体"": ""uv"", ""时间"": null, ""缺失字段"": [""时间""], ""置信度"": 0.6}",,{}
+extract,B,ex-02,True,0.5,字段 1/2；要求: 给 None 应 '两个换行符结尾',473,567,1,0.005482,"{""主体"": ""SSE 帧"", ""时间"": null, ""缺失字段"": [""时间""], ""置信度"": 0.8}",,{}

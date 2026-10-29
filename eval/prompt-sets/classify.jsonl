@@ -1,0 +1,10 @@
+{"id":"cl-01","source":"docs/sse.md","text":"流式响应在 cURL 里能正常看到逐帧输出，但浏览器端要等全部结束才一次性显示。","gold_label":"故障报修","gold_reason":"功能行为与预期不符（应逐帧显示却整段显示），属于产品功能异常"}
+{"id":"cl-02","source":"docs/cost.md","text":"想知道缓存命中率提到 50% 之后，大致能省多少成本，有没有测算方法。","gold_label":"功能咨询","gold_reason":"询问能力/测算方式，不是报错也不是扣费问题"}
+{"id":"cl-03","source":"README.md","text":"为什么这个项目的测试能离线跑绿？我这边断网就跑不过。","gold_label":"功能咨询","gold_reason":"询问机制原理，属于咨询"}
+{"id":"cl-04","source":"docs/cost.md","text":"上次核算发现同样一次调用被重复计费了两次，账单上是两份钱。","gold_label":"费用争议","gold_reason":"重复计费、账单不符，属于费用争议"}
+{"id":"cl-05","source":"docs/SETUP.md","text":"按照文档装完 uv 之后 git 还是找不到，命令行里敲 git 没反应。","gold_label":"故障报修","gold_reason":"工具不可用，命令行无响应，属于功能异常"}
+{"id":"cl-06","source":"docs/sse.md","text":"灰度到新版本后客户端连接十分钟左右就自动断开，日志里看不到原因。","gold_label":"故障报修","gold_reason":"连接异常中断，产品功能不可用"}
+{"id":"cl-07","source":"docs/api-spec.md","text":"建议 degraded 字段不要做成可选，改成必填，这样调用方不容易漏判。","gold_label":"投诉建议","gold_reason":"提出改进建议，属于投诉建议"}
+{"id":"cl-08","source":"README.md","text":"这份文档里写着镜像大小待重测，但我们上线前必须给个准数，下周就要。","gold_label":"投诉建议","gold_reason":"对文档缺失信息表达不满并提出诉求，属于投诉建议"}
+{"id":"cl-09","source":"docs/SETUP.md","text":"Windows 上按文档用 curl 传 JSON，每次都被 PowerShell 吃掉引号，到底该怎么传。","gold_label":"功能咨询","gold_reason":"询问正确用法，属于咨询"}
+{"id":"cl-10","source":"README.md","text":"你们的报价单里写的单价和实际扣的钱对不上，差了差不多三成。","gold_label":"费用争议","gold_reason":"账单与实际不符，属于费用争议"}

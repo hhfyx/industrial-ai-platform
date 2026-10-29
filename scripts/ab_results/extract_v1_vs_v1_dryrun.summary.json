@@ -1,0 +1,36 @@
+{
+  "set": "extract",
+  "a": "v1",
+  "b": "v1",
+  "arms": {
+    "A": {
+      "n": 2,
+      "ok": 2,
+      "mean_score": 0.4166,
+      "exact_rate": 0.0,
+      "total_prompt_tokens": 975,
+      "total_completion_tokens": 2346,
+      "total_cost_cny": 0.020718,
+      "mean_latency_ms": 9218,
+      "errors": 0
+    },
+    "B": {
+      "n": 2,
+      "ok": 2,
+      "mean_score": 0.4166,
+      "exact_rate": 0.0,
+      "total_prompt_tokens": 975,
+      "total_completion_tokens": 2346,
+      "total_cost_cny": 0.020718,
+      "mean_latency_ms": 1,
+      "errors": 0
+    }
+  },
+  "delta": {
+    "mean_score": 0.0,
+    "significant": false,
+    "threshold": 0.2,
+    "verdict": "无显著差异（差距小于阈值，可能是噪声）",
+    "token_ratio": 1.0
+  }
+}

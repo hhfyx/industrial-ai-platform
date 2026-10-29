@@ -453,11 +453,52 @@ async def _request(
             raise
 
     content = response.choices[0].message.content
+
+    # 用量旁路记录：**不改 `structured_call` 的签名**（周三已定版，改了后面四周全返工），
+    # 而是把每次真实调用的 usage 写进一个可选的观测钩子。
+    # 为什么要这个：A/B 脚手架要算 token/成本，而签名返回 `BaseModel` 拿不到 usage。
+    # 让调用方自己去解析响应是不可能的事 —— 那就等于绕过本模块直连 HTTP。
+    _record_usage(response)
+
     if content is None:
         # 推理模式吃光 max_tokens 的典型症状。**必须当失败**，不能 `or ""`
         # 静默成空串 —— 空串会被下游当成"模型说什么都没有"，那是错误信息。
         raise ValueError("模型返回 content=None（可能被 max_tokens 截断或推理占满）")
     return content
+
+
+# ---- 用量观测钩子 -----------------------------------------------------------
+# 默认 None（生产路径零开销）。实验脚手架把它设成一个可调用对象即可收集用量。
+
+_USAGE_SINK: Any = None
+
+
+def set_usage_sink(sink: Any) -> None:
+    """注册用量收集器。传 `None` 关闭。
+
+    sink 形如 `callable(usage: dict)`，会被传入
+    `{"prompt_tokens": int, "completion_tokens": int}`。
+    """
+    global _USAGE_SINK
+    _USAGE_SINK = sink
+
+
+def _record_usage(response: Any) -> None:
+    if _USAGE_SINK is None:
+        return
+    try:
+        u = getattr(response, "usage", None)
+        if u is None:
+            return
+        _USAGE_SINK(
+            {
+                "prompt_tokens": int(getattr(u, "prompt_tokens", 0) or 0),
+                "completion_tokens": int(getattr(u, "completion_tokens", 0) or 0),
+            }
+        )
+    except Exception:  # noqa: BLE001
+        # 观测失败绝不能影响主路径
+        logger.debug("usage sink 调用失败", exc_info=True)
 
 
 def _looks_like_format_rejected(exc: BaseException) -> bool:
@@ -474,5 +515,6 @@ __all__ = [
     "build_prompt",
     "parse_json",
     "schema_hint",
+    "set_usage_sink",
     "structured_call",
 ]

@@ -140,7 +140,21 @@ async def cached_structured_call(
         if hit is not None:
             return schema.model_validate(hit["value"])
 
-    result = await structured_call(prompt, schema, max_repair=max_repair, fallback=fallback)
+    # 用量旁路：`structured_call` 的签名已定版（返回 BaseModel），拿不到 usage，
+    # 所以通过 set_usage_sink 注册一个收集器，把本次调用的 token 记进缓存文件。
+    usage: dict[str, int] = {}
+
+    def _sink(u: dict[str, int]) -> None:
+        usage.update(u)
+
+    from app.core.llm import structured as _st
+
+    prev = getattr(_st, "_USAGE_SINK", None)
+    _st.set_usage_sink(_sink)
+    try:
+        result = await structured_call(prompt, schema, max_repair=max_repair, fallback=fallback)
+    finally:
+        _st.set_usage_sink(prev)
 
     # 只缓存成功（fallback 降级的结果也缓存，但标 degraded 便于事后筛掉）
     save(
@@ -151,6 +165,9 @@ async def cached_structured_call(
             and fallback is not None
             and result.model_dump(mode="json") == fallback.model_dump(mode="json"),
             "schema": schema.__name__,
+            "call_meta": extra or {},
+            "prompt_tokens": usage.get("prompt_tokens", 0),
+            "completion_tokens": usage.get("completion_tokens", 0),
         },
     )
     return result  # type: ignore[return-value]
