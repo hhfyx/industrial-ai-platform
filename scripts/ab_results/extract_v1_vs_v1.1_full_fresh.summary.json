@@ -1,0 +1,64 @@
+{
+  "set": "extract",
+  "a": "v1",
+  "b": "v1.1",
+  "arms": {
+    "A": {
+      "n": 10,
+      "ok": 10,
+      "mean_score": 0.1333,
+      "mean_score_all": 0.1333,
+      "exact_rate": 0.0,
+      "exact_rate_all": 0.0,
+      "total_prompt_tokens": 4826,
+      "total_completion_tokens": 21503,
+      "total_cost_cny": 0.181676,
+      "mean_latency_ms": 20416,
+      "p95_latency_ms": 48976,
+      "errors": 0,
+      "error_ids": []
+    },
+    "B": {
+      "n": 10,
+      "ok": 10,
+      "mean_score": 0.7667,
+      "mean_score_all": 0.7667,
+      "exact_rate": 0.6,
+      "exact_rate_all": 0.6,
+      "total_prompt_tokens": 4855,
+      "total_completion_tokens": 4995,
+      "total_cost_cny": 0.04967,
+      "mean_latency_ms": 3505,
+      "p95_latency_ms": 9766,
+      "errors": 0,
+      "error_ids": []
+    }
+  },
+  "hallucination": {
+    "arms": {
+      "A": {
+        "n": 10,
+        "produced_values": 27,
+        "hallucinated_values": 0,
+        "hallucination_rate": 0.0,
+        "hallucinated_items": []
+      },
+      "B": {
+        "n": 10,
+        "produced_values": 22,
+        "hallucinated_values": 0,
+        "hallucination_rate": 0.0,
+        "hallucinated_items": []
+      }
+    }
+  },
+  "delta": {
+    "mean_score": 0.6334,
+    "mean_score_of_ok": 0.6334,
+    "scoring": "mean_score 用全量口径（失败记 0）",
+    "significant": true,
+    "threshold": 0.2,
+    "verdict": "B 更好（差距达到信号阈值）",
+    "token_ratio": 1.01
+  }
+}

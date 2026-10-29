@@ -1,0 +1,46 @@
+{
+  "set": "qa",
+  "a": "v1",
+  "b": "v2",
+  "arms": {
+    "A": {
+      "n": 10,
+      "ok": 10,
+      "mean_score": 0.555,
+      "mean_score_all": 0.555,
+      "exact_rate": 0.1,
+      "exact_rate_all": 0.1,
+      "total_prompt_tokens": 5389,
+      "total_completion_tokens": 4548,
+      "total_cost_cny": 0.047162,
+      "mean_latency_ms": 2357,
+      "p95_latency_ms": 5533,
+      "errors": 0,
+      "error_ids": []
+    },
+    "B": {
+      "n": 10,
+      "ok": 10,
+      "mean_score": 0.505,
+      "mean_score_all": 0.505,
+      "exact_rate": 0.1,
+      "exact_rate_all": 0.1,
+      "total_prompt_tokens": 6499,
+      "total_completion_tokens": 7317,
+      "total_cost_cny": 0.071534,
+      "mean_latency_ms": 4055,
+      "p95_latency_ms": 20729,
+      "errors": 0,
+      "error_ids": []
+    }
+  },
+  "delta": {
+    "mean_score": -0.05,
+    "mean_score_of_ok": -0.05,
+    "scoring": "mean_score 用全量口径（失败记 0）",
+    "significant": false,
+    "threshold": 0.2,
+    "verdict": "无显著差异（差距小于阈值，可能是噪声）",
+    "token_ratio": 1.21
+  }
+}

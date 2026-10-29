@@ -40,6 +40,7 @@ import argparse
 import asyncio
 import csv
 import json
+import math
 import statistics
 import sys
 import time
@@ -126,6 +127,11 @@ def compute_cost(pin: int, pout: int, price_in: float, price_out: float) -> floa
 def judge_qa(output: dict[str, Any], item: dict[str, Any]) -> tuple[float, str]:
     """问答：规则判要点命中。剩下的（是否真的答对）交人工。
 
+    **兼容 v1 与 v2 的"不确定"表示方式**：
+    - v1 用 `不确定: true/false`（反向语义）
+    - v2 用 `能否回答: "能"/"不能"`（正向语义）
+    两种都要能判 —— 否则 v1 vs v2 会因为字段名不同而永远判 0 分。
+
     规则能判的是"gold_points 里有多少条在答案里被覆盖"。
     判不了的是"覆盖了但理解错了" —— 所以 `judge_detail` 会标出
     `needs_human: true`，提醒人工复核。
@@ -135,9 +141,22 @@ def judge_qa(output: dict[str, Any], item: dict[str, Any]) -> tuple[float, str]:
     hits = [g for g in gold if _point_covered(g, answer)]
     score = len(hits) / len(gold) if gold else 0.0
     detail = f"命中 {len(hits)}/{len(gold)}：{hits}"
+
+    uncertain = _is_uncertain(output)
+    exp = item.get("expect_uncertain")
+    if exp is not None and uncertain != exp:
+        detail += f"；**不确定性不符预期**（期望 {exp}，实际 {uncertain}）"
+        score = min(score, 0.5)  # 判反了最多给一半分
     if score < 1.0:
         detail += "；needs_human=true"
     return score, detail
+
+
+def _is_uncertain(output: dict[str, Any]) -> bool:
+    """把 v1/v2 两种表示归一成"是否不确定"。"""
+    if "能否回答" in output:
+        return str(output["能否回答"]) == "不能"
+    return bool(output.get("不确定"))
 
 
 def _point_covered(point: str, answer: str) -> bool:
@@ -191,17 +210,29 @@ def judge_extract(output: dict[str, Any], item: dict[str, Any]) -> tuple[float, 
 
     hits: list[str] = []
     misses: list[str] = []
+    hallucinations: list[str] = []
+
     for field_name, want in gold.items():
         got = values.get(field_name)
         if _value_match(got, want):
             hits.append(field_name)
-        else:
-            misses.append(f"{field_name}: 给 {got!r} 应 {want!r}")
+            continue
+        misses.append(f"{field_name}: 给 {got!r} 应 {want!r}")
+        # 幻觉判定：gold 是"原文没有"（None），模型却给了一个非空值 → 编造
+        if want is None and got not in (None, "", "null"):
+            hallucinations.append(f"{field_name}={got!r}")
+
+    # 反向幻觉：模型补出了 gold 里根本没有的字段（自创字段名）
+    extra_keys = [k for k in values if k not in gold and values.get(k) not in (None, "")]
+    if extra_keys:
+        hallucinations.append(f"自创字段 {extra_keys}")
 
     score = len(hits) / len(gold)
     detail = f"字段 {len(hits)}/{len(gold)}"
     if misses:
         detail += "；" + "；".join(misses[:3])
+    if hallucinations:
+        detail += f"；**幻觉 {len(hallucinations)}**"
     return score, detail
 
 
@@ -229,6 +260,10 @@ def judge_summarize(output: dict[str, Any], item: dict[str, Any]) -> tuple[float
 
     摘要的特殊性：**must_include 是硬要求**（数字、专有名词必须逐字保留），
     所以这里和 qa 不同 —— 不做宽松匹配，要求**逐字出现**。
+
+    **v2 的交叉校验**：v2 会让模型自报 `保留清单`。若模型说"我保留了 X"
+    但摘要里没有 X，这是比"直接漏了"更严重的错误（会让人误以为约束生效了）。
+    这里把它单独标出来。
     """
     summary = str(output.get("摘要", ""))
     must = item["must_include"]
@@ -239,6 +274,14 @@ def judge_summarize(output: dict[str, Any], item: dict[str, Any]) -> tuple[float
     lost = [m for m in must if m not in summary]
     if lost:
         detail += f"；缺失 {lost[:4]}"
+
+    # v2 自报与实际不一致 → 虚假保全
+    claimed = output.get("保留清单")
+    if claimed:
+        lies = [c for c in claimed if c not in summary]
+        if lies:
+            detail += f"；**虚假保全**（自报保留但摘要里没有：{lies[:3]}）"
+            score = min(score, 0.5)
 
     max_chars = item.get("max_chars")
     if max_chars and len(summary) > max_chars:
@@ -265,6 +308,8 @@ async def run_one(
     arm: str,
     version: str,
     item: dict[str, Any],
+    *,
+    fresh: bool = False,
 ) -> Row:
     from experiment_cache import cached_structured_call
 
@@ -332,7 +377,7 @@ async def run_one(
         obj = await cached_structured_call(
             prompt,
             schema,
-            force_refresh=False,
+            force_refresh=fresh,
             extra={"ab": f"{set_name}:{version}", "item": item["id"]},
         )
         elapsed = int((time.perf_counter() - t0) * 1000)
@@ -374,19 +419,40 @@ async def run_one(
 
 
 def _classify_categories() -> list[dict[str, str]]:
-    """分类的类别体系。取自 schema 的 Literal，**不在这里手写业务词**。"""
+    """分类的类别体系。类别名取自 schema 的 Literal，**不在这里另写业务词**。
+
+    `boundary` 是正向定义；`not_boundary` 是**反向定义**（这一类不包括什么）。
+    反向定义只有 v2 模板会用 —— v1 模板忽略这个多余的键（Jinja 不会报未用字段）。
+    两边共用同一份类别体系，保证 A/B 比的是"写法"而不是"类别定义"。
+    """
     from app.prompts.classify.schema import ClassifyLabel
 
     ann = ClassifyLabel.model_fields["类别"].annotation
     names = list(ann.__args__)  # type: ignore[attr-defined]
+
     boundaries = {
         "故障报修": "产品功能不可用、报错、崩溃",
-        "功能咨询": "询问功能怎么用、是否支持某能力",
+        "功能咨询": "询问功能怎么用、是否支持某能力、怎么测算",
         "费用争议": "扣费异常、重复扣款、退款、账单不符",
         "投诉建议": "对服务态度或流程不满，或提出改进建议",
         "其他": "确实无法归入以上任何一类",
     }
-    return [{"name": n, "boundary": boundaries.get(n, "其他情况")} for n in names]
+    # 反向定义：这一类**不包括**什么。刻意针对实测踩过的混淆点。
+    not_boundaries = {
+        "故障报修": "不包括单纯询问用法、不包括计费争议、不包括提建议",
+        "功能咨询": "不包括已经确认的功能故障、不包括对账单的不满",
+        "费用争议": "不包括单纯询问成本怎么算、不包括功能报错",
+        "投诉建议": "不包括具体功能报错、不包括计费异常",
+        "其他": "不包括任何能勉强归入以上四类的文本",
+    }
+    return [
+        {
+            "name": n,
+            "boundary": boundaries.get(n, "其他情况"),
+            "not_boundary": not_boundaries.get(n, ""),
+        }
+        for n in names
+    ]
 
 
 def _extract_field_descs(item: dict[str, Any]) -> dict[str, str]:
@@ -417,18 +483,21 @@ def _usage_from_cache(set_name: str, version: str, item_id: str) -> tuple[int, i
 # ============================================================ 主流程
 
 
-async def run_ab(set_name: str, a: str, b: str, *, dry_run: bool) -> list[Row]:
+async def run_ab(set_name: str, a: str, b: str, *, dry_run: bool, fresh: bool = False) -> list[Row]:
     items = load_set(set_name)
     if dry_run:
         # 干跑只取前 2 条，确认管线通
         items = items[:2]
         print(f"[dry-run] 只跑前 {len(items)} 条确认管线")
 
+    if not fresh:
+        print("[warn] 使用缓存：命中时延迟会失真（接近 0ms）。要真实的延迟/P95 请加 --fresh")
+
     rows: list[Row] = []
     for arm, version in (("A", a), ("B", b)):
         print(f"\n== arm {arm} = version {version} ==")
         for item in items:
-            row = await run_one(set_name, arm, version, item)
+            row = await run_one(set_name, arm, version, item, fresh=fresh)
             rows.append(row)
             mark = "✅" if row.ok else "❌"
             print(
@@ -446,23 +515,54 @@ def summarize(rows: list[Row], set_name: str, a: str, b: str) -> dict[str, Any]:
     for arm in ("A", "B"):
         rs = [r for r in rows if r.arm == arm]
         ok = [r for r in rs if r.ok]
+        lat = sorted(r.latency_ms for r in ok)
+        n = len(rs)
+        # 两种打分口径必须**同时**给出，否则会得出错误结论：
+        #   mean_score_of_ok  : 只算成功的（失败条目被剔除）
+        #   mean_score_all    : 失败按 0 分计入
+        # 例：摘要 B 版 7 条超时，只算成功的话得分 1.0（"完美"），
+        # 但按全量口径是 0.3 —— 后者才是真实可用性。
+        # 只报前者会让"一半请求超时"的版本看起来完美。
+        mean_ok = round(statistics.mean(r.score for r in ok), 4) if ok else 0.0
+        mean_all = round(sum(r.score for r in rs) / n, 4) if n else 0.0
         out["arms"][arm] = {
-            "n": len(rs),
+            "n": n,
             "ok": len(ok),
-            "mean_score": round(statistics.mean(r.score for r in ok), 4) if ok else 0.0,
+            "mean_score": mean_ok,
+            "mean_score_all": mean_all,
             "exact_rate": round(sum(1 for r in ok if r.score >= 1.0) / len(ok), 4) if ok else 0.0,
+            "exact_rate_all": round(sum(1 for r in rs if r.ok and r.score >= 1.0) / n, 4)
+            if n
+            else 0.0,
             "total_prompt_tokens": sum(r.prompt_tokens for r in ok),
             "total_completion_tokens": sum(r.completion_tokens for r in ok),
             "total_cost_cny": round(sum(r.cost_cny for r in ok), 6),
-            "mean_latency_ms": round(statistics.mean(r.latency_ms for r in ok)) if ok else 0,
+            "mean_latency_ms": round(statistics.mean(lat)) if lat else 0,
+            # P95：10 条样本时取第 10 个（最慢那条），即 nearest-rank
+            "p95_latency_ms": _percentile(lat, 95),
             "errors": sum(1 for r in rs if not r.ok),
+            "error_ids": [r.item_id for r in rs if not r.ok],
         }
 
-    a_m = out["arms"]["A"]["mean_score"]
-    b_m = out["arms"]["B"]["mean_score"]
+    # 分类额外：混淆矩阵（只看 accuracy 会被类别不均衡骗）
+    if set_name == "classify":
+        out["confusion"] = _confusion_matrix(rows, load_set("classify"))
+
+    # 抽取额外：幻觉字段率
+    if set_name == "extract":
+        out["hallucination"] = _hallucination_stats(rows, load_set("extract"))
+
+    # Δ 用**全量口径**（失败按 0 分），因为可用性差异才是要回答的问题。
+    # 只算成功的口径会得出"B 和 A 一样好"，即使 B 有一半超时。
+    a_m = out["arms"]["A"]["mean_score_all"]
+    b_m = out["arms"]["B"]["mean_score_all"]
     delta = round(b_m - a_m, 4)
     out["delta"] = {
         "mean_score": delta,
+        "mean_score_of_ok": round(
+            out["arms"]["B"]["mean_score"] - out["arms"]["A"]["mean_score"], 4
+        ),
+        "scoring": "mean_score 用全量口径（失败记 0）",
         "significant": abs(delta) >= MIN_SIGNAL_DELTA,
         "threshold": MIN_SIGNAL_DELTA,
         "verdict": _verdict(delta),
@@ -472,6 +572,131 @@ def summarize(rows: list[Row], set_name: str, a: str, b: str) -> dict[str, Any]:
             2,
         ),
     }
+    return out
+
+
+def _percentile(sorted_values: list[int], pct: int) -> int:
+    """nearest-rank 百分位。
+
+    为什么用 nearest-rank 而不是线性插值：10 条样本做插值会造出一个
+    **不存在的延迟值**（比如把 5000ms 和 8000ms 插成 6500ms）。
+    样本这么少的时候，报"第 10 条实际是 8000ms"比报一个虚构的中间值诚实。
+    """
+    if not sorted_values:
+        return 0
+    k = max(1, math.ceil(len(sorted_values) * pct / 100))
+    return sorted_values[min(k, len(sorted_values)) - 1]
+
+
+def _confusion_matrix(rows: list[Row], items: list[dict]) -> dict[str, Any]:
+    """混淆矩阵：**行=gold，列=预测**。
+
+    为什么必须出这个：类别不均衡时，全猜最多类也能有 60% 的 accuracy
+    （本池故障 3 / 咨询 3 / 费用 2 / 投诉 2，全猜"故障报修"或"功能咨询"都是 30%，
+    但换成更不均衡的数据集，accuracy 会严重造假）。
+    混淆矩阵让"哪两类互相混"直接可见 —— 这比一个总数有用得多。
+    """
+    golds = {str(i["id"]): i["gold_label"] for i in items}
+    labels = sorted(set(golds.values()))
+    mat: dict[str, Any] = {"labels": labels, "arms": {}}
+
+    for arm in ("A", "B"):
+        arm_rows = {r.item_id: r for r in rows if r.arm == arm and r.ok}
+        grid = {g: dict.fromkeys(labels, 0) for g in labels}
+        preds: dict[str, str] = {}
+
+        for item_id, gold in golds.items():
+            r = arm_rows.get(item_id)
+            if not r:
+                continue
+            pred = _predicted_label(r.raw_output, labels)
+            preds[item_id] = pred
+            if pred in grid[gold]:
+                grid[gold][pred] += 1
+
+        # 最容易混的两对：非对角线上的格子，按次数排序
+        confusions = []
+        for g in labels:
+            for p in labels:
+                if g != p and grid[g][p]:
+                    confusions.append({"gold": g, "pred": p, "count": grid[g][p]})
+        confusions.sort(key=lambda x: -x["count"])
+
+        mat["arms"][arm] = {
+            "grid": grid,
+            "predictions": preds,
+            "top_confusions": confusions[:5],
+            "accuracy": round(
+                sum(grid[g][g] for g in labels)
+                / max(1, sum(sum(row.values()) for row in grid.values())),
+                4,
+            ),
+            # 基线：全猜最多类能拿到的准确率
+            "majority_baseline": round(
+                max(sum(grid[g].values()) for g in labels)
+                / max(1, sum(sum(row.values()) for row in grid.values())),
+                4,
+            ),
+        }
+    return mat
+
+
+def _predicted_label(raw_output: str, labels: list[str]) -> str:
+    """从原始输出里取预测类别。取不到返回 '?'。"""
+    try:
+        d = json.loads(raw_output)
+    except json.JSONDecodeError:
+        return "?"
+    got = d.get("类别")
+    if isinstance(got, list):
+        return "MULTI"
+    return str(got) if got in labels else "?"
+
+
+def _hallucination_stats(rows: list[Row], items: list[dict]) -> dict[str, Any]:
+    """幻觉字段率：模型给出"原文根本没有的值"的比例。
+
+    **字段级准确率不够用**：一条样本可以"字段对了 2/3"但同时编了一个值。
+    编造比漏抽更危险 —— 漏抽是可发现的空缺，编造会被当成真实数据用下去。
+
+    判定：gold 里某字段是 `None`（gold 表明原文没有），模型却给了非空值 → 一次幻觉。
+    分母是该臂抽出的**所有非空字段值**，这样"少抽"不会被误算成"多编"。
+    """
+    golds = {str(i["id"]): i["gold"] for i in items}
+    out: dict[str, Any] = {"arms": {}}
+
+    for arm in ("A", "B"):
+        arm_rows = [r for r in rows if r.arm == arm and r.ok]
+        produced_values = 0  # 模型给出的非空值总数
+        hallucinated = 0  # 其中属于"原文没有"的
+        hallucinated_ids: list[str] = []
+
+        for r in arm_rows:
+            try:
+                d = json.loads(r.raw_output)
+            except json.JSONDecodeError:
+                continue
+            values = d.get("fields") if isinstance(d.get("fields"), dict) else d
+            gold = golds.get(r.item_id, {})
+
+            for k, v in values.items():
+                if v in (None, "", "null"):
+                    continue
+                produced_values += 1
+                # gold 里该字段是 None 且模型给了值 → 编造
+                if k in gold and gold[k] is None:
+                    hallucinated += 1
+                    if r.item_id not in hallucinated_ids:
+                        hallucinated_ids.append(r.item_id)
+
+        out["arms"][arm] = {
+            "n": len(arm_rows),
+            "produced_values": produced_values,
+            "hallucinated_values": hallucinated,
+            "hallucination_rate": round(hallucinated / max(1, produced_values), 4),
+            "hallucinated_items": hallucinated_ids,
+        }
+
     return out
 
 
@@ -499,15 +724,57 @@ def print_summary(s: dict[str, Any]) -> None:
     print(f"{'指标':<24}{'A':>12}{'B':>12}")
     a, b = s["arms"]["A"], s["arms"]["B"]
     for label, k in [
-        ("平均得分(0-1)", "mean_score"),
-        ("整条全对率", "exact_rate"),
+        ("平均得分(仅成功)", "mean_score"),
+        ("平均得分(全量)", "mean_score_all"),
+        ("整条全对率(仅成功)", "exact_rate"),
+        ("整条全对率(全量)", "exact_rate_all"),
         ("prompt token 合计", "total_prompt_tokens"),
         ("completion token 合计", "total_completion_tokens"),
         ("成本(元)", "total_cost_cny"),
         ("平均延迟(ms)", "mean_latency_ms"),
+        ("P95 延迟(ms)", "p95_latency_ms"),
         ("失败条数", "errors"),
     ]:
         print(f"{label:<24}{a[k]:>12}{b[k]:>12}")
+
+    # ---- 混淆矩阵（分类专用）----
+    conf = s.get("confusion")
+    if conf:
+        labels = conf["labels"]
+        for arm in ("A", "B"):
+            ma = conf["arms"][arm]
+            print(
+                f"\n混淆矩阵 arm {arm}（行=gold，列=预测；acc={ma['accuracy']:.2f}，"
+                f"全猜最多类基线={ma['majority_baseline']:.2f}）"
+            )
+            head = " " * 10 + "".join(f"{lb[:6]:>8}" for lb in labels)
+            print(head)
+            for g in labels:
+                row = ma["grid"][g]
+                cells = "".join(f"{row[p]:>8}" for p in labels)
+                print(f"{g[:8]:<10}{cells}")
+            if ma["top_confusions"]:
+                print("  最易混：", end="")
+                print(
+                    "，".join(
+                        f"{c['gold']}→{c['pred']}({c['count']}次)" for c in ma["top_confusions"]
+                    )
+                )
+
+    # ---- 幻觉率（抽取专用）----
+    hal = s.get("hallucination")
+    if hal:
+        print("\n幻觉字段率（模型给出原文没有的值）")
+        print(f"{'':<24}{'A':>12}{'B':>12}")
+        for label, k in [
+            ("非空字段值总数", "produced_values"),
+            ("其中编造", "hallucinated_values"),
+            ("幻觉率", "hallucination_rate"),
+        ]:
+            print(f"{label:<24}{hal['arms']['A'][k]:>12}{hal['arms']['B'][k]:>12}")
+        print(f"  编造条目 A: {hal['arms']['A']['hallucinated_items']}")
+        print(f"  编造条目 B: {hal['arms']['B']['hallucinated_items']}")
+
     d = s["delta"]
     print(f"\nΔ平均得分 = {d['mean_score']:+.4f}  （阈值 {d['threshold']}）")
     print(f"prompt token 倍数 = {d['token_ratio']}x")
@@ -520,12 +787,17 @@ async def main() -> None:
     ap.add_argument("--a", required=True, help="A 臂版本，如 v1")
     ap.add_argument("--b", required=True, help="B 臂版本，如 v2")
     ap.add_argument("--dry-run", action="store_true", help="只跑 2 条确认管线")
+    ap.add_argument(
+        "--fresh",
+        action="store_true",
+        help="强制重跑不用缓存。**要真实的延迟/P95 必须加这个**（缓存命中时延迟接近 0）",
+    )
     args = ap.parse_args()
 
     if FIXED_TEMPERATURE != 0.0 or FIXED_SEED != 42:
         print("[warn] temperature/seed 不是默认固定值，结果不可与历史对比")
 
-    rows = await run_ab(args.set, args.a, args.b, dry_run=args.dry_run)
+    rows = await run_ab(args.set, args.a, args.b, dry_run=args.dry_run, fresh=args.fresh)
     if not rows:
         raise SystemExit("没有采到任何数据")
 
@@ -533,6 +805,8 @@ async def main() -> None:
     print_summary(s)
 
     tag = "dryrun" if args.dry_run else "full"
+    if args.fresh:
+        tag += "_fresh"
     csv_path = OUT_DIR / f"{args.set}_{args.a}_vs_{args.b}_{tag}.csv"
     write_csv(rows, csv_path)
     json_path = csv_path.with_suffix(".summary.json")

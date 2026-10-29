@@ -112,12 +112,18 @@ app/
 scripts/             smoke_llm · demo_tools · consume_sse · cost · cost_model
                      latency_breakdown · record_demo · measure_tokens · drill_*
 static/index.html    前端单页（fetch + ReadableStream，含中断/重试）
-tests/               285 个**全离线**测试
+tests/               349 个**全离线**测试
   ├── fake_llm.py    FakeLLMClient（可复用，支持固定回复/脚本/异常/流式）
   ├── conftest.py    autouse: 默认注入离线规则版（拔网线也全绿）
   └── fixtures/      make_fixtures.py 脚本生成样本（review 可读）
+app/prompts/         模板库：{qa,summarize,classify,extract}/vN.jinja2 + schema.py
+  ├── loader.py      load_prompt(name, version) · 版本切换 · 硬编码业务词检查
+  └── hardcoded_blocklist.txt  业务词黑名单（模板含它就拒绝渲染）
+eval/prompt-sets/    prompt A/B 输入池（4 类 × 10 条，每条带判定标准）
 docs/                api-spec.md（冻结契约 v1.1）· cost.md · sse.md · SETUP.md
                      prompt-patterns.md（四范式实测）· system-prompt.md（四要素 + A/B）
+                     prompt-templates.md（模板库）· structured-output.md（structured_call）
+                     ab-scaffold.md（输入池 + 脚手架）· prompt-ab.md（四类 A/B 报告）
 ```
 
 ---
@@ -551,6 +557,14 @@ fastapi、抽取器接受注入 client"的直接收益。
   Self-Consistency 四范式实测：哪个赢、赢多少、为什么推理模型不该再加 CoT 提示
 - [docs/system-prompt.md](docs/system-prompt.md) —— System Prompt 四要素拆解 + 宽松 vs 严格
   的 A/B 对抗测试：拒绝率为什么会骗人、判定器返工记录
+- [docs/prompt-templates.md](docs/prompt-templates.md) —— 四类模板库（qa/summarize/classify/
+  extract）：目录规范、模板自述、版本机制、**硬编码业务词检查**、真实模型端到端验证
+- [docs/structured-output.md](docs/structured-output.md) —— `structured_call`：本网关
+  `response_format` 为何"接受但不强制"、Pydantic 报错回灌、`max_tokens` 被思维链打爆两次
+- [docs/ab-scaffold.md](docs/ab-scaffold.md) —— 40 条输入池（采集纪律 + 数据泄漏检查）与
+  A/B 脚手架（固定温度/seed、结论阈值、混淆矩阵、幻觉率）
+- [docs/prompt-ab.md](docs/prompt-ab.md) —— 四类模板 A/B 报告：extract v2 因**契约修复**
+  胜出 +63pp，qa/summarize 因"分步结构"在推理模型上反而更差
 - `learn/llm/01_params.md` —— 采样参数实测（temperature / seed / max_tokens / stop）
 - `learn/llm/02_function_calling.md` —— Function Calling 实测与网关踩坑
 

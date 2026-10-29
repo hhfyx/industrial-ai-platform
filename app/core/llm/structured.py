@@ -88,16 +88,27 @@ DEFAULT_TEMPERATURE: Final[float] = 0.0
 
 # 单次调用的输出上限。
 #
-# **这个值被实测修正过，不是拍的**（2026-10-29，四类模板端到端验证）：
-# 最初设 2048，在"摘要"任务上 `content` 返回 `None` —— 因为本网关默认
-# `reasoning=high`，**思维链会先吃掉 max_tokens**。实测同一 prompt：
-#   · max_tokens=2048 → finish_reason=length，completion_tokens=2048（打满），
-#     reasoning_content 4621 字符，content=None
-#   · max_tokens=4096 → finish_reason=stop，completion_tokens=1685，正常出 JSON
+# **这个值被实测修正过两次，不是拍的**（2026-10-29）。
+# 根因始终是同一个：本网关默认 `reasoning=high`，**思维链先吃 max_tokens**，
+# 真正留给 JSON 的预算 = max_tokens - 思维链长度。
 #
-# 所以默认值必须留出**思维链的余量**。2048 对"短 JSON 输出"看起来够用，
-# 实际会被思维链吃光。取 4096。
-DEFAULT_MAX_TOKENS: Final[int] = 4096
+# 两次实测记录（都是同一台网关、同一个模型）：
+#
+#   第一次（周四，四类模板端到端）：
+#     · max_tokens=2048 → finish=length，compl=2048（打满），reasoning 4621 字符，content=None
+#     · max_tokens=4096 → finish=stop，compl=1685，reasoning 2938 字符，正常
+#
+#   第二次（周六，摘要 A/B 跑 10 条）：
+#     · max_tokens=4096 → finish=length，compl=4096（打满），reasoning 9405 字符，content=None
+#     · max_tokens=8192 → finish=stop，compl=4485，reasoning 12007 字符，正常
+#
+# **教训：预算要按"最重的那个任务"定，不是按典型任务。**
+# 摘要任务输入长、思维链长，4096 在它上面直接打满；分类/抽取那种短输出
+# 用 8192 只是多留了余地，不会被用掉（模型到 stop 就停）。
+#
+# 代价：max_tokens 是**上限**不是预留，调大不额外花钱 ——
+# `usage.completion_tokens` 只算实际产出。所以宁可给足。
+DEFAULT_MAX_TOKENS: Final[int] = 8192
 # 重试时的温度：第 1 轮已经是 0，修复轮稍微抬一点点有助于跳出同一个死循环。
 # 但不能抬太高 —— 修复轮的任务是"改正具体字段"，不是"重新创作"。
 REPAIR_TEMPERATURE: Final[float] = 0.2

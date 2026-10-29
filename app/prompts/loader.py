@@ -131,12 +131,46 @@ def _resolve_version(name: str, version: str | None) -> str:
 
 
 def list_versions(name: str) -> list[str]:
-    """列出某类模板已有的版本，按自然序（v1, v2, v10 而不是 v1, v10, v2）。"""
+    """列出某类模板已有的版本，按自然序。
+
+    支持 `v1`、`v2`、`v1.1`、`v1.2` 这类带小版本号的命名（`v1.1` 用于
+    "v1 的胜出修订版"—— 见 docs/prompt-ab.md 的定版说明）。
+
+    排序键把 `vN.M` 折成元组 `(N, M)`：
+    - `v1` → (1, 0)
+    - `v1.1` → (1, 1)   （排在 v1 之后、v2 之前）
+    - `v2` → (2, 0)
+    这样 `v1, v1.1, v2` 的顺序才是对的。用字符串排序会把 `v1.1` 排到 `v1` 前面。
+    """
     cat_dir = PROMPTS_DIR / name
     if not cat_dir.is_dir():
         raise PromptNotFoundError(f"未知模板类别：{name}")
     versions = [p.stem for p in cat_dir.glob("v*.jinja2")]
-    return sorted(versions, key=lambda v: int(v[1:]) if v[1:].isdigit() else 1 << 30)
+    return sorted(versions, key=_version_sort_key)
+
+
+def _version_sort_key(v: str) -> tuple[int, int]:
+    """版本号的排序键。解析失败排到最后（不让脏名字混进前面）。"""
+    body = v[1:] if v.startswith("v") else v
+    if "." in body:
+        major, _, minor = body.partition(".")
+        if major.isdigit() and minor.isdigit():
+            return (int(major), int(minor))
+        return (1 << 30, 0)
+    return (int(body), 0) if body.isdigit() else (1 << 30, 0)
+
+
+def _schema_module_name(version: str) -> str:
+    """版本号 → schema 模块文件名（不带 .py）。
+
+    **要点：`v1.1` 里的点必须换成下划线**，否则
+    `import_module("app.prompts.extract.v1.1_schema")` 会被解释成
+    "从 `app.prompts.extract.v1` 子模块导入 `1_schema`" —— 报 ModuleNotFoundError。
+    这是 Python 模块命名的硬约束，不是我们的选择。
+    """
+    if version == "v1":
+        return "schema"
+    return version.replace(".", "_") + "_schema"
 
 
 def _load_blocklist() -> list[str]:
@@ -313,7 +347,7 @@ def load_schema(name: str, version: str | None = None) -> type[BaseModel]:
         raise PromptNotFoundError(f"未知模板类别：{name}")
 
     resolved = _resolve_version(name, version)
-    module_name = "schema" if resolved == "v1" else f"{resolved}_schema"
+    module_name = _schema_module_name(resolved)
     try:
         module = importlib.import_module(f"app.prompts.{name}.{module_name}")
     except ModuleNotFoundError as exc:

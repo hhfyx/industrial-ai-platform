@@ -1,0 +1,56 @@
+{
+  "set": "summarize",
+  "a": "v1",
+  "b": "v2",
+  "arms": {
+    "A": {
+      "n": 10,
+      "ok": 9,
+      "mean_score": 1.0,
+      "mean_score_all": 0.9,
+      "exact_rate": 1.0,
+      "exact_rate_all": 0.9,
+      "total_prompt_tokens": 4517,
+      "total_completion_tokens": 35613,
+      "total_cost_cny": 0.293938,
+      "mean_latency_ms": 22942,
+      "p95_latency_ms": 55098,
+      "errors": 1,
+      "error_ids": [
+        "sm-03"
+      ]
+    },
+    "B": {
+      "n": 10,
+      "ok": 3,
+      "mean_score": 1.0,
+      "mean_score_all": 0.3,
+      "exact_rate": 1.0,
+      "exact_rate_all": 0.3,
+      "total_prompt_tokens": 1732,
+      "total_completion_tokens": 16334,
+      "total_cost_cny": 0.134136,
+      "mean_latency_ms": 25366,
+      "p95_latency_ms": 28823,
+      "errors": 7,
+      "error_ids": [
+        "sm-01",
+        "sm-02",
+        "sm-03",
+        "sm-04",
+        "sm-05",
+        "sm-07",
+        "sm-08"
+      ]
+    }
+  },
+  "delta": {
+    "mean_score": -0.6,
+    "mean_score_of_ok": 0.0,
+    "scoring": "mean_score 用全量口径（失败记 0）",
+    "significant": true,
+    "threshold": 0.2,
+    "verdict": "A 更好（差距达到信号阈值）",
+    "token_ratio": 0.38
+  }
+}
