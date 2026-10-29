@@ -1,0 +1,95 @@
+[
+  {
+    "mode": "json_schema_strict",
+    "ok": true,
+    "status": 200,
+    "raw": "{\"category\": \"故障报修\", \"priority\": \"紧急\", \"summary\": \"开放API /v2/orders 接口持续返回502，客户订单同步中断3小时\"}",
+    "content_len": 91,
+    "has_fence": false,
+    "parsed": true,
+    "extra_keys": [
+      "category",
+      "priority",
+      "summary"
+    ],
+    "missing_keys": [
+      "涉及产品",
+      "紧急程度",
+      "置信度",
+      "问题类型"
+    ],
+    "enum_violations": [],
+    "confidence_ok": false,
+    "payload": {
+      "category": "故障报修",
+      "priority": "紧急",
+      "summary": "开放API /v2/orders 接口持续返回502，客户订单同步中断3小时"
+    },
+    "schema_ok": false
+  },
+  {
+    "mode": "json_object",
+    "ok": true,
+    "status": 200,
+    "raw": "{\"category\": \"故障/技术问题\", \"priority\": \"紧急\", \"summary\": \"开放API /v2/orders 接口持续返回502，客户订单同步中断3小时\", \"suggested_team\": \"技术支持/后端研发\", \"tags\": [\"API故障\", \"502\", \"订单同步\", \"服务中断\"]}",
+    "content_len": 167,
+    "has_fence": false,
+    "parsed": true,
+    "extra_keys": [
+      "category",
+      "priority",
+      "suggested_team",
+      "summary",
+      "tags"
+    ],
+    "missing_keys": [
+      "涉及产品",
+      "紧急程度",
+      "置信度",
+      "问题类型"
+    ],
+    "enum_violations": [],
+    "confidence_ok": false,
+    "payload": {
+      "category": "故障/技术问题",
+      "priority": "紧急",
+      "summary": "开放API /v2/orders 接口持续返回502，客户订单同步中断3小时",
+      "suggested_team": "技术支持/后端研发",
+      "tags": [
+        "API故障",
+        "502",
+        "订单同步",
+        "服务中断"
+      ]
+    },
+    "schema_ok": false
+  },
+  {
+    "mode": "none",
+    "ok": true,
+    "status": 200,
+    "raw": "{\"category\": \"故障\", \"priority\": \"紧急\", \"summary\": \"开放API /v2/orders 接口持续返回502，客户订单同步中断3小时\"}",
+    "content_len": 89,
+    "has_fence": false,
+    "parsed": true,
+    "extra_keys": [
+      "category",
+      "priority",
+      "summary"
+    ],
+    "missing_keys": [
+      "涉及产品",
+      "紧急程度",
+      "置信度",
+      "问题类型"
+    ],
+    "enum_violations": [],
+    "confidence_ok": false,
+    "payload": {
+      "category": "故障",
+      "priority": "紧急",
+      "summary": "开放API /v2/orders 接口持续返回502，客户订单同步中断3小时"
+    },
+    "schema_ok": false
+  }
+]

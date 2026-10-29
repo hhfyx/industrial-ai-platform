@@ -22,6 +22,9 @@ ENV/
 htmlcov/
 coverage.xml
 
+# 实验缓存（scripts/experiment_cache.py 产生；可重跑，不入库）
+scripts/.cache/
+
 # Type checking / linting caches
 .mypy_cache/
 .ruff_cache/
