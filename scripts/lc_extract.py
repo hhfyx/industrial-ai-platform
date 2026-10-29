@@ -191,19 +191,22 @@ async def run_arm(arm: str, method: str, strict: bool | None, items: list[dict])
             )
         except Exception as exc:  # noqa: BLE001
             elapsed = int((time.perf_counter() - t0) * 1000)
+            # **保存完整错误文本，不截断**：这份数据要拿去做"为什么不用它"的证据，
+            # 截断到 200 字符会把关键原因（如 "only tool_choice auto and none
+            # are supported"）切掉 —— 那是整个论证最有力的一句。
             rec.update(
                 ok=False,
                 score=0.0,
-                detail=f"{type(exc).__name__}: {exc}"[:200],
+                detail=f"{type(exc).__name__}: {exc}",
+                detail_short=f"{type(exc).__name__}: {exc}"[:200],
+                error_type=type(exc).__name__,
                 latency_ms=elapsed,
                 raw="",
             )
         rows.append(rec)
         mark = "✅" if rec["ok"] else "❌"
-        print(
-            f"  {mark} {item['id']:<8} score={rec['score']:.2f} "
-            f"{rec['latency_ms']}ms  {rec['detail'][:70]}"
-        )
+        text = rec.get("detail_short") or rec["detail"][:70]
+        print(f"  {mark} {item['id']:<8} score={rec['score']:.2f} {rec['latency_ms']}ms  {text}")
     return rows
 
 

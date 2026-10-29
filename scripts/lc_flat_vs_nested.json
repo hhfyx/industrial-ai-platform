@@ -1,0 +1,86 @@
+{
+  "flat": {
+    "success": 8,
+    "n": 10,
+    "rows": [
+      {
+        "item_id": "ex-01",
+        "ok": false,
+        "error_type": "ValidationError",
+        "error_full": "ValidationError: 1 validation error for Flat_ex_01\n  Input should be an object [type=model_type, input_value=[{'主体': 'Python', '...'路径': '.local/bin'}], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.14/v/model_type"
+      },
+      {
+        "item_id": "ex-02",
+        "ok": true,
+        "result": {
+          "主体": "SSE 帧",
+          "要求": "以 data: 开头，内容之后必须是两个换行符结尾。"
+        }
+      },
+      {
+        "item_id": "ex-03",
+        "ok": true,
+        "result": {
+          "问题": "content=None，但 usage 里的 token 统计却正常",
+          "原因": "推理模式下 max_tokens 会被思维链吃光"
+        }
+      },
+      {
+        "item_id": "ex-04",
+        "ok": true,
+        "result": {
+          "场景": null,
+          "单次成本": null
+        }
+      },
+      {
+        "item_id": "ex-05",
+        "ok": true,
+        "result": {
+          "主体": "WebSocket",
+          "问题": "需要先发 HTTP Upgrade 请求再切换协议，很多内网代理和防火墙不认 Upgrade，会直接掐断连接"
+        }
+      },
+      {
+        "item_id": "ex-06",
+        "ok": true,
+        "result": {
+          "执行策略": "RemoteSigned",
+          "作用域": "CurrentUser",
+          "git 版本": "2.55.0.windows.1"
+        }
+      },
+      {
+        "item_id": "ex-07",
+        "ok": true,
+        "result": {
+          "参数名": "单段目标 token 数",
+          "默认值": "3000"
+        }
+      },
+      {
+        "item_id": "ex-08",
+        "ok": true,
+        "result": {
+          "错误码": "502",
+          "错误类型": "UNSUPPORTED_CONTENT"
+        }
+      },
+      {
+        "item_id": "ex-09",
+        "ok": false,
+        "error_type": "ValidationError",
+        "error_full": "ValidationError: 1 validation error for Flat_ex_09\n  Input should be an object [type=model_type, input_value=[{'手段': '结果缓存...节省比例': '45.0%'}], input_type=list]\n    For further information visit https://errors.pydantic.dev/2.14/v/model_type"
+      },
+      {
+        "item_id": "ex-10",
+        "ok": true,
+        "result": {
+          "平台": "Windows",
+          "正确命令": "curl.exe"
+        }
+      }
+    ]
+  },
+  "nested_from_prev": 0
+}

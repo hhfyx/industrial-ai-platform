@@ -1,0 +1,99 @@
+{
+  "item": {
+    "id": "ex-10-stack",
+    "text": "Windows 上必须用 curl.exe 而不是 PowerShell 的 curl，因为后者是 Invoke-WebRequest 的别名。",
+    "fields": [
+      {
+        "name": "平台",
+        "desc": "操作系统",
+        "type": "string"
+      },
+      {
+        "name": "正确命令",
+        "desc": "应当使用的命令",
+        "type": "string"
+      }
+    ]
+  },
+  "results": [
+    {
+      "arm": "lc_json_schema_strict",
+      "method": "json_schema",
+      "strict": true,
+      "schema": "ExtractV2",
+      "ok": false,
+      "error_type": "ValidationError",
+      "error_full": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'平台': 'Windows', '正确命令': 'curl.exe'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.14/v/missing",
+      "traceback_tail": [
+        "    return cls.__pydantic_validator__.validate_json(",
+        "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+        "pydantic_core._pydantic_core.ValidationError: 1 validation error for ExtractV2",
+        "置信度",
+        "  Field required [type=missing, input_value={'平台': 'Windows', '正确命令': 'curl.exe'}, input_type=dict]",
+        "    For further information visit https://errors.pydantic.dev/2.14/v/missing"
+      ]
+    },
+    {
+      "arm": "lc_json_schema",
+      "method": "json_schema",
+      "strict": null,
+      "schema": "ExtractV2",
+      "ok": false,
+      "error_type": "ValidationError",
+      "error_full": "ValidationError: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'平台': 'Windows', '正确命令': 'curl.exe'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.14/v/missing",
+      "traceback_tail": [
+        "    return cls.__pydantic_validator__.validate_json(",
+        "           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
+        "pydantic_core._pydantic_core.ValidationError: 1 validation error for ExtractV2",
+        "置信度",
+        "  Field required [type=missing, input_value={'平台': 'Windows', '正确命令': 'curl.exe'}, input_type=dict]",
+        "    For further information visit https://errors.pydantic.dev/2.14/v/missing"
+      ]
+    },
+    {
+      "arm": "lc_function_calling",
+      "method": "function_calling",
+      "strict": null,
+      "schema": "ExtractV2",
+      "ok": false,
+      "error_type": "OpenAIInvalidRequestError",
+      "error_full": "OpenAIInvalidRequestError: Error code: 400 - {'error': {'message': 'only tool_choice auto and none are supported', 'type': 'invalid_request_error', 'code': 'invalid_request'}}",
+      "traceback_tail": [
+        "             ^^^^^^^^^^^^^^^^^^^^^^",
+        "  File \".venv\\Lib\\site-packages\\langchain_openai\\chat_models\\base.py\", line 2300, in _agenerate",
+        "    _handle_openai_bad_request(e)",
+        "  File \".venv\\Lib\\site-packages\\langchain_openai\\chat_models\\base.py\", line 712, in _handle_openai_bad_request",
+        "    raise OpenAIInvalidRequestError(",
+        "langchain_openai.chat_models.base.OpenAIInvalidRequestError: Error code: 400 - {'error': {'message': 'only tool_choice auto and none are supported', 'type': 'invalid_request_error', 'code': 'invalid_request'}}"
+      ]
+    },
+    {
+      "arm": "lc_json_mode",
+      "method": "json_mode",
+      "strict": null,
+      "schema": "ExtractV2",
+      "ok": false,
+      "error_type": "OutputParserException",
+      "error_full": "OutputParserException: Failed to parse ExtractV2 from completion {\"平台\": \"Windows\", \"正确命令\": \"curl.exe\"}. Got: 1 validation error for ExtractV2\n置信度\n  Field required [type=missing, input_value={'平台': 'Windows', '正确命令': 'curl.exe'}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.14/v/missing\nFor troubleshooting, visit: https://docs.langchain.com/oss/python/langchain/errors/OUTPUT_PARSING_FAILURE ",
+      "traceback_tail": [
+        "    raise self._parser_exception(e, obj) from e",
+        "langchain_core.exceptions.OutputParserException: Failed to parse ExtractV2 from completion {\"平台\": \"Windows\", \"正确命令\": \"curl.exe\"}. Got: 1 validation error for ExtractV2",
+        "置信度",
+        "  Field required [type=missing, input_value={'平台': 'Windows', '正确命令': 'curl.exe'}, input_type=dict]",
+        "    For further information visit https://errors.pydantic.dev/2.14/v/missing",
+        "For troubleshooting, visit: https://docs.langchain.com/oss/python/langchain/errors/OUTPUT_PARSING_FAILURE "
+      ]
+    },
+    {
+      "arm": "lc_flat_json_schema",
+      "method": "json_schema",
+      "strict": null,
+      "schema": "Flat",
+      "ok": true,
+      "result": {
+        "平台": "Windows",
+        "正确命令": "curl.exe"
+      }
+    }
+  ]
+}
