@@ -583,6 +583,9 @@ fastapi、抽取器接受注入 client"的直接收益。
   胜出 +63pp，qa/summarize 因"分步结构"在推理模型上反而更差
 - [docs/why-i-use-langchain.md](docs/why-i-use-langchain.md) —— 为什么本项目的结构化输出链路
   不用 LangChain：它抽象掉的那层恰好是我必须自己控制的那层（含完整失败栈）
+- [docs/w1-summary.md](docs/w1-summary.md) —— **W1 总览**：先冻契约再写实现、
+  5 个 handler 焊死错误形状、镜像 242→211→157 MB 的瘦身账本、
+  以及"装完 Docker Desktop ≠ 引擎起来了"等四条机制级认知
 - [docs/w2-summary.md](docs/w2-summary.md) —— **W2 总览**：三个必答题的实测答案、
   四次自我推翻（成本口径/单样本/tiktoken/reasoning 参数）、
   「测试能离线跑绿」的完整论证
