@@ -581,6 +581,11 @@ fastapi、抽取器接受注入 client"的直接收益。
   A/B 脚手架（固定温度/seed、结论阈值、混淆矩阵、幻觉率）
 - [docs/prompt-ab.md](docs/prompt-ab.md) —— 四类模板 A/B 报告：extract v2 因**契约修复**
   胜出 +63pp，qa/summarize 因"分步结构"在推理模型上反而更差
+- [docs/why-i-use-langchain.md](docs/why-i-use-langchain.md) —— 为什么本项目的结构化输出链路
+  不用 LangChain：它抽象掉的那层恰好是我必须自己控制的那层（含完整失败栈）
+- [docs/w2-summary.md](docs/w2-summary.md) —— **W2 总览**：三个必答题的实测答案、
+  四次自我推翻（成本口径/单样本/tiktoken/reasoning 参数）、
+  「测试能离线跑绿」的完整论证
 - `learn/llm/01_params.md` —— 采样参数实测（temperature / seed / max_tokens / stop）
 - `learn/llm/02_function_calling.md` —— Function Calling 实测与网关踩坑
 
