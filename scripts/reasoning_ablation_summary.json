@@ -1,0 +1,50 @@
+[
+  {
+    "level": "low",
+    "ok": 10,
+    "n": 10,
+    "point_rate": 1.0,
+    "len_rate": 1.0,
+    "combined": 1.0,
+    "lat": 17852,
+    "p95": 32460,
+    "compl": 3865,
+    "cost_per_ok": 0.031688
+  },
+  {
+    "level": "max",
+    "ok": 8,
+    "n": 10,
+    "point_rate": 1.0,
+    "len_rate": 1.0,
+    "combined": 1.0,
+    "lat": 28534,
+    "p95": 34603,
+    "compl": 5817,
+    "cost_per_ok": 0.047302
+  },
+  {
+    "level": "off",
+    "ok": 10,
+    "n": 10,
+    "point_rate": 0.96,
+    "len_rate": 0.3,
+    "combined": 0.288,
+    "lat": 1272,
+    "p95": 1556,
+    "compl": 145,
+    "cost_per_ok": 0.001875
+  },
+  {
+    "level": "high",
+    "ok": 9,
+    "n": 10,
+    "point_rate": 1.0,
+    "len_rate": 1.0,
+    "combined": 1.0,
+    "lat": 25439,
+    "p95": 39367,
+    "compl": 5390,
+    "cost_per_ok": 0.043884
+  }
+]

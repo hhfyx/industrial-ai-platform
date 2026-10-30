@@ -1,0 +1,495 @@
+{
+  "meta": {
+    "model": "deepseek-account/deepseek-flash",
+    "n": 10,
+    "max_tokens": 8192
+  },
+  "levels": {
+    "low": {
+      "level": "low",
+      "n": 10,
+      "ok": 10,
+      "mean_score_of_ok": 1.0,
+      "mean_score_all": 1.0,
+      "mean_latency_ms": 17852,
+      "p95_latency_ms": 32460,
+      "mean_completion_tokens_of_ok": 3865,
+      "mean_reasoning_chars_of_ok": 8730,
+      "rows": [
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"SSE单向，服务端到客户端，用text/event-stream，对代理/防火墙友好。WebSocket先HTTP Upgrade再切TCP；SSE自动重连，可带Last-Event-ID续传，WebSocket需自写onclose重连。\",\"字数\":119,\"覆盖要点\":[\"SSE单向服务端到客户端\",\"先Upgrade再切TCP\",\"SSE自动重连\",\"Last-Event-ID续传\",\"WebSocket需自写重连\"]}",
+          "latency_ms": 32460,
+          "prompt_tokens": 402,
+          "completion_tokens": 7543,
+          "reasoning_chars": 17130,
+          "score": 1.0,
+          "detail": "5/5",
+          "item_id": "sm-01"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"标准合同成本结构输入占39%、输出占61%；精简输入30%约省11.8%；缓存命中 50%可省50.0%且无质量风险；小模型分流60%省45.0%但有质量风险；长文档回灌代价达4.2 倍。\",\"字数\":94,\"覆盖要点\":[\"成本结构39%/61%\",\"精简30%省11.8%\",\"缓存命中 50%省50.0%\",\"小模型分流有质量风险\",\"长文档回灌4.2 倍\"]}",
+          "latency_ms": 13755,
+          "prompt_tokens": 403,
+          "completion_tokens": 3069,
+          "reasoning_chars": 5911,
+          "score": 1.0,
+          "detail": "5/5",
+          "item_id": "sm-02"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"基线：Windows 11；PowerShell；Python 3.11.2，PATH 中 Anaconda 3.9.23 需规避；uv 0.13.1；git 2.55.0.windows.1；策略 RemoteSigned。\",\"字数\":113,\"覆盖要点\":[\"Windows 11 基线\",\"Python 3.11.2\",\"Anaconda 3.9.23\",\"uv 0.13.1\",\"策略RemoteSigned\"]}",
+          "latency_ms": 24338,
+          "prompt_tokens": 394,
+          "completion_tokens": 5219,
+          "reasoning_chars": 13370,
+          "score": 1.0,
+          "detail": "5/5",
+          "item_id": "sm-03"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"某些模型不支持 tool 回灌，第二轮返回 502 UNSUPPORTED_CONTENT，能力是双向的。推理模式吃光 max_tokens，content=None 但 usage 正常，None 当失败。未配置 logging，日志静默丢失，检测没生效。\",\"字数\":129,\"覆盖要点\":[\"tool 回灌返回 502\",\"能力是双向的\",\"推理吃光max_tokens\",\"content=None当失败\",\"logging缺失致检测没生效\"]}",
+          "latency_ms": 26564,
+          "prompt_tokens": 369,
+          "completion_tokens": 6184,
+          "reasoning_chars": 14932,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-04"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"超长文档因上下文窗口有上限不能直接输入；越长越易忽略中间部分，即 lost in the middle，成本线性。采用 map-reduce：map 分段摘要，reduce 汇总；reduce 按预算分批，即 hierarchical reduce，避免 15 段摘要一次输入过长。\",\"字数\":141,\"覆盖要点\":[\"上下文有上限\",\"中间信息易忽略\",\"map-reduce两阶段\",\"reduce按预算分批\",\"避免输入过长\"]}",
+          "latency_ms": 7380,
+          "prompt_tokens": 375,
+          "completion_tokens": 1376,
+          "reasoning_chars": 3713,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-05"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"TTFT 口径写死为从发起请求到收到第一个非空 content 的时间；首块常只带 role 或空 delta，计入会得到偏小但没用的数字。SSE 帧格式为 data: 加内容，两个换行表示结束，双换行是硬要求，缺了客户端会一直等下一帧。测试里锁帧字节形状，让协议变更被测试捕获而非等线上出问题。\",\"字数\":148,\"覆盖要点\":[\"TTFT口径写死\",\"非空 content定义\",\"双换行硬要求\",\"锁帧字节形状\",\"避免协议变更线上问题\"]}",
+          "latency_ms": 10057,
+          "prompt_tokens": 375,
+          "completion_tokens": 1993,
+          "reasoning_chars": 4386,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-06"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"回灌重试不是多一点时间，而是多几倍钱：标准合同一次成功 0.001166 元，2 轮回灌后 0.004138 元，是 3.5 倍；长文档回灌代价达 4.2 倍，因 1996 token 里 96% 是输入；长文档应先用规则版兜底。规则版成本是 0，但复杂字段准确率下降。\",\"字数\":135,\"覆盖要点\":[\"回灌重试多几倍钱\",\"标准合同回灌是 3.5 倍\",\"长文档回灌达 4.2 倍\",\"长文档输入占 96%\",\"长文档先用规则版兜底\"]}",
+          "latency_ms": 17995,
+          "prompt_tokens": 409,
+          "completion_tokens": 3654,
+          "reasoning_chars": 7866,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-07"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"实测 response_format 形式被接受、语义不强制；json_schema 且 strict 为 true 时，四个 required 字段一个都没出，反自创三个字段。正确性只能靠本地 Pydantic 校验，json_object 只挡代码围栏和废话。\",\"字数\":132,\"覆盖要点\":[\"形式被接受\",\"语义不强制\",\"required 全缺失\",\"靠 Pydantic\",\"json_object 挡围栏\"]}",
+          "latency_ms": 15054,
+          "prompt_tokens": 365,
+          "completion_tokens": 3399,
+          "reasoning_chars": 7594,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-08"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"上个月测试改为全离线运行，285 个测试断网全部通过：用 FastAPI 的 dependency_overrides 注入离线抽取器，默认注入规则版；契约测试 test_api.py 未改动仍全绿，因规则版覆盖正常路径的 4 个字段。某次网关凭据过期返回 502，专门一个契约测试挂了。\",\"字数\":144,\"覆盖要点\":[\"285 个测试断网通过\",\"注入离线抽取器\",\"默认注入规则版\",\"契约测试未改仍全绿\",\"502 致契约测试挂\"]}",
+          "latency_ms": 18509,
+          "prompt_tokens": 383,
+          "completion_tokens": 3820,
+          "reasoning_chars": 8699,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-09"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\": \"v1 契约唯一不可动，现为 v1.1，新增可选 degraded 字段。降级路径返回 degraded 为 true，使省钱的代价可见，而非悄悄给低质量结果。换实现时路由、文档、测试均不动，只换依赖注入里的抽取器。\", \"字数\": 107, \"覆盖要点\": [\"v1.1 契约\", \"可选 degraded 字段\", \"降级返回 true\", \"省钱的代价可见\", \"换实现仅换抽取器\"]}",
+          "latency_ms": 12412,
+          "prompt_tokens": 347,
+          "completion_tokens": 2397,
+          "reasoning_chars": 3703,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-10"
+        }
+      ]
+    },
+    "max": {
+      "level": "max",
+      "n": 10,
+      "ok": 8,
+      "mean_score_of_ok": 1.0,
+      "mean_score_all": 0.8,
+      "mean_latency_ms": 28534,
+      "p95_latency_ms": 34603,
+      "mean_completion_tokens_of_ok": 5817,
+      "mean_reasoning_chars_of_ok": 15406,
+      "rows": [
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"SSE是单向的，Content-Type为text/event-stream，对代理、防火墙友好。WebSocket需先Upgrade再切协议，易被拦截。SSE自动重连并用Last-Event-ID续传，WebSocket需自行重连。\",\"字数\":117,\"覆盖要点\":[\"SSE单向\",\"Content-Type正确\",\"需Upgrade易拦截\",\"SSE自动重连续传\",\"WebSocket自行重连\"]}",
+          "latency_ms": 27366,
+          "prompt_tokens": 402,
+          "completion_tokens": 5680,
+          "reasoning_chars": 15204,
+          "score": 1.0,
+          "detail": "5/5",
+          "item_id": "sm-01"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"标准合同输入占39%、输出占61%；prompt精简30%仅省11.8%。缓存命中 50%省50.0%且无质量风险；小模型分流60%省45.0%但有质量风险；长文档回灌达4.2 倍。\",\"字数\":91,\"覆盖要点\":[\"输入占39%、输出占61%\",\"精简30%仅省11.8%\",\"缓存命中 50%省50.0%\",\"小模型分流60%省45.0%\",\"长文档回灌达4.2 倍\"]}",
+          "latency_ms": 24350,
+          "prompt_tokens": 403,
+          "completion_tokens": 5117,
+          "reasoning_chars": 13240,
+          "score": 1.0,
+          "detail": "5/5",
+          "item_id": "sm-02"
+        },
+        {
+          "ok": false,
+          "err": "content=None",
+          "latency_ms": 39484,
+          "finish": "length",
+          "reasoning_chars": 21946,
+          "score": 0.0,
+          "item_id": "sm-03"
+        },
+        {
+          "ok": false,
+          "err": "content=None",
+          "latency_ms": 35094,
+          "finish": "length",
+          "reasoning_chars": 20134,
+          "score": 0.0,
+          "item_id": "sm-04"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"上下文窗口有上限，超长文档不能直接塞给模型，且存在 lost in the middle。可用 map-reduce 两阶段：map 分段摘要，reduce 汇总；reduce 按预算分批，即 hierarchical reduce。15 段摘要一次性喂给模型仍会过长。\",\"字数\":135,\"覆盖要点\":[\"上下文窗口有上限\",\"中段信息易被忽略\",\"map-reduce 分段摘要\",\"reduce 按预算分批\",\"15 段摘要仍过长\"]}",
+          "latency_ms": 33957,
+          "prompt_tokens": 375,
+          "completion_tokens": 6801,
+          "reasoning_chars": 18775,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-05"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"TTFT须定义为从发起请求到收到第一个非空 content的时间。首块常只带role或空delta，若计入会得到偏小无用数字。SSE为data:加内容，双换行表示帧结束，缺失会让客户端一直等下一帧。测试中锁帧字节形状，用于捕获协议变更，而非等线上出问题。\",\"字数\":127,\"覆盖要点\":[\"TTFT至非空 content\",\"首块空delta致偏小\",\"SSE双换行结束\",\"缺双换行会等待\",\"测试锁帧字节形状\"]}",
+          "latency_ms": 34603,
+          "prompt_tokens": 375,
+          "completion_tokens": 6998,
+          "reasoning_chars": 17585,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-06"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"标准合同一次成功 0.001166 元，2 轮回灌后 0.004138 元，为 3.5 倍；长文档回灌代价达 4.2 倍，1996 token 中 96% 是输入，长文档更应先用规则版兜底；规则版成本为 0，但复杂字段准确率下降。\",\"字数\":115,\"覆盖要点\":[\"标准合同一次成功成本\",\"回灌后为3.5 倍\",\"长文档达4.2 倍\",\"96%为输入\",\"规则版成本为0\"]}",
+          "latency_ms": 29512,
+          "prompt_tokens": 409,
+          "completion_tokens": 5798,
+          "reasoning_chars": 15559,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-07"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"实测response_format形式被接受、语义不强制：json_schema配strict=true仍四个 required 字段一个都没出，模型自创字段。最小案例成功只因prompt写明键值，非schema。正确性靠本地Pydantic校验，json_object只挡围栏废话。\",\"字数\":142,\"覆盖要点\":[\"形式被接受\",\"语义不强制\",\"required 字段缺失\",\"Pydantic 本地校验\",\"json_object 挡围栏\"]}",
+          "latency_ms": 27157,
+          "prompt_tokens": 365,
+          "completion_tokens": 5746,
+          "reasoning_chars": 15449,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-08"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"上个月把测试改成全离线跑，285 个测试全部可在断网环境下通过。用 dependency_overrides 注入离线抽取器，默认注入规则版。契约测试 test_api.py 未改仍全绿，因规则版正好走正常路径的 4 个字段。某次网关凭据过期返回 502，专门有一个契约测试挂了，但测试本身没写错。\",\"字数\":149,\"覆盖要点\":[\"285 个测试断网通过\",\"注入离线抽取器\",\"规则版默认注入\",\"契约测试未改仍绿\",\"网关返回 502 致测试挂\"]}",
+          "latency_ms": 30925,
+          "prompt_tokens": 383,
+          "completion_tokens": 6413,
+          "reasoning_chars": 16166,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-09"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"v1.1 新增可选的 degraded 字段；降级路径返回 degraded 为 true，对调用方，省钱的代价可见，而非悄悄返回低质量结果。契约冻住的证据是换实现时路由、文档、测试均不动，只换依赖注入中的抽取器。\",\"字数\":107,\"覆盖要点\":[\"v1.1 新增可选字段\",\"degraded 字段可选\",\"降级返回 true\",\"省钱的代价可见\",\"换实现仅动抽取器\"]}",
+          "latency_ms": 20398,
+          "prompt_tokens": 347,
+          "completion_tokens": 3984,
+          "reasoning_chars": 11268,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-10"
+        }
+      ]
+    },
+    "off": {
+      "level": "off",
+      "n": 10,
+      "ok": 10,
+      "mean_score_of_ok": 0.96,
+      "mean_score_all": 0.96,
+      "mean_latency_ms": 1272,
+      "p95_latency_ms": 1556,
+      "mean_completion_tokens_of_ok": 145,
+      "mean_reasoning_chars_of_ok": 0,
+      "rows": [
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"SSE是单向的，方向为服务端到客户端，AI对话只需此方向。SSE就是HTTP，Content-Type是text/event-stream，对代理、防火墙、负载均衡友好。WebSocket先发HTTP Upgrade再切换独立TCP协议，内网代理和防火墙常不认Upgrade而掐断。SSE的EventSource浏览器原生自动重连，还能带Last-Event-ID续传；WebSocket无原生重连，需自写onclose重连再对账逻辑。\",\"字数\":118,\"覆盖要点\":[\"SSE单向服务端到客户端\",\"Content-Type为text/event-stream\",\"WebSocket需HTTP Upgrade\",\"EventSource自动重连\",\"Last-Event-ID续传\"]}",
+          "latency_ms": 1556,
+          "prompt_tokens": 376,
+          "completion_tokens": 154,
+          "reasoning_chars": 0,
+          "score": 1.0,
+          "detail": "5/5 超长",
+          "item_id": "sm-01"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"标准合同成本结构为输入占39%、输出占61%。精简输入30%仅省11.8%。结果缓存命中50%可省50.0%，收益线性且无质量风险。小模型分流60%省45.0%但有质量风险。长文档回灌代价达4.2倍。\",\"字数\":88,\"覆盖要点\":[\"输入39%、输出61%\",\"精简30%仅省11.8%\",\"缓存命中50%省50.0%\",\"小模型分流60%省45.0%\",\"长文档回灌达4.2倍\"]}",
+          "latency_ms": 1211,
+          "prompt_tokens": 377,
+          "completion_tokens": 127,
+          "reasoning_chars": 0,
+          "score": 0.6,
+          "detail": "3/5",
+          "item_id": "sm-02"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\": \"开发机基线：Windows 11，内部版本号 10.0.26100；PowerShell 5.1.26100.9168；Python 3.11.2，PATH 里另有 Anaconda 3.9.23 需规避；uv 0.13.1；git 2.55.0.windows.1（MinGit 便携版）；执行策略 RemoteSigned，作用域 CurrentUser。\", \"字数\": 118, \"覆盖要点\": [\"Windows 11 内部版本号\", \"PowerShell 5.1.26100.9168\", \"Python 3.11.2 与 Anaconda 3.9.23\", \"uv 0.13.1 与 git 2.55.0.windows.1\", \"执行策略 RemoteSigned\"]}",
+          "latency_ms": 1272,
+          "prompt_tokens": 368,
+          "completion_tokens": 180,
+          "reasoning_chars": 0,
+          "score": 1.0,
+          "detail": "5/5 超长",
+          "item_id": "sm-03"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\": \"踩坑记录：某些模型不支持 tool 回灌，第二轮返回 502 UNSUPPORTED_CONTENT，能返回 tool_calls 不等于支持 Function Calling，能力是双向的。推理模式吃光 max_tokens 时 content=None 但 usage 正常，接入层须把 None 当失败。项目从未配置 logging，logger.info 被静默丢弃，检测没生效实为日志没输出。\", \"字数\": 118, \"覆盖要点\": [\"502 UNSUPPORTED_CONTENT\", \"能力是双向的\", \"content=None 当失败\", \"未配置 logging\", \"logger.info 被丢弃\"]}",
+          "latency_ms": 1144,
+          "prompt_tokens": 343,
+          "completion_tokens": 137,
+          "reasoning_chars": 0,
+          "score": 1.0,
+          "detail": "4/4 超长",
+          "item_id": "sm-04"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\": \"超长文档不能直接塞给模型，因为上下文窗口有上限，且注意力和成本随长度恶化，中间部分易被忽略，即 lost in the middle，成本是线性的。故用 map-reduce 两阶段：map 阶段每段各自摘要，reduce 阶段汇总成总摘要；reduce 阶段同样按预算分批，即 hierarchical reduce，因 15 段摘要一次性喂给模型又回到输入太长的问题。\", \"字数\": 132, \"覆盖要点\": [\"上下文窗口有上限\", \"lost in the middle\", \"map-reduce 两阶段\", \"hierarchical reduce 分批\", \"15 段摘要输入过长\"]}",
+          "latency_ms": 1340,
+          "prompt_tokens": 349,
+          "completion_tokens": 145,
+          "reasoning_chars": 0,
+          "score": 1.0,
+          "detail": "4/4 超长",
+          "item_id": "sm-05"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\": \"TTFT 指从发起请求到收到第一个非空 content 的时间。首块常只带 role 或空 delta，计入会得到偏小但没用的数字。SSE 帧格式是 data: 加内容，然后两个换行表示结束，双换行是硬要求，缺了客户端会一直挂着等下一帧。测试里锁帧字节形状，是为了让协议变更被测试捕获而不是等线上出问题。\", \"字数\": 118, \"覆盖要点\": [\"TTFT 定义到首个非空 content\", \"首块计入会偏小\", \"SSE 用双换行结束\", \"测试锁帧字节形状\"]}",
+          "latency_ms": 1418,
+          "prompt_tokens": 349,
+          "completion_tokens": 145,
+          "reasoning_chars": 0,
+          "score": 1.0,
+          "detail": "4/4 超长",
+          "item_id": "sm-06"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\": \"回灌重试不是多一点时间，而是多几倍钱：标准合同一次成功 0.001166 元，2 轮回灌后 0.004138 元，是 3.5 倍，提高首次成功率比加大重试划算。长文档回灌代价最大，达 4.2 倍，1996 token 里 96% 是输入，更应先用规则版兜底。规则版成本是 0，但复杂字段准确率下降。\", \"字数\": 118, \"覆盖要点\": [\"回灌重试成本为 3.5 倍\", \"长文档回灌代价达 4.2 倍\", \"96% 为输入 token\", \"长文档先用规则版兜底\", \"规则版成本 0 但准确率降\"]}",
+          "latency_ms": 1223,
+          "prompt_tokens": 383,
+          "completion_tokens": 178,
+          "reasoning_chars": 0,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-07"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\": \"实测发现本网关的 response_format 是形式被接受、语义不强制。传完整 json_schema 且 strict 为 true 时，模型输出里四个 required 字段一个都没出，反而自创了三个字段。最小案例看似成功，实际是因为 prompt 里直接写明了键和值，不是因为 schema 生效。所以正确性只能押在本地 Pydantic 校验上，json_object 只用来挡代码围栏和废话。\", \"字数\": 132, \"覆盖要点\": [\"response_format 形式被接受\", \"语义不强制\", \"required 字段一个都没出\", \"正确性押在 Pydantic 校验\", \"json_object 挡围栏废话\"]}",
+          "latency_ms": 1345,
+          "prompt_tokens": 339,
+          "completion_tokens": 154,
+          "reasoning_chars": 0,
+          "score": 1.0,
+          "detail": "4/4 超长",
+          "item_id": "sm-08"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\": \"上个月把测试改成全离线跑后，285 个测试全部可在断网环境下通过。做法是用 FastAPI 的 dependency_overrides 注入离线抽取器，默认注入规则版。契约测试 test_api.py 一行不用改仍全绿，因为规则版正好走正常路径的那 4 个字段。某次网关凭据过期返回 502，专门有一个契约测试挂了。\", \"字数\": 118, \"覆盖要点\": [\"285 个测试断网通过\", \"dependency_overrides 注入\", \"默认注入规则版\", \"契约测试无需改动\", \"502 致契约测试挂\"]}",
+          "latency_ms": 1120,
+          "prompt_tokens": 357,
+          "completion_tokens": 136,
+          "reasoning_chars": 0,
+          "score": 1.0,
+          "detail": "4/4 超长",
+          "item_id": "sm-09"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\": \"v1 契约是唯一不能动的文件，现在版本是 v1.1，新增了一个可选的 degraded 字段。降级路径会返回 degraded 为 true 的结果，这样省钱的代价可见，而不是悄悄给个低质量结果。\", \"字数\": 78, \"覆盖要点\": [\"v1 契约唯一不能动\", \"版本 v1.1\", \"新增可选 degraded 字段\", \"省钱的代价可见\"]}",
+          "latency_ms": 1087,
+          "prompt_tokens": 321,
+          "completion_tokens": 97,
+          "reasoning_chars": 0,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-10"
+        }
+      ]
+    },
+    "high": {
+      "level": "high",
+      "n": 10,
+      "ok": 9,
+      "mean_score_of_ok": 1.0,
+      "mean_score_all": 0.9,
+      "mean_latency_ms": 25439,
+      "p95_latency_ms": 39367,
+      "mean_completion_tokens_of_ok": 5390,
+      "mean_reasoning_chars_of_ok": 12510,
+      "rows": [
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"SSE单向，Content-Type为text/event-stream；WebSocket先HTTP Upgrade再切TCP；SSE的EventSource可自动重连并用Last-Event-ID续传，WebSocket需自行重连。\",\"字数\":118,\"覆盖要点\":[\"SSE为单向\",\"Content-Type\",\"先Upgrade再切TCP\",\"自动重连\",\"Last-Event-ID\"]}",
+          "latency_ms": 26918,
+          "prompt_tokens": 402,
+          "completion_tokens": 5537,
+          "reasoning_chars": 16183,
+          "score": 1.0,
+          "detail": "5/5",
+          "item_id": "sm-01"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"标准合同的成本结构：输入占 39%、输出占 61%；prompt 精简 30% 只省 11.8%。缓存命中 50% 省 50.0%，无质量风险；小模型分流 60% 省 45.0%，但有质量风险；长文档回灌代价达 4.2 倍。\",\"字数\":112,\"覆盖要点\":[\"输入39%输出61%\",\"精简30%仅省11.8%\",\"缓存命中50%省50.0%\",\"小模型分流省45.0%\",\"回灌代价4.2 倍\"]}",
+          "latency_ms": 18777,
+          "prompt_tokens": 403,
+          "completion_tokens": 4166,
+          "reasoning_chars": 9804,
+          "score": 1.0,
+          "detail": "5/5",
+          "item_id": "sm-02"
+        },
+        {
+          "ok": false,
+          "err": "content=None",
+          "latency_ms": 39902,
+          "finish": "length",
+          "reasoning_chars": 23036,
+          "score": 0.0,
+          "item_id": "sm-03"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"模型不支持tool回灌，第二轮返回502 UNSUPPORTED_CONTENT；tool_calls≠支持Function Calling，能力是双向的。推理模式吃光max_tokens致content=None但usage正常，None须当失败。未配置logging致logger.info丢失。\",\"字数\":150,\"覆盖要点\":[\"tool回灌返回502\",\"能力是双向的\",\"max_tokens耗尽\",\"content=None失败\",\"未配置logging\"]}",
+          "latency_ms": 26826,
+          "prompt_tokens": 369,
+          "completion_tokens": 6462,
+          "reasoning_chars": 15145,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-04"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"超长文档不能直接塞给模型，因上下文窗口有上限，且越长prompt中间越易忽略，即lost in the middle，成本线性。故用map-reduce：map每段摘要，reduce汇总；reduce按预算分批，即hierarchical reduce，因15段摘要一次喂入仍太长。\",\"字数\":141,\"覆盖要点\":[\"上下文窗口有上限\",\"中间部分易忽略\",\"map-reduce两阶段\",\"按预算分批\",\"15段摘要需分批\"]}",
+          "latency_ms": 24878,
+          "prompt_tokens": 375,
+          "completion_tokens": 5100,
+          "reasoning_chars": 8676,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-05"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"TTFT 指从发起请求到收到第一个非空 content 的时间；首块常只带 role 或空 delta，计入会得到偏小但没用的数字。SSE 帧格式为 data: 加内容、两个换行结束，双换行是硬要求；测试锁帧字节形状，让协议变更被测试捕获。\",\"字数\":120,\"覆盖要点\":[\"TTFT口径\",\"首块空delta不计\",\"SSE双换行硬要求\",\"锁帧字节形状测协议\"]}",
+          "latency_ms": 17691,
+          "prompt_tokens": 375,
+          "completion_tokens": 3800,
+          "reasoning_chars": 7090,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-06"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"标准合同一次成功 0.001166 元，2 轮回灌后 0.004138 元，是 3.5 倍，提高首次成功率比加大重试划算；长文档回灌达 4.2 倍，1996 token 里 96% 是输入，应先用规则版兜底；规则版成本是 0，但复杂字段准确率下降。\",\"字数\":124,\"覆盖要点\":[\"回灌重试成本达3.5 倍\",\"长文档回灌达4.2 倍\",\"长文档96%为输入\",\"长文档先用规则版兜底\",\"规则版成本0但质量降\"]}",
+          "latency_ms": 31005,
+          "prompt_tokens": 409,
+          "completion_tokens": 5847,
+          "reasoning_chars": 8309,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-07"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\": \"实测response_format形式被接受、语义不强制：完整json_schema且strict为true时，四个required 字段一个都没出，反而自创三个字段；最小案例因prompt写明键值而成功，非schema生效。正确性只能押本地Pydantic校验，json_object只挡围栏废话。\", \"字数\": 150, \"覆盖要点\": [\"形式被接受\", \"语义不强制\", \"required字段未出\", \"最小案例靠prompt\", \"本地Pydantic校验\"]}",
+          "latency_ms": 39367,
+          "prompt_tokens": 365,
+          "completion_tokens": 7971,
+          "reasoning_chars": 23935,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-08"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\":\"上个月测试改为全离线，285 个测试断网全部通过：用 FastAPI 的 dependency_overrides 注入离线抽取器，默认注入规则版。test_api.py 契约测试一行未改仍全绿，因规则版覆盖正常路径的 4 个字段。某次网关凭据过期返回 502，一个契约测试挂了，但测试本身没写错。\",\"字数\":149,\"覆盖要点\":[\"285 个测试离线通过\",\"依赖注入离线抽取器\",\"默认使用规则版\",\"test_api.py 仍全绿\",\"502 致契约测试挂\"]}",
+          "latency_ms": 19016,
+          "prompt_tokens": 383,
+          "completion_tokens": 4101,
+          "reasoning_chars": 9380,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-09"
+        },
+        {
+          "ok": true,
+          "content": "{\"摘要\": \"v1 契约是唯一不能动的文件，现为 v1.1，新增可选的 degraded 字段；降级返回 degraded 为 true，省钱的代价可见。换实现时路由、文档、测试不动，只换依赖注入里的抽取器，作为契约冻住的证据。\", \"字数\": 107, \"覆盖要点\": [\"v1 契约不可动\", \"v1.1 加 degraded\", \"降级返回 true\", \"省钱的代价可见\", \"换实现契约冻结\"]}",
+          "latency_ms": 24470,
+          "prompt_tokens": 347,
+          "completion_tokens": 5529,
+          "reasoning_chars": 14065,
+          "score": 1.0,
+          "detail": "4/4",
+          "item_id": "sm-10"
+        }
+      ]
+    }
+  }
+}
