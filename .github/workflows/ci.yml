@@ -68,23 +68,36 @@ jobs:
         # 不需要真实 LLM_API_KEY：所有测试都用假 client 离线跑。
         # 这正是"服务层不 import fastapi、抽取器接受注入 client"的收益。
         #
-        # 失败时把 pytest 的失败摘要素进 annotation —— 因为拿不到 job 日志
+        # 失败时把 pytest 输出写进 annotation —— 因为拿不到 job 日志
         # （匿名 API 403，没有 gh CLI），而 annotation 是唯一能读到的通道。
+        #
+        # 2026-10-30 二次修：上一版只 grep '^(FAILED|ERROR)'，
+        # 结果一条都没匹配到 —— 说明失败信息不是以 FAILED 开头
+        # （典型情况：pytest 在**收集阶段**就崩了，或 --cov 插件报错）。
+        # 现在改成不猜格式，直接把整段输出的尾部打成多条 annotation。
         env:
           EXTRACTOR_IMPL: rule
         run: |
           set -o pipefail
-          if uv run pytest --cov=app --cov-report=term-missing -q 2>&1 | tee /tmp/pytest.log; then
+          set +e
+          uv run pytest --cov=app --cov-report=term-missing -q 2>&1 | tee /tmp/pytest.log
+          rc=$?
+          set -e
+          echo "pytest exit code = $rc"
+          if [ "$rc" -eq 0 ]; then
             exit 0
           fi
-          echo "::error::Tests 失败，摘要如下："
-          # 把 FAILED 行和 ERROR 行逐条打成 annotation（每行一条，避免截断）
-          grep -E '^(FAILED|ERROR)' /tmp/pytest.log | head -20 | while read -r line; do
-            echo "::error::$line"
-          done
-          echo "--- last 40 lines ---"
-          tail -40 /tmp/pytest.log
-          exit 1
+          echo "::error::Tests 失败（exit $rc），输出分条贴在下面"
+          # 每 40 行打一条 annotation，避开单条长度限制
+          n=0
+          while IFS= read -r line; do
+            n=$((n+1))
+            # 跳过空行，避免刷屏
+            if [ -n "$line" ]; then
+              echo "::error::[${n}] ${line}"
+            fi
+          done < /tmp/pytest.log
+          exit "$rc"
 
       - name: Wiring smoke (llm path)
         # **这一条补的是 CI 唯一的盲区。**
