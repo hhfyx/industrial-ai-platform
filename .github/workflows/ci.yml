@@ -51,17 +51,29 @@ jobs:
           fi
 
       - name: Lint
-        run: uv run ruff check .
+        run: |
+          if ! uv run ruff check .; then
+            echo "::error::Lint 步骤失败"
+            exit 1
+          fi
 
       - name: Format check
-        run: uv run ruff format --check .
+        run: |
+          if ! uv run ruff format --check .; then
+            echo "::error::Format check 步骤失败"
+            exit 1
+          fi
 
       - name: Tests
         # 不需要真实 LLM_API_KEY：所有测试都用假 client 离线跑。
         # 这正是"服务层不 import fastapi、抽取器接受注入 client"的收益。
         env:
           EXTRACTOR_IMPL: rule
-        run: uv run pytest --cov=app --cov-report=term-missing -q
+        run: |
+          if ! uv run pytest --cov=app --cov-report=term-missing -q; then
+            echo "::error::Tests 步骤失败（见上方 pytest 输出）"
+            exit 1
+          fi
 
       - name: Wiring smoke (llm path)
         # **这一条补的是 CI 唯一的盲区。**
@@ -89,7 +101,11 @@ jobs:
           LLM_API_KEY: sk-ci-placeholder-not-real
           LLM_BASE_URL: http://127.0.0.1:1/v1
           LLM_MODEL: ci-placeholder-model
-        run: uv run python scripts/ci_wiring_check.py
+        run: |
+          if ! uv run python scripts/ci_wiring_check.py; then
+            echo "::error::Wiring smoke 步骤失败"
+            exit 1
+          fi
 
   docker:
     runs-on: ubuntu-latest
