@@ -24,9 +24,9 @@
 
 from __future__ import annotations
 
-import math
 from collections.abc import Sequence
 
+from app.rag.embedding.vector import cosine
 from app.rag.schema import Chunk
 from app.rag.stores.base import SearchHit
 
@@ -85,23 +85,20 @@ class InMemoryVectorStore:
 
 
 def _cosine(a: Sequence[float], b: Sequence[float]) -> float:
-    """余弦相似度。任一为零向量时返回 0.0（而不是抛异常）。
+    """余弦相似度。**实现已统一到 `embedding.vector.cosine`。**
 
-    零向量出现在"整页扫描件"这类空文本块上。它永远不该被命中，
-    但也不该让一次检索整个失败 —— 返回 0.0 就是"排到最后"。
+    这里刻意不留自己的实现：两处各写一份的代价是"改了一处忘了另一处"，
+    而相似度是排序的唯一依据 —— 两个 store 用不同口径算分，
+    换成别的后端时"为什么结果变了"会查很久。
+
+    维度不一致仍然要炸：那是索引与查询用了不同 embedder 的**结构性错误**，
+    报 0.0 会把"配错了"伪装成"没命中"。
     """
     if len(a) != len(b):
-        # 维度不一致仍然要炸：那是索引与查询用了不同 embedder 的**结构性错误**，
-        # 报 0.0 会把"配错了"伪装成"没命中"。
         raise ValueError(f"向量维度不一致：查询 {len(a)} vs 库内 {len(b)}")
     if not a or not b:
         return 0.0
-    dot = sum(x * y for x, y in zip(a, b, strict=True))
-    norm_a = math.sqrt(sum(x * x for x in a))
-    norm_b = math.sqrt(sum(y * y for y in b))
-    if norm_a == 0.0 or norm_b == 0.0:
-        return 0.0
-    return dot / (norm_a * norm_b)
+    return cosine(a, b)
 
 
 __all__ = ["InMemoryVectorStore"]

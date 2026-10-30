@@ -35,6 +35,8 @@ import math
 import re
 from collections.abc import Sequence
 
+from app.rag.embedding.vector import l2_normalize
+
 # 中文按字、英文按词切。**不引入分词库**：这个实现的目标是确定性，不是语言学正确性。
 _TOKEN_RE = re.compile(r"[a-zA-Z0-9]+|[\u4e00-\u9fff]")
 
@@ -43,6 +45,13 @@ class HashingEmbedder:
     """字符 n-gram 哈希向量化（确定性、离线、无语义）。"""
 
     name = "hashing"
+
+    # **保留这个属性，即使它永远是空串**。用途有两个：
+    # 1. A/B 脚本靠 `embedder.query_instruction = ""` 做开关（加/不加前缀）。
+    #    缺这个属性会让 `getattr(..., "")` 静默降级成"永远不加"，
+    #    于是两组数据完全相同，而你会以为"前缀没用"。
+    # 2. 两个实现形状一致，`Retriever` 与脚本不需要写 `if isinstance(...)`。
+    query_instruction = ""
 
     def __init__(self, dimension: int = 256) -> None:
         """`dimension` 取 256 的理由：够小（测试快、可读），够大（冲突不致命）。
@@ -55,10 +64,23 @@ class HashingEmbedder:
         self.dimension = dimension
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
-        """批量向量化。顺序与入参一致，长度一致。"""
+        """批量向量化。顺序与入参一致、每个向量已 L2 归一化（见 `base.Embedder`）。"""
         # **顺序必须严格保持**：调用方是按位置把向量和 Chunk 配对的，
         # 这里一旦排序或去重，向量就会静默错配到别的块上 —— 那是最难查的一类 bug。
         return [self._embed_one(text) for text in texts]
+
+    def embed_query(self, queries: Sequence[str]) -> list[list[float]]:
+        """query 侧向量化。
+
+        **哈希实现不加任何前缀**：前缀是 bge 那种"训练时见过的约定"，
+        对字符 n-gram 哈希毫无意义 —— 加了反而会让查询向量被前缀污染
+        （前缀那 20 个字会占掉大量 n-gram 权重）。
+
+        接口保留这个方法是**结构上的一致性**：`Retriever` 对所有 embedder
+        都调 `embed_query`，不需要 if 判断"这个实现要不要加前缀"。
+        要不要加是实现的内部知识，不是调用方的。
+        """
+        return self.embed(queries)
 
     # ------------------------------------------------------------------ 内部
 
@@ -82,8 +104,10 @@ class HashingEmbedder:
         norm = math.sqrt(sum(v * v for v in vector))
         if norm == 0.0:
             return vector
-        # L2 归一化：让余弦相似度可以直接用点积算，且短文本不会因为"字少"天然吃亏。
-        return [v / norm for v in vector]
+        # L2 归一化：让内积可以直接当余弦用，且短文本不会因为"字少"天然吃亏。
+        # 用 `vector.l2_normalize` 而不是就地除：**全项目只有一个归一化实现**，
+        # 这样"某处悄悄改成了不归一化"只可能发生在同一个地方，可被一条测试兜住。
+        return l2_normalize(vector)
 
     def _accumulate(self, vector: list[float], key: str, *, weight: float) -> None:
         """把 `key` 分到某个桶上并累加（带符号，减少碰撞偏置）。

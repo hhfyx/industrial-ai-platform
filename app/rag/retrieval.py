@@ -94,8 +94,13 @@ class Retriever:
         if not text:
             return RetrievalResult(query=query, hits=(), top_k=k, elapsed_ms=_ms(started))
 
-        # ① query 向量化：与索引共用 embedder，见模块 docstring
-        query_vector = self.embedder.embed([text])[0]
+        # ① query 向量化：与索引共用 embedder，见模块 docstring。
+        #
+        # **调 embed_query 而不是 embed**：bge 这类模型要求 query 侧加检索指令前缀
+        # （"为这个句子生成表示以用于检索相关文章："），passage 侧不加。
+        # 忘加不会有任何报错，只会让命中率低一点 —— 而"低一点"最容易被
+        # 归因到切分/top_k/模型不行。所以把前缀这件事放进接口，调用方碰不到。
+        query_vector = self.embedder.embed_query([text])[0]
 
         # ②③ 相似度 + TopK 由 store 一次完成（store 才知道怎么做相似度）
         hits = self.store.search(query_vector, top_k=k)

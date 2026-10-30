@@ -1,0 +1,17 @@
+{
+  "d": 128,
+  "a": {
+    "norm": 0.5,
+    "cosine": 0.6,
+    "dot": 0.3
+  },
+  "b": {
+    "norm": 9.0,
+    "cosine": 0.1498,
+    "dot": 1.3482
+  },
+  "dot_winner": "b",
+  "cosine_winner": "a",
+  "rankings_are_opposite": true,
+  "note": "A 方向更接近查询但短；B 方向较偏但长。内积胜 B，余弦胜 A。"
+}

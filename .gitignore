@@ -25,6 +25,12 @@ coverage.xml
 # 实验缓存（scripts/experiment_cache.py 产生；可重跑，不入库）
 scripts/.cache/
 
+# 模型权重缓存（app/rag/embedding/bge.py 首次运行会下载约 92 MB）
+# **绝对不能入库**：二进制大文件进了 git 就再也删不掉（历史里永远在），
+# 而且换机器时 92 MB × N 次 clone 是纯浪费。设 HF_HOME 指向这里即可。
+.cache/
+**/models--*/
+
 # Type checking / linting caches
 .mypy_cache/
 .ruff_cache/

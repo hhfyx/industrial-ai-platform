@@ -1,0 +1,13 @@
+{
+  "batch_vs_single_cosine": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "max_component_diff": [
+    0.0,
+    0.0,
+    8.930079205271557e-08
+  ],
+  "ranking_same": true
+}
