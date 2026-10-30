@@ -56,26 +56,18 @@ jobs:
         #
         # `LLM_BASE_URL` 故意指向不可达地址：**只验证装配，不验证调用**。
         # 几秒内跑完，不联网、不花钱、不需要真 key。
+        #
+        # ⚠️ 2026-10-30 修：这一步原来是 `uv run python -c "..."`，
+        # **一直是红的**（`import app` 会 ModuleNotFoundError ——
+        # `python -c` 不把当前目录放进 sys.path，而 pytest 会）。
+        # 现在改成独立脚本 scripts/ci_wiring_check.py，并在脚本里显式加
+        # sys.path。本地和 CI 跑同一份代码，也能单独复现。
         env:
           EXTRACTOR_IMPL: llm
           LLM_API_KEY: sk-ci-placeholder-not-real
           LLM_BASE_URL: http://127.0.0.1:1/v1
           LLM_MODEL: ci-placeholder-model
-        run: |
-          # ① 装配真的能跑起来（默认走 llm 分支）
-          uv run python -c "
-          from app.core.deps import get_extractor
-          from app.services.llm_extractor import LlmExtractor
-          e = get_extractor()
-          assert isinstance(e, LlmExtractor), \
-              f'默认实现应为 LlmExtractor，实际 {type(e).__name__}'
-          assert e.model_name == 'ci-placeholder-model'
-          print('OK: default extractor =', type(e).__name__, '| model =', e.model_name)
-          "
-
-          # ② 端到端：网关不可达时必须**降级而不是 500**
-          #    这一条把"装配对不对"和"失败时的行为"一起验了
-          uv run pytest tests/test_api.py -q
+        run: uv run python scripts/ci_wiring_check.py
 
   docker:
     runs-on: ubuntu-latest
