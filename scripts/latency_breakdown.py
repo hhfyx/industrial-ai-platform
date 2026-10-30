@@ -53,7 +53,7 @@ from app.core.config import get_settings  # noqa: E402
 from app.core.llm.client import get_llm_client  # noqa: E402
 from app.core.llm.streaming import StreamStats, stream_chat  # noqa: E402
 from app.rag.loaders import load_document  # noqa: E402
-from app.rag.summarize import chunk_documents, summarize_document  # noqa: E402
+from app.rag.summarize import segment_documents, summarize_document  # noqa: E402
 
 SIMPLE_PROMPT = "用两句话介绍杭州。"
 
@@ -226,7 +226,7 @@ async def measure_document_pipeline(path: Path) -> dict[str, Any]:
     load_ms = int((time.perf_counter() - t0) * 1000)
 
     t1 = time.perf_counter()
-    chunks = chunk_documents(result.documents, chunk_tokens=500)
+    chunks = segment_documents(result.documents, chunk_tokens=500)
     chunk_ms = int((time.perf_counter() - t1) * 1000)
 
     client = get_llm_client(settings)

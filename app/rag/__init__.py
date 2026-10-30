@@ -1,17 +1,26 @@
-"""统一文档模型：所有 loader 的唯一输出格式。
+"""RAG 包入口：只 re-export **结构级契约**，不放实现。
 
-**为什么必须有这个"最小公约数"**：PDF / DOCX / Markdown 的结构差异极大，
-但下游（切分、摘要、检索）只关心三件事：**来自哪个文件、第几页、这段文字是什么**。
+**为什么这里只有两个结构体**：`app/rag/` 下每个子目录都是一个可替换的实现
+（loaders / splitters / embedding / stores / generation），它们共用 `Document`
+与 `Chunk` 这两个"货币"。入口文件如果还顺手导出 `chunk_documents` 之类的函数，
+调用方就会形成"import app.rag 拿到全部能力"的习惯 —— 那条路径一多，
+将来换切分策略就得改所有调用点。
 
-只要所有 loader 都吐 `Document`，下游就完全不需要知道源文件是什么格式 ——
-这正是"加载"和"处理"能解耦的原因，也是 W4 直接复用这套东西的前提。
+所以规矩是：**结构从这里拿，实现从子模块拿**。
 
-**为什么 `page` 对非分页格式也要有值**：
-Markdown / DOCX 没有物理页，但强行给 `page=1` 会让"第 3 页"这类概念在这个模型里
-变成谎言。所以 `page` 的类型是 `int | None`：
-- 分页格式（PDF）：真实页码，从 1 开始
-- 非分页格式：`None`，表示"这个源没有页的概念"
+    from app.rag import Document, Chunk             # 契约
+    from app.rag.splitters import split_documents   # 实现
 
+---
+
+本文件在 W4 之前承担"统一文档模型"的角色（`Document` / `LoadResult` 都写在这里）。
+现在 `Document` 已迁到 [`schema.py`](schema.py)，因为它必须和 `Chunk` 放在一起、
+一起演进（理由见那个模块的 docstring）。`LoadResult` 留在原地 ——
+它是 **loader 的返回类型**，只被加载链路用到，不算跨阶段契约。
+
+**为什么 `page` 对非分页格式是 `None` 而不是 1**：
+Markdown / DOCX 没有物理页，强行给 `page=1` 会让"第 3 页"这类概念在这个模型里
+变成谎言。分页格式（PDF）给真实页码，非分页格式给 `None`，表示"这个源没有页的概念"。
 下游要分页时自己决定"按多少字符算一页"，那是切分策略的事，不该由 loader 假装。
 """
 
@@ -20,34 +29,16 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from app.rag.schema import Chunk, Document, Metadata, MetadataValue, restore_location
 
-@dataclass(frozen=True, slots=True)
-class Document:
-    """一段来自某个源的文本（loader 的唯一产物）。
-
-    不可变（frozen）：loader 产出后就该是只读的。
-    下游如果要做清洗，应该产出**新的** `Document`，而不是就地修改 ——
-    否则"原始文本"和"清洗后文本"的边界会消失，排查时无法回答
-    "到底是模型读错了还是我们切错了"。
-    """
-
-    source: str
-    """来源标识：文件名（不含目录），便于在日志/前端显示。"""
-
-    page: int | None
-    """页码，从 1 开始；非分页格式为 None。"""
-
-    text: str
-    """该页/该段的正文。已做**最小**清洗（见 `normalize_text`），不做语义加工。"""
-
-    def __post_init__(self) -> None:
-        if self.page is not None and self.page < 1:
-            raise ValueError(f"page 必须 >= 1 或为 None，收到 {self.page}")
-
-    @property
-    def location(self) -> str:
-        """人类可读的位置描述，用于日志与报错。"""
-        return f"{self.source}:p{self.page}" if self.page is not None else self.source
+__all__ = [
+    "Chunk",
+    "Document",
+    "LoadResult",
+    "Metadata",
+    "MetadataValue",
+    "restore_location",
+]
 
 
 @dataclass
@@ -85,6 +76,3 @@ class LoadResult:
             "total_chars": self.total_chars,
             "warnings": len(self.warnings),
         }
-
-
-__all__ = ["Document", "LoadResult"]

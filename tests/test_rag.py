@@ -20,8 +20,8 @@ from app.rag import Document
 from app.rag.summarize import (
     HIERARCHICAL_THRESHOLD,
     REDUCE_BATCH_SIZE,
-    Chunk,
-    chunk_documents,
+    SummarySegment,
+    segment_documents,
     summarize_document,
 )
 
@@ -74,7 +74,7 @@ def _docs(*texts: str) -> list[Document]:
 def test_chunk_respects_token_budget() -> None:
     """预算 100 tokens ≈ 142 字符（CHARS_PER_TOKEN=0.7）。分块后每块不该远超它。"""
     docs = _docs(*["x" * 100 for _ in range(10)])
-    chunks = chunk_documents(docs, chunk_tokens=100)
+    chunks = segment_documents(docs, chunk_tokens=100)
 
     assert len(chunks) > 1
     for chunk in chunks:
@@ -85,7 +85,7 @@ def test_chunk_respects_token_budget() -> None:
 def test_chunk_records_page_range() -> None:
     """页码信息要跟着段走 —— 摘要里要能回答"这部分对应原文哪里"。"""
     docs = _docs(*["内容" * 50 for _ in range(6)])
-    chunks = chunk_documents(docs, chunk_tokens=60)
+    chunks = segment_documents(docs, chunk_tokens=60)
 
     for chunk in chunks:
         assert chunk.pages, "分块丢了页码信息"
@@ -93,11 +93,11 @@ def test_chunk_records_page_range() -> None:
 
 
 def test_chunk_location_is_readable() -> None:
-    one = Chunk(index=0, text="x", pages=(3,))
+    one = SummarySegment(index=0, text="x", pages=(3,))
     assert one.location == "第 3 页"
-    many = Chunk(index=0, text="x", pages=(3, 4, 5))
+    many = SummarySegment(index=0, text="x", pages=(3, 4, 5))
     assert many.location == "第 3–5 页"
-    none = Chunk(index=0, text="x", pages=())
+    none = SummarySegment(index=0, text="x", pages=())
     assert none.location == "未知位置"
 
 
@@ -107,7 +107,7 @@ def test_chunk_prefers_not_splitting_documents() -> None:
     段落被切断 = 两半各缺一半语义 = 摘要质量的最大杀手。
     """
     docs = _docs("短段落一", "短段落二", "短段落三")
-    chunks = chunk_documents(docs, chunk_tokens=3000)  # 预算足够大
+    chunks = segment_documents(docs, chunk_tokens=3000)  # 预算足够大
     assert len(chunks) == 1, "预算足够时不该拆开"
     assert chunks[0].text.count("短段落") == 3
 
@@ -116,7 +116,7 @@ def test_chunk_splits_long_text_at_sentence_boundary() -> None:
     """超长单段落要被切开，且**优先在句号处切**，不是硬截断。"""
     sentence = "这是一句话。" * 200  # 1200 字
     docs = [Document(source="t", page=1, text=sentence)]
-    chunks = chunk_documents(docs, chunk_tokens=100)  # 预算 142 字
+    chunks = segment_documents(docs, chunk_tokens=100)  # 预算 142 字
 
     assert len(chunks) > 1
     # 除最后一块外，其余应以句号结尾（在句子边界切开）
@@ -125,13 +125,13 @@ def test_chunk_splits_long_text_at_sentence_boundary() -> None:
 
 
 def test_chunk_empty_documents() -> None:
-    assert chunk_documents([]) == []
-    assert chunk_documents([Document(source="t", page=1, text="   ")]) == []
+    assert segment_documents([]) == []
+    assert segment_documents([Document(source="t", page=1, text="   ")]) == []
 
 
 def test_chunk_rejects_bad_budget() -> None:
     with pytest.raises(ValueError, match="chunk_tokens"):
-        chunk_documents(_docs("x"), chunk_tokens=0)
+        segment_documents(_docs("x"), chunk_tokens=0)
 
 
 # ============================================================ 2. map-reduce

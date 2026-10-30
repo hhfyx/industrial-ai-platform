@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "price_in_per_mtok": 2.0,
+    "price_out_per_mtok": 8.0,
+    "chars_per_token": 0.676,
+    "assumed_chars_per_page": 1200,
+    "rag_context_chars": 6000,
+    "note": "单价是参数、不是任何供应商的报价；字符/token 密度来自 scripts/token_result.json 实测；每页字数为假设值，见脚本常量说明"
+  },
+  "fixture": {
+    "file": "sample50.pdf",
+    "pages": 50,
+    "chars": 5437,
+    "chars_per_page": 108.7
+  },
+  "scenario_fixture": {
+    "document": {
+      "pages": 50,
+      "chars": 5437
+    },
+    "full_context": {
+      "input_tokens": 8043,
+      "cost_per_query": 0.017686
+    },
+    "rag": {
+      "input_tokens": 8043,
+      "cost_per_query": 0.017686
+    },
+    "ratio_input_tokens": 1.0,
+    "ratio_cost": 1.0,
+    "extra_cost_per_1000_queries": 0.0,
+    "output_tokens_assumed": 200
+  },
+  "scenario_realistic": {
+    "document": {
+      "pages": 50,
+      "chars": 60000
+    },
+    "full_context": {
+      "input_tokens": 88758,
+      "cost_per_query": 0.179116
+    },
+    "rag": {
+      "input_tokens": 8876,
+      "cost_per_query": 0.019352
+    },
+    "ratio_input_tokens": 10.0,
+    "ratio_cost": 9.26,
+    "extra_cost_per_1000_queries": 159.76,
+    "output_tokens_assumed": 200
+  },
+  "scaling": [
+    {
+      "multiplier": 1,
+      "pages": 50,
+      "chars": 5437,
+      "full_context_input_tokens": 8043,
+      "rag_input_tokens": 8043,
+      "fits_128k": true,
+      "fits_1m": true
+    },
+    {
+      "multiplier": 10,
+      "pages": 500,
+      "chars": 54370,
+      "full_context_input_tokens": 80429,
+      "rag_input_tokens": 8876,
+      "fits_128k": true,
+      "fits_1m": true
+    },
+    {
+      "multiplier": 100,
+      "pages": 5000,
+      "chars": 543700,
+      "full_context_input_tokens": 804290,
+      "rag_input_tokens": 8876,
+      "fits_128k": false,
+      "fits_1m": true
+    },
+    {
+      "multiplier": 1000,
+      "pages": 50000,
+      "chars": 5437000,
+      "full_context_input_tokens": 8042900,
+      "rag_input_tokens": 8876,
+      "fits_128k": false,
+      "fits_1m": false
+    }
+  ],
+  "scaling_realistic": [
+    {
+      "multiplier": 50,
+      "pages": 50,
+      "chars": 60000,
+      "full_context_input_tokens": 88758,
+      "rag_input_tokens": 8876,
+      "fits_128k": true,
+      "fits_1m": true
+    },
+    {
+      "multiplier": 500,
+      "pages": 500,
+      "chars": 600000,
+      "full_context_input_tokens": 887574,
+      "rag_input_tokens": 8876,
+      "fits_128k": false,
+      "fits_1m": true
+    },
+    {
+      "multiplier": 5000,
+      "pages": 5000,
+      "chars": 6000000,
+      "full_context_input_tokens": 8875740,
+      "rag_input_tokens": 8876,
+      "fits_128k": false,
+      "fits_1m": false
+    }
+  ],
+  "attention_realistic": {
+    "context_tokens": 88758,
+    "window_tokens": 128000,
+    "occupancy": 0.6934,
+    "dilution_vs_3pct": 23.11
+  },
+  "attention_500p_realistic": {
+    "context_tokens": 887574,
+    "window_tokens": 128000,
+    "occupancy": 1.0,
+    "dilution_vs_3pct": 33.33
+  }
+}

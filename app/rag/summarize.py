@@ -66,11 +66,26 @@ REDUCE_PROMPT: Final[str] = (
 
 
 @dataclass(frozen=True, slots=True)
-class Chunk:
-    """一个待摘要的分段。
+class SummarySegment:
+    """一个**待摘要**的分段。
 
     保留 `pages`（覆盖的页码范围）：摘要里要能回答"这部分对应原文哪里"，
     否则用户没法核对。
+
+    **为什么从 `Chunk` 改名为 `SummarySegment`**：W4 引入 RAG 后，
+    `Chunk` 这个名字被 [`app.rag.schema.Chunk`](schema.py) 占用了 ——
+    那是要落库、要有稳定主键和可过滤元数据的"索引单位"。
+    两者形状相似（一段文字 + 出处），但**生命周期完全不同**：
+
+    | | `SummarySegment` | `schema.Chunk` |
+    | --- | --- | --- |
+    | 生命周期 | 单次请求内，随摘要结束而消失 | 落库，跨请求、跨进程存活 |
+    | 有无 id | 无 | **必须有**（幂等入库靠它） |
+    | 分页表达 | `pages` 元组（只用于展示"第几页"） | `page` + `pages`（`page` 给引用，`pages` 给覆盖范围） |
+    | 谁消费 | map-reduce 摘要 | embedding / 向量库 / 生成层 |
+
+    名字不分开的代价是具体的：想给"检索块"加个 `score` 字段时，
+    会发现自己在改摘要链路的类型 —— 而摘要根本不需要 `score`。
     """
 
     index: int
@@ -98,11 +113,11 @@ class MapReduceResult:
     api_calls: int = 0
 
 
-def chunk_documents(
+def segment_documents(
     documents: Sequence[Document],
     *,
     chunk_tokens: int = DEFAULT_CHUNK_TOKENS,
-) -> list[Chunk]:
+) -> list[SummarySegment]:
     """把文档按 token 预算切成段。
 
     **关键取舍：尽量不切断段落。**
@@ -113,6 +128,11 @@ def chunk_documents(
     只有单个 Document 本身就超预算时才硬切（那种情况通常是整篇塞在一页里）。
 
     `page` 信息跟着段走，用于展示"这部分对应原文第几页"。
+
+    **`chunk_tokens` 参数名保留不改**（即使函数已叫 `segment_documents`）：
+    它是 API 层 `/summarize/stream` 已经暴露给前端的字段名（`app/api/v1/summarize.py`），
+    改它等于改 HTTP 契约。**内部命名可以迁移，对外契约不该跟着动** ——
+    这条边界一旦模糊，"顺手重命名"就会变成一次前端回归。
     """
     if chunk_tokens <= 0:
         raise ValueError("chunk_tokens 必须为正数")
@@ -124,7 +144,7 @@ def chunk_documents(
     # 同时仍挡掉"1 token 一段"这种无意义配置。
     min_chars = max(int(10 / CHARS_PER_TOKEN), 10)
     budget_chars = max(int(chunk_tokens / CHARS_PER_TOKEN), min_chars)
-    chunks: list[Chunk] = []
+    chunks: list[SummarySegment] = []
     buffer: list[str] = []
     pages: list[int] = []
     used = 0
@@ -134,7 +154,9 @@ def chunk_documents(
         nonlocal buffer, pages, used, index
         if not buffer:
             return
-        chunks.append(Chunk(index=index, text="\n\n".join(buffer), pages=tuple(sorted(set(pages)))))
+        chunks.append(
+            SummarySegment(index=index, text="\n\n".join(buffer), pages=tuple(sorted(set(pages))))
+        )
         index += 1
         buffer, pages, used = [], [], 0
 
@@ -148,7 +170,7 @@ def chunk_documents(
             flush()
             for piece in _split_long_text(text, budget_chars):
                 chunks.append(
-                    Chunk(
+                    SummarySegment(
                         index=index,
                         text=piece,
                         pages=(doc.page,) if doc.page is not None else (),
@@ -237,7 +259,7 @@ async def summarize_document(
     **没有进度显示的超长文档摘要体验是灾难**：用户不知道卡住了还是在跑，
     50 页文档可能要几十秒。
     """
-    chunks = chunk_documents(documents, chunk_tokens=chunk_tokens)
+    chunks = segment_documents(documents, chunk_tokens=chunk_tokens)
     if not chunks:
         return MapReduceResult(summary="（文档没有可摘要的文本）")
 
@@ -245,9 +267,9 @@ async def summarize_document(
     chunk_summaries: list[str] = []
 
     # ---- map：逐段摘要 ----
-    for i, chunk in enumerate(chunks, start=1):
+    for i, segment in enumerate(chunks, start=1):
         prompt = CHUNK_PROMPT.format(
-            index=i, total=len(chunks), location=chunk.location, text=chunk.text
+            index=i, total=len(chunks), location=segment.location, text=segment.text
         )
         try:
             piece = await _call_model(client, model, prompt, extra=extra_request)
@@ -260,7 +282,7 @@ async def summarize_document(
             piece = f"（第 {i} 部分摘要为空）"
         chunk_summaries.append(piece)
         if on_progress is not None:
-            on_progress(i, len(chunks), chunk.location)
+            on_progress(i, len(chunks), segment.location)
 
     # ---- reduce：汇总 ----
     hierarchical = len(chunk_summaries) > HIERARCHICAL_THRESHOLD
@@ -354,7 +376,7 @@ async def summarize_streaming(
     """
     from app.core.llm.streaming import stream_chat
 
-    chunks = chunk_documents(documents, chunk_tokens=chunk_tokens)
+    chunks = segment_documents(documents, chunk_tokens=chunk_tokens)
     if not chunks:
         yield ("done", {"summary": "（文档没有可摘要的文本）", "chunks": 0})
         return
@@ -364,24 +386,24 @@ async def summarize_streaming(
     queue: asyncio.Queue[tuple[int, str, str]] = asyncio.Queue()
     api_calls = 0
 
-    async def run_map(index: int, chunk: Chunk) -> None:
+    async def run_map(index: int, segment: SummarySegment) -> None:
         prompt = CHUNK_PROMPT.format(
-            index=index + 1, total=total, location=chunk.location, text=chunk.text
+            index=index + 1, total=total, location=segment.location, text=segment.text
         )
         try:
             piece = await _call_model(client, model, prompt, extra=extra_request)
         except Exception as exc:  # noqa: BLE001
             logger.warning("第 %d 段失败：%s", index + 1, type(exc).__name__)
             piece = f"（第 {index + 1} 部分摘要失败）"
-        await queue.put((index, piece, chunk.location))
+        await queue.put((index, piece, segment.location))
 
     # 并发跑 map，但**限制并发数**：同时打多个 LLM 请求容易触发 429，
     # 而且收益有限（每个请求本身就是长任务）。4 路是经验值。
     semaphore = asyncio.Semaphore(4)
 
-    async def guarded(index: int, chunk: Chunk) -> None:
+    async def guarded(index: int, segment: SummarySegment) -> None:
         async with semaphore:
-            await run_map(index, chunk)
+            await run_map(index, segment)
 
     tasks = [asyncio.create_task(guarded(i, c)) for i, c in enumerate(chunks)]
     results: dict[int, str] = {}
@@ -426,9 +448,9 @@ async def summarize_streaming(
 __all__ = [
     "DEFAULT_CHUNK_TOKENS",
     "HIERARCHICAL_THRESHOLD",
-    "Chunk",
+    "SummarySegment",
     "MapReduceResult",
-    "chunk_documents",
+    "segment_documents",
     "summarize_document",
     "summarize_streaming",
 ]

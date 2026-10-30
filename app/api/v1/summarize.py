@@ -48,7 +48,7 @@ from app.core.llm.client import get_llm_client
 from app.core.sse import DisconnectWatcher
 from app.rag.loaders import SUPPORTED_EXTENSIONS, load_document
 from app.rag.replay import is_replay_enabled, replay_stream
-from app.rag.summarize import chunk_documents, summarize_streaming
+from app.rag.summarize import segment_documents, summarize_streaming
 
 logger = logging.getLogger(__name__)
 
@@ -169,7 +169,7 @@ async def summarize_stream(
     if "glm" in llm.model.lower():
         extra["reasoning_effort"] = "none"
 
-    chunks = chunk_documents(result.documents, chunk_tokens=chunk_tokens)
+    chunks = segment_documents(result.documents, chunk_tokens=chunk_tokens)
 
     async def event_stream() -> AsyncIterator[str]:
         stats_started = time.perf_counter()
