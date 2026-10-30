@@ -67,13 +67,24 @@ jobs:
       - name: Tests
         # 不需要真实 LLM_API_KEY：所有测试都用假 client 离线跑。
         # 这正是"服务层不 import fastapi、抽取器接受注入 client"的收益。
+        #
+        # 失败时把 pytest 的失败摘要素进 annotation —— 因为拿不到 job 日志
+        # （匿名 API 403，没有 gh CLI），而 annotation 是唯一能读到的通道。
         env:
           EXTRACTOR_IMPL: rule
         run: |
-          if ! uv run pytest --cov=app --cov-report=term-missing -q; then
-            echo "::error::Tests 步骤失败（见上方 pytest 输出）"
-            exit 1
+          set -o pipefail
+          if uv run pytest --cov=app --cov-report=term-missing -q 2>&1 | tee /tmp/pytest.log; then
+            exit 0
           fi
+          echo "::error::Tests 失败，摘要如下："
+          # 把 FAILED 行和 ERROR 行逐条打成 annotation（每行一条，避免截断）
+          grep -E '^(FAILED|ERROR)' /tmp/pytest.log | head -20 | while read -r line; do
+            echo "::error::$line"
+          done
+          echo "--- last 40 lines ---"
+          tail -40 /tmp/pytest.log
+          exit 1
 
       - name: Wiring smoke (llm path)
         # **这一条补的是 CI 唯一的盲区。**
