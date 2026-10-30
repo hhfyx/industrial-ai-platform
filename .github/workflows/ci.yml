@@ -17,6 +17,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Prepare .env for tests
+        # **为什么 CI 需要造一个 .env**
+        #
+        # `app/main.py` 在**模块级**调用 `setup_from_settings()` → `get_settings()`
+        # → `Settings()`，而 `LLMSettings.api_key` 是必填字段。
+        # `.env` 被 .gitignore + .dockerignore 双重排除，CI 里没有它，
+        # 于是 `from app.main import app`（tests/conftest.py 第 38 行）
+        # 直接抛 ValidationError：
+        #
+        #   pydantic_core.ValidationError: 1 validation error for LLMSettings
+        #   api_key  Field required [type=missing, input_value={}, ...]
+        #
+        # 这是**架构的刻意选择**：配置早炸好过半夜点（见 config.py 的 docstring）。
+        # 所以修法不是把 main.py 改成懒加载，而是让 CI 提供一份合法的占位配置。
+        #
+        # 注意：这里只造**测试用**的占位值，不是真凭据。
+        # 真正的 LLM 调用在测试里从不发生（autouse fixture 注入规则版）。
+        run: |
+          cat > .env <<'EOF'
+          PORT=8000
+          APP_ENV=ci
+          LLM_API_KEY=sk-ci-placeholder-not-real
+          LLM_BASE_URL=http://127.0.0.1:1/v1
+          LLM_MODEL=ci-placeholder-model
+          LLM_TIMEOUT=30
+          LLM_MAX_RETRIES=2
+          EOF
+          echo "created .env for CI:"
+          grep -c . .env
+
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -26,11 +56,11 @@ jobs:
           # 原写法是单独一步：
           #     - name: Set up Python
           #       run: uv python install ${{ matrix.python-version }}
-          # 它在 Actions runner 上**一直 exit code 4**（uv 的下载/注册失败），
-          # 而 ubuntu-latest 本来就自带 Python 3.11。
+          # 它在 Actions runner 上不稳定（exit code 4 是 pytest 的 ImportError
+          # 退出码，不是这一步 —— 之前误判过），而 ubuntu-latest 自带 3.11。
           #
           # setup-uv 的 python-version 会先复用已安装的同版本，
-          # 找不到才下载 —— 比无条件 `uv python install` 稳。
+          # 找不到才下载。
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
