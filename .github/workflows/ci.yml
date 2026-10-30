@@ -21,9 +21,17 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-
-      - name: Set up Python
-        run: uv python install ${{ matrix.python-version }}
+          # **让 setup-uv 自己准备 Python，而不是后面再跑 uv python install。**
+          #
+          # 原写法是单独一步：
+          #     - name: Set up Python
+          #       run: uv python install ${{ matrix.python-version }}
+          # 它在 Actions runner 上**一直 exit code 4**（uv 的下载/注册失败），
+          # 而 ubuntu-latest 本来就自带 Python 3.11。
+          #
+          # setup-uv 的 python-version 会先复用已安装的同版本，
+          # 找不到才下载 —— 比无条件 `uv python install` 稳。
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: uv sync --frozen
