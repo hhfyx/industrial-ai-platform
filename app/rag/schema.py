@@ -86,19 +86,34 @@ def _digest(*parts: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class Document:
-    """一段来自某个源的文本（loader 的唯一产物）。"""
+    """一段来自某个源的文本（loader 的唯一产物）。
+
+    **W4 周二的改动**：新增 `pages` 与 `metadata["block"]`。
+    `page` 仍然是"起始页"，`pages` 是"这段文字实际覆盖的所有页" ——
+    跨页断句被拼接之后，一段文字可能横跨 p6 与 p7，只记 `page=6` 会让
+    "这段到底在第几页"变成半个真话。切分器随后把 `pages` 继承到 `Chunk.pages`。
+    """
 
     source: str
     """来源标识：文件名（不含目录），便于在日志/前端显示。"""
 
     page: int | None
-    """页码，从 1 开始；非分页格式为 None。"""
+    """起始页码，从 1 开始；非分页格式为 None。"""
 
     text: str
-    """该页/该段的正文。已做**最小**清洗（见 `loaders.pdf.normalize_text`）。"""
+    """该页/该段的正文。已做**最小**清洗（见 `loaders.clean`）。"""
 
     metadata: Metadata = field(default_factory=dict)
-    """来源侧的附加信息（如标题层级、表格标记）。loader 阶段尽量少放，只放事实。"""
+    """来源侧的附加信息。**只放事实**：block / heading_level / title_level 等。
+
+    约定的键（loader 负责填，切分与生成只读）：
+    - `block`：`"text"` | `"table"` | `"heading"` —— 表格要单独成块，不许混进文字流
+    - `heading_level`：Markdown/DOCX 标题级别（1-6）
+    - `page_chars`：本页可提取字符数（扫描件判定用）
+    """
+
+    pages: tuple[int, ...] = ()
+    """覆盖的全部页码。分页格式是 `(7,)` 或 `(6, 7)`；非分页格式是 `()`。"""
 
     def __post_init__(self) -> None:
         if self.page is not None and self.page < 1:
@@ -108,6 +123,20 @@ class Document:
     def location(self) -> str:
         """人类可读的位置描述，用于日志与报错。"""
         return f"{self.source}:p{self.page}" if self.page is not None else self.source
+
+    @property
+    def block(self) -> str:
+        """块类型：`text` / `table` / `heading`。缺省 `text`。"""
+        return str(self.metadata.get("block", "text"))
+
+    @property
+    def is_table(self) -> bool:
+        """表格必须**单独成块**（见 `splitters/recursive.py`）。
+
+        表格被切碎或与正文混合后再也拼不回行列关系，
+        而"这张表的第三列是什么"恰恰是合同问答里最常见的问题。
+        """
+        return self.block == "table"
 
 
 @dataclass(frozen=True, slots=True)
@@ -159,6 +188,16 @@ class Chunk:
         这是**有意**的 —— 完全相同的文本入库两次没有检索价值，去重才是正确行为。
         """
         return _digest(self.source, str(self.page), self.text)
+
+    @property
+    def block(self) -> str:
+        """块类型：`text` / `table` / `heading`（从 `Document` 继承而来）。"""
+        return str(self.metadata.get("block", "text"))
+
+    @property
+    def is_table(self) -> bool:
+        """这一块是不是表格。生成层可以用它决定引用里要不要标"（表格）"。"""
+        return self.block == "table"
 
     @property
     def location(self) -> str:

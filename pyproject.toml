@@ -11,6 +11,7 @@ dependencies = [
     "langchain-openai>=0.2",
     "markdown>=3.11.2",
     "openai>=3.37.0",
+    "pdfplumber>=0.11.10",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.11.0",
     "pypdf>=6.21.2",

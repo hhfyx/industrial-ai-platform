@@ -1,4 +1,4 @@
-# industrial-ai-platform
+﻿# industrial-ai-platform
 
 **一个用 FastAPI + LLM 做文档智能处理的平台：结构化抽取、流式对话、超长文档摘要。**
 
@@ -6,13 +6,13 @@
 
 - **接口不变、实现可换**：同一份 `v1` HTTP 契约，底下从正则换成真实模型调用
   （再换成 JSON Schema 强约束 + 校验回灌），`tests/test_api.py` **一行未改**。
-- **测试能离线跑绿**：**375 个测试，拔掉网线也全绿** —— 这才是"实现真的可替换"无法伪造的证据。
+- **测试能离线跑绿**：**410 个测试，拔掉网线也全绿** —— 这才是"实现真的可替换"无法伪造的证据。
 
 | 项目 | 值 |
 | --- | --- |
 | 端点 | `extract` · `extract/stream` · `chat/stream` · `summarize/stream` |
 | 核心契约 | `POST /api/v1/extract`，`v1.1`（冻结；新增可选字段 `degraded`） |
-| 测试 | **375 个，全离线**（拔网线也全绿），`pytest --cov=app` |
+| 测试 | **410 个，全离线**（拔网线也全绿），`pytest --cov=app` |
 | 镜像 | 多阶段构建；v0.2.0 **待实测**（v0.1.0 曾为 157 MB，见 [Docker](#docker)） |
 | 运行时 | Python 3.11 + uvicorn，非 root（uid 10001） |
 
@@ -105,7 +105,7 @@ POST /api/v1/extract
 
 跨层规则：**服务层与 rag 层都不 import fastapi**。依赖注入是路由层的事，
 `LlmExtractor` 只接受一个 `AsyncOpenAI` 实例（构造参数注入，内部**绝不 new**），
-所以测试里能直接塞 `FakeLLMClient` —— 这也是 **375 个测试全部能离线跑**的原因。
+所以测试里能直接塞 `FakeLLMClient` —— 这也是 **410 个测试全部能离线跑**的原因。
 
 Prompt 层的一句话：**模板只拼字符串、`structured_call` 只管"拿到类型安全对象"、
 `with_structured_output` 这类框架能力实测在本网关不可用**（见
@@ -120,8 +120,12 @@ app/
 │   └── llm/         client.py · streaming.py · retry.py · tools.py · tool_loop.py
 ├── rag/             RAG 三段骨架（W4）
 │   ├── schema.py    ★ Document / Chunk（page 从第一步就在结构里）
-│   ├── loaders/     pdf.py · docx.py · markdown.py（① 解析：加格式只改 __init__.py 一处）
-│   ├── splitters/   base.py（ChunkSize + Splitter）· recursive.py（② 切分）
+│   ├── loaders/     ① 解析（★ 统一解析：页码 / 表格 / 扫描件 / 清洗）
+│   │   ├── clean.py     四类噪声四种判据 + "清洗不改写正文"的红线
+│   │   ├── pdf.py       pypdf 逐页 + pdfplumber 表格 → Markdown；跨页拼接记 span
+│   │   ├── docx.py      段落 + 标题层级进 metadata；表格同 PDF 格式
+│   │   └── markdown.py  按 # 分节；围栏内的 # 与 | 都不算结构
+│   ├── splitters/   base.py（ChunkSize + Splitter）· recursive.py（② 切分，表格不切）
 │   ├── embedding/   hashing.py（③ 向量化：占位实现，无语义能力）
 │   ├── stores/      memory.py（④ 入库：InMemoryVectorStore）
 │   ├── generation/  base.py（⑥ 生成：带 [n] 引用的答案）
@@ -137,10 +141,11 @@ scripts/             smoke_llm · demo_tools · consume_sse · cost · cost_mode
                      latency_breakdown · record_demo · measure_tokens · drill_*
                      rag_cost_compare（长上下文 vs RAG：成本/注意力/更新代价）
 static/index.html    前端单页（fetch + ReadableStream，含中断/重试）
-tests/               375 个**全离线**测试
+tests/               410 个**全离线**测试
   ├── fake_llm.py    FakeLLMClient（可复用，支持固定回复/脚本/异常/流式）
   ├── conftest.py    autouse: 默认注入离线规则版（拔网线也全绿）
   ├── test_rag_skeleton.py  RAG 骨架 48 条：结构不变量 + 三段链路
+  ├── test_loaders.py     统一解析 70 条：页码 / 表格 / 扫描件 / 清洗不变量
   └── fixtures/      make_fixtures.py 脚本生成样本（review 可读）
 app/prompts/         模板库：{qa,summarize,classify,extract}/vN.jinja2 + schema.py
   ├── loader.py      load_prompt(name, version) · 版本切换 · 硬编码业务词检查
@@ -151,6 +156,7 @@ docs/                api-spec.md（冻结契约 v1.1）· cost.md · sse.md · S
                      prompt-templates.md（模板库）· structured-output.md（structured_call）
                      ab-scaffold.md（输入池 + 脚手架）· prompt-ab.md（四类 A/B 报告）
                      rag-architecture.md（三段全景 + 每段输入输出）·
+                     document-parsing.md（统一解析：页码为何错位 / 表格 / 扫描件 / 清洗红线）·
                      design-decisions.md（三条决策 + 代价 + 长上下文必答）
                      why-i-use-langchain.md · container-networking.md
 ```
@@ -249,7 +255,7 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 ## 测试能离线跑绿 —— W2 唯一无法伪造的成果
 
 ```powershell
-pytest -q          # 375 passed，拔掉网线也一样
+pytest -q          # 410 passed，拔掉网线也一样
 ```
 
 这 行命令为什么值得单独一节：**它能证明实现真的可替换**。
@@ -393,7 +399,7 @@ W2 做完之后：
 | 断言 | 状态 |
 | --- | --- |
 | `tests/test_api.py` 一行未改 | ✅ |
-| 全套 375 个测试仍全绿（**断网也是**） | ✅ 375 passed |
+| 全套 410 个测试仍全绿（**断网也是**） | ✅ 410 passed |
 | 响应体正常时仍是 4 字段 | ✅ 实测无 `degraded` 键 |
 | 降级时可多 1 个可选字段 | ✅ `degraded: true`，v1.1 向后兼容 |
 | 规则版仍可用 | ✅ `EXTRACTOR_IMPL=rule` 一键回退 |
@@ -601,6 +607,9 @@ fastapi、抽取器接受注入 client"的直接收益。
 - [docs/rag-architecture.md](docs/rag-architecture.md) —— **RAG 三段全景图**：索引（解析→切分→
   向量化→入库）/ 检索（query→相似度→TopK）/ 生成（拼上下文→调用→引用），
   每段标出输入输出类型，以及"为什么 page 从第一步就必须在结构里"
+- [docs/document-parsing.md](docs/document-parsing.md) —— **统一文档解析**：必答题「页码为什么
+  会错位」（因为你在切分之后才去猜）、三格式产出对齐表、表格为何单独成块且必须从文字流摘掉、
+  扫描件的两档判据、以及"清洗不许改写正文"这条可被测试断言的红线
 - [docs/design-decisions.md](docs/design-decisions.md) —— **四条决策记录**（每条都写代价）：
   ① 长上下文为何替代不了 RAG（成本线性 / lost in the middle / 无法更新与溯源）
   ② 为何 RAG 而非微调 ③ 为何本地 embedding 而非 API ④ 为何先 ChromaDB 而非 Milvus

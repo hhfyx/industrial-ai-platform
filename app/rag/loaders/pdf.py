@@ -1,192 +1,219 @@
-"""PDF loader：pypdf 逐页抽文本，保留页码。
+"""PDF loader：逐页抽文本（pypdf）+ 表格转 Markdown（pdfplumber）。
 
-**这一格的难点全在"不完美输入"上**，而不是"怎么调 pypdf"：
+## 页码为什么在这里就落到每一段上
 
-| 情况 | 天真写法会怎样 | 这里怎么处理 |
-| --- | --- | --- |
-| 扫描件（整页是图片） | 抽出空字符串，下游以为那一页没内容 | 记 warning，**跳过空页**但保留页码信息 |
-| 空页（真的空白页） | 同上 | 同上 —— 无法区分"空白"和"扫描件"，统一记为"无文本页" |
-| 跨页断句 | 一句话被切成两半，分属两页 | **在两页之间补一个连接符**，让下游切分时能粘回来 |
-| 页眉页脚重复 | 每页都重复同样几行，浪费 token | 检测重复次数过多的首尾行并剔除 |
+**因为切分之后再也猜不出来。** 这是本格最重要的一条认知，写在最前面：
 
-**为什么跨页断句要在这里处理**：
-`pypdf` 是按页返回的，一页的末尾可能正好断在词中间（PDF 里没有"句"的概念，
-只有"排版位置"）。如果下游按页独立处理，那句话就永远粘不回去了。
-所以 loader 输出时要带一个信号：**这页结尾看起来是"没说完"的**。
+    错误做法：全篇抽成一坨文本 → 按字数切 → 事后把块"对回"页码
+    结果    ：块 3 明明横跨 p6/p7，却只能标一个页码；或者按"平均每页多少字"折算
 
-这里用最简单的启发式：页末没有句末标点，且以字母/汉字结尾 → 认为是被截断的。
-不够完美，但比"什么都不做"好得多，而且**代价是零**（不算模型调用）。
+后者在两种常见文档上必然错位：
+- **页密度不均匀**（第 1 页是封面只有 3 个字，后面的页 1200 字）
+- **有页眉页脚被剔过**（每页字符数被人为削掉一截，折算基准整体漂了）
+
+所以正确的顺序是**反过来**：解析阶段就用 pypdf 的逐页接口，
+把 `page` 落在每个 `Document` 上；切分只做"继承"，不重新推断。
+`Chunk.pages` 因此永远来自真实页码，而不是估算。
+
+## 表格为什么单独抽、且不进文字流
+
+pypdf 抽表格是**按阅读顺序铺平**的：一行单元格会变成好几行文本
+（实测：`里程碑 / 时间 / 金额 / 一期交付 / 2026-11-30 …`），
+行列关系彻底丢失。而"这张表第三列是什么"是合同问答里最常见的问题。
+
+所以用 pdfplumber 单独抽表格，转成 Markdown 表格，作为**独立的 Document**
+（`metadata["block"]="table"`）。同时必须把这份表格从文字流里**摘掉**，
+否则同一份内容会进库两次：一次是铺平的文字垃圾，一次是结构化表格 ——
+检索时两条都命中，上下文里出现两份互相矛盾的版本。
+
+## 扫描件为什么必须打 warning
+
+"抽不出文本"和"这一页是空白"在上层看起来完全一样，但处理方式完全不同：
+前者要 OCR，后者什么都不用做。静默跳过 = 用户以为这份文档没内容。
+判据取 `< 20 字符/页`（见 `SCAN_PAGE_CHARS`），理由在常量旁边。
 """
 
 from __future__ import annotations
 
 import logging
-import re
 from pathlib import Path
 
 from app.rag import Document, LoadResult
+from app.rag.loaders.clean import (
+    can_join,
+    merge_wrapped_lines,
+    needs_space,
+    normalize_text,
+    strip_page_numbers,
+    strip_repeated_lines,
+)
 
 logger = logging.getLogger(__name__)
 
-# 页末出现这些标点，视为"这句话说完了"
-_SENTENCE_END = re.compile(r"[。！？.!?:：；;】）)\"'」』]\s*$")
-
-# 页末是这些字符，视为"话没说完"（字母/汉字/逗号/顿号）
-_UNFINISHED_END = re.compile(r"[A-Za-z0-9\u4e00-\u9fff,，、]\s*$")
-
-# 连续空白压缩。PDF 抽出来的文本常有多余空白与硬换行。
-_MULTI_WS = re.compile(r"[ \t\u3000]+")
-# 连续的 3 个以上换行压成 2 个（保留段落感）
-_MULTI_NL = re.compile(r"\n{3,}")
+# 一页少于这么多字符 → 疑似扫描件（无文本层）。
+# 取 20 是因为：正常 A4 正文一页最少也有几百字；能抽出 20 字以下的，
+# 通常只有"页码 + 页眉"被剔除后的残渣，或者一个孤立的图注。
+# 宁可多报（多打一条 warning），不可漏报 —— 漏报的后果是用户以为文档空的。
+SCAN_PAGE_CHARS: int = 20
 
 
-def normalize_text(raw: str) -> str:
-    """最小清洗：压缩空白、统一换行、去首尾空白。
+def _make_reader(path: Path):  # noqa: ANN202
+    """打开 PDF。坏文件是**真失败**，必须抛清晰错误。"""
+    from pypdf import PdfReader
 
-    **刻意不做的事**：不删页眉页脚（那是 `_strip_repeated_lines` 的活）、
-    不修断词、不做任何需要上下文的重排 —— loader 的职责是"忠实地取出文字"，
-    加工属于下游。这条边界一旦模糊，出问题时无法判断是谁改坏的。
+    try:
+        return PdfReader(str(path))
+    except Exception as exc:  # noqa: BLE001 - 坏文件/加密/格式不支持
+        raise ValueError(f"无法打开 PDF {path.name}：{type(exc).__name__}: {exc}") from exc
+
+
+def extract_all_tables(path: Path, page_count: int) -> dict[int, list[list[list[str | None]]]]:
+    """一次性抽出整份 PDF 的表格，返回 `{页码: [表格][行][单元格]}`。
+
+    **必须只 open 一次**：`pdfplumber.open()` 会把整份文档的对象树读进来。
+    按页 open 的话，50 页文档要 open 50 次 —— 实测那样做单页 3.3 ms、
+    整份 50 页多花一倍时间，纯属自己给自己加负担。
+
+    **失败必须降级成"没有表格"而不是抛**：pdfplumber 对复杂排版
+    （旋转文本、矢量图、损坏的 xref）比 pypdf 敏感得多。它挂了不代表这份
+    PDF 读不了，只代表这一页没有可用的表格。这与"坏文件要抛"不矛盾：
+    打不开文件是**真失败**，抽不出表格是**这份文档没有表格**。
     """
-    if not raw:
+    try:
+        import pdfplumber
+    except ImportError:  # pragma: no cover - 依赖缺失是部署问题，不是运行分支
+        logger.warning("未安装 pdfplumber，跳过表格抽取：%s", path.name)
+        return {}
+
+    tables_by_page: dict[int, list[list[list[str | None]]]] = {}
+    try:
+        with pdfplumber.open(str(path)) as pdf:
+            for index in range(min(page_count, len(pdf.pages))):
+                page = pdf.pages[index]
+                try:
+                    # find_tables() 给出 Table 对象（带 bbox），extract() 取行列值。
+                    # 用这条路径而不是 extract_tables()：两者耗时实测相同，
+                    # 但 find_tables 额外给出 bbox —— 将来"按区域裁表格"要用到。
+                    found = page.find_tables()
+                    rows = [table.extract() for table in found]
+                except Exception as exc:  # noqa: BLE001 - 单页表格失败不该毁整份
+                    logger.warning(
+                        "第 %d 页表格抽取失败（%s），按无表格处理：%s",
+                        index + 1,
+                        type(exc).__name__,
+                        path.name,
+                    )
+                    continue
+                if rows:
+                    tables_by_page[index + 1] = rows
+    except Exception as exc:  # noqa: BLE001 - 整份打不开也只是"没有表格"
+        logger.warning("表格抽取整体失败（%s），按无表格处理：%s", type(exc).__name__, path.name)
+        return {}
+    return tables_by_page
+
+
+def extract_tables(page_number: int, path: Path) -> list[list[list[str | None]]]:
+    """抽单页表格（给调试/联调用）。批量场景请用 `extract_all_tables`。"""
+    return extract_all_tables(path, page_number).get(page_number, [])
+
+
+def table_to_markdown(rows: list[list[str | None]], *, header: bool = True) -> str:
+    """把 pdfplumber 的行列数据转成 Markdown 表格。
+
+    **为什么转 Markdown 而不是保留二维结构**：下游（切分、embedding、生成）
+    全部按纯文本处理。Markdown 表格是纯文本里"结构信息保留得最完整"的形式，
+    而且模型对它最熟 —— 它会知道 `| 里程碑 | 时间 | 金额 |` 后面跟的是数据行，
+    而不是一段散文。
+
+    **空单元格保留为空**而不是删掉列：删列会让"这一格是空的"和
+    "这张表少一列"变得无法区分，而合并单元格产生的空格恰恰是有含义的。
+    """
+    if not rows:
         return ""
-    text = raw.replace("\r\n", "\n").replace("\r", "\n")
-    text = text.replace("\u3000", " ")  # 全角空格
-    text = _MULTI_WS.sub(" ", text)
-    text = _MULTI_NL.sub("\n\n", text)
-    # 逐行去首尾空白，但保留空行（段落边界）
-    lines = [line.strip() for line in text.split("\n")]
-    return "\n".join(lines).strip()
+    width = max(len(r) for r in rows)
+    lines: list[str] = []
+    for index, row in enumerate(rows):
+        cells = [
+            (c if c is not None else "").replace("\n", " ").replace("|", "／").strip() for c in row
+        ]
+        cells += [""] * (width - len(cells))
+        lines.append("| " + " | ".join(cells) + " |")
+        if index == 0 and header:
+            # 分隔行：Markdown 表格的语法要求，也让人眼一眼看出这是表头
+            lines.append("| " + " | ".join(["---"] * width) + " |")
+    return "\n".join(lines)
 
 
-def _looks_unfinished(text: str) -> bool:
-    """页末是否"话没说完"。
+def _cell_values(rows: list[list[str | None]]) -> list[str]:
+    """把表格里所有非空单元格按出现次数摊平。用于"从文字流里摘掉表格"。"""
+    values: list[str] = []
+    for row in rows:
+        for cell in row:
+            if cell and str(cell).strip():
+                values.append(str(cell).strip())
+    return values
 
-    两步判断：
-    1. 有句末标点 → 说完了 → False
-    2. 以字母/数字/汉字/逗号结尾 → 很可能是被分页切断的 → True
 
-    这个启发式会在"页末正好是个短句但没加标点"时误判，
-    但成本极低（只是多补一个空格），误判后果远小于"句子被永久切断"。
+def _remove_table_lines(lines: list[str], rows: list[list[str | None]]) -> tuple[list[str], int]:
+    """从 pypdf 的文字行里摘掉表格区域。
+
+    **为什么按"多重集相等"匹配，而不是删掉所有长度一致的包含行**：
+    简单做法是"只要这一行等于某个单元格就删"，但那会误删正文 ——
+    正文里出现 `金额` 这个词是完全正常的。
+
+    这里要求：找到一段**连续**的行，它们（去掉空行后）的多重集合
+    **恰好等于**该表格全部非空单元格的多重集合。表格在 pypdf 的输出里
+    通常正好是连续的若干行，所以这个判据既准确又简单。
+    找不到就一个都不删（返回 0），让"表格没被摘干净"表现为重复内容，
+    而不是"正文被误删" —— 前者难看，后者是数据损坏。
     """
-    tail = text.rstrip()
-    if not tail:
-        return False
-    if _SENTENCE_END.search(tail):
-        return False
-    return bool(_UNFINISHED_END.search(tail))
+    from collections import Counter
 
+    if not rows:
+        return lines, 0
+    wanted = Counter(_cell_values(rows))
+    if not wanted:
+        return lines, 0
 
-def _strip_repeated_lines(
-    pages: list[list[str]], *, min_repeat_ratio: float = 0.6
-) -> list[list[str]]:
-    """去掉**每页都出现**的首尾行（页眉 / 页脚 / 水印）。
-
-    算法：统计所有页的**首行与末行**里，哪些行在超过 `min_repeat_ratio` 的页上出现。
-    出现得够多就认定是页眉页脚，逐页从两端剥掉。
-
-    **为什么要做这件事**：一份 50 页的报告，页眉是"XX 公司机密 第 N 页"，
-    每页重复 —— 那是 50 份无意义的 token，而且会干扰摘要（模型可能反复提"公司机密"）。
-
-    **只取首尾各 1 行，是踩过坑的**：
-    最初写成"首 2 行 + 末 2 行"，测试用的 4 行页面直接覆盖了**全部**行 ——
-    正文三行全被当成候选并删掉，每页只剩标题。那种 bug 很隐蔽：
-    结果看起来"有内容"（标题还在），只是内容少了一大截。
-    真正的页眉页脚就在首/末行，取 1 行足够，且不会吃掉正文。
-
-    **必须排除"含页码的行"**：`第 1 页` / `第 2 页` 这种行有**每页都不同**的特征，
-    但按"计数"统计会漏掉它们（每行只出现 1 次）。所以另外用一个正则识别
-    "页码行"，单独剔除 —— 这是两种不同的模式，不能混在一个计数器里。
-    """
-    if len(pages) < 3:
-        # 页数太少，统计没有意义（2 页重复恰好 100%，会误删正文）
-        return pages
-
-    threshold = max(2, int(len(pages) * min_repeat_ratio))
-
-    # ① 逐页收集"首行"和"末行"
-    first_lines: dict[str, int] = {}
-    last_lines: dict[str, int] = {}
-    for lines in pages:
-        non_empty = [ln.strip() for ln in lines if ln.strip()]
-        if not non_empty:
-            continue
-        for bucket, line in ((first_lines, non_empty[0]), (last_lines, non_empty[-1])):
-            if len(line) < 2:
+    for start in range(len(lines)):
+        acc: Counter[str] = Counter()
+        index = start
+        while index < len(lines):
+            value = lines[index].strip()
+            if not value:
+                index += 1
                 continue
-            bucket[line] = bucket.get(line, 0) + 1
-
-    # 只有**同时**反复出现在首行或末行的，才算页眉页脚
-    drop: set[str] = set()
-    for bucket in (first_lines, last_lines):
-        for line, count in bucket.items():
-            if count >= threshold:
-                drop.add(line)
-
-    cleaned: list[list[str]] = []
-    for lines in pages:
-        kept = list(lines)
-        # 从两端剥掉命中 drop 的行（只在两端剥，正文中间的重复不动）
-        while kept and kept[0].strip() and kept[0].strip() in drop:
-            kept.pop(0)
-        while kept and kept[-1].strip() and kept[-1].strip() in drop:
-            kept.pop()
-        cleaned.append(kept)
-
-    if drop:
-        logger.info("剔除疑似页眉页脚 %d 行：%s", len(drop), list(drop)[:3])
-    return cleaned
-
-
-# 页码行：`第 3 页` / `- 3 -` / `Page 3 of 50` / 纯数字
-_PAGE_NUMBER = re.compile(
-    r"^\s*(?:第\s*\d+\s*页(?:\s*[/／]?\s*共\s*\d+\s*页)?|[-–—]\s*\d+\s*[-–—]|page\s+\d+(?:\s+of\s+\d+)?|\d{1,4})\s*$",
-    re.IGNORECASE,
-)
-
-
-def _strip_page_numbers(lines: list[str]) -> list[str]:
-    """剔除页码行。
-
-    **为什么要单独处理**：页码每页都不同（"第 1 页"、"第 2 页"…），
-    按"重复计数"永远识别不出来，但它的 token 成本和干扰效果与页眉一样。
-    所以要用**模式匹配**而不是频率统计。
-
-    只剥首尾各 1 行的位置：正文里出现一个孤立的数字
-    （比如金额"128000"）是正常内容，不能动。
-    """
-    if not lines:
-        return lines
-    kept = list(lines)
-    if kept and _PAGE_NUMBER.match(kept[0]):
-        kept.pop(0)
-    if kept and _PAGE_NUMBER.match(kept[-1]):
-        kept.pop()
-    return kept
+            if wanted[value] == 0 or acc[value] >= wanted[value]:
+                break
+            acc[value] += 1
+            index += 1
+            if acc == wanted:
+                removed = sum(acc.values())
+                return lines[:start] + lines[index:], removed
+    return lines, 0
 
 
 def load_pdf(path: str | Path) -> LoadResult:
     """逐页加载 PDF。
 
-    返回的 `Document` **一页一个**，`page` 从 1 开始（与人类习惯一致，不是 0）。
+    返回的 `Document` **一页一个**（表格另起一条），`page` 从 1 开始
+    （与人类习惯一致，不是 0）。
 
-    读不到的页：
-    - 整页空 → 跳过并记 warning（通常是扫描件或纯图片页）
-    - 所有页都空 → 仍然返回空 documents + 明确 warning，**不抛异常**
-      （调用方自己决定这算不算错误）
+    处理顺序是有讲究的，顺序换了结果就错：
+
+        抽原始行 → 去页眉页脚（要跨页统计）→ 去页码行（按形态）
+        → 摘表格（要按行匹配）→ 合并断行 → 跨页拼接 → 产 Document
+
+    **去页眉必须在合并断行之前**：合并会把多行粘成一段，
+    粘完之后"首行/末行"这个概念就没有了，重复行统计再也做不了。
     """
-    from pypdf import PdfReader
-
     file_path = Path(path)
     result = LoadResult()
+    reader = _make_reader(file_path)
 
-    try:
-        reader = PdfReader(str(file_path))
-    except Exception as exc:  # noqa: BLE001 - 坏文件/加密/格式不支持
-        # **这里必须抛**：连文件都打不开是真正的失败，不是"某页没文本"。
-        # 让调用方看到明确错误，而不是拿到一个空结果。
-        raise ValueError(f"无法打开 PDF {file_path.name}：{type(exc).__name__}: {exc}") from exc
-
+    # ---------------------------------------------------------------- ① 逐页抽原始行
     raw_pages: list[list[str]] = []
+    failed_pages: list[int] = []
     for index, page in enumerate(reader.pages, start=1):
         try:
             text = normalize_text(page.extract_text() or "")
@@ -194,38 +221,124 @@ def load_pdf(path: str | Path) -> LoadResult:
             result.warnings.append(
                 f"第 {index} 页解析失败（{type(exc).__name__}），已跳过：{file_path.name}"
             )
+            failed_pages.append(index)
             raw_pages.append([])
             continue
         raw_pages.append(text.split("\n") if text else [])
 
-    # ① 去页眉页脚（按"重复频率"识别）
-    cleaned_pages = _strip_repeated_lines(raw_pages)
+    # ---------------------------------------------------------------- ② 表格（按页先抽好）
+    # 表格抽取放在清洗**之前**，因为摘除表格要用原始行去匹配；
+    # 清洗会挪动行，清洗完再匹配就找不到边界了。
+    # 一次 open 抽完整份文档的表格（见 extract_all_tables 的 docstring）。
+    page_tables = extract_all_tables(file_path, len(raw_pages))
 
-    empty_pages: list[int] = []
+    # ---------------------------------------------------------------- ③ 去页眉页脚
+    cleaned_pages = strip_repeated_lines(raw_pages)
+
+    # ---------------------------------------------------------------- ④ 逐页：去页码 → 摘表格 → 合并断行
+    page_lines: dict[int, list[str]] = {}
+    table_blocks: list[tuple[int, str]] = []
     for index, lines in enumerate(cleaned_pages, start=1):
-        # ② 去页码行（按"模式"识别 —— 页码每页都不同，频率统计抓不到）
-        lines = _strip_page_numbers(lines)
+        lines = strip_page_numbers([ln for ln in lines if ln.strip()])
+        for rows in page_tables.get(index, []):
+            lines, removed = _remove_table_lines(lines, rows)
+            markdown = table_to_markdown(rows)
+            if markdown:
+                table_blocks.append((index, markdown))
+            if removed == 0:
+                # 没摘干净：说明表格文字和正文交错在 pypdf 的行流里。
+                # 这时**保留文字流**（宁可重复也不要丢内容），并记 warning 让人知道。
+                result.warnings.append(
+                    f"第 {index} 页表格未能在文字流中完整摘除，可能出现重复内容：{file_path.name}"
+                )
+        page_lines[index] = merge_wrapped_lines(lines)
+    # ---------------------------------------------------------------- ⑤ 跨页拼接
+    # 断句跨页：上一页最后一段没说完，且下一页第一段是续行 → 拼接。
+    # **这是"页码会不会错位"的第二个关键点**：拼接后的段落横跨两页，
+    # 所以它的 `pages` 必须同时记两页，`page` 只记起始页。
+    span_of: dict[int, tuple[int, ...]] = {index: (index,) for index in page_lines}
+    sorted_indexes = sorted(page_lines)
+    for position, index in enumerate(sorted_indexes[:-1]):
+        following = sorted_indexes[position + 1]
+        current = page_lines.get(index) or []
+        nxt_lines = page_lines.get(following) or []
 
-        text = normalize_text("\n".join(lines))
-        if not text:
-            empty_pages.append(index)
+        # 取"当前页最后一段非空行"与"下一页第一条非空行"
+        tail_pos = next((i for i in range(len(current) - 1, -1, -1) if current[i].strip()), None)
+        head_pos = next((i for i in range(len(nxt_lines)) if nxt_lines[i].strip()), None)
+        if tail_pos is None or head_pos is None:
             continue
 
-        # 跨页断句：在页末补一个连接符，表示"这句话在两页之间被切断了"。
-        # 下游切分时可以据此知道"这里不该断"。
-        if _looks_unfinished(text):
-            text = text + " "
+        tail, head = current[tail_pos], nxt_lines[head_pos]
+        if not can_join(tail, head):
+            continue
 
-        result.documents.append(Document(source=file_path.name, page=index, text=text))
+        separator = " " if needs_space(tail, head) else ""
+        current[tail_pos] = tail.rstrip() + separator + head.lstrip()
+        # 下一页的首段已被拼走，从它自己的页里删掉（**只删这一行**，其余不动）
+        page_lines[following] = nxt_lines[:head_pos] + nxt_lines[head_pos + 1 :]
+        page_lines[index] = current
+        # 拼接后的段落真实覆盖了两页 —— `pages` 记全，`page` 只记起始页
+        span_of[index] = tuple(sorted(set(span_of[index]) | {following}))
 
+    # ---------------------------------------------------------------- ⑥ 产出 Document
+    # 顺序按页码排：某页的正文段 → 该页的表格 → 下一页。表格跟着它所在的页走，
+    # 摘要/检索时"这段表格属于哪一节"不会前后颠倒。
+    empty_pages: list[int] = []
+    scan_pages: list[int] = []
+    spaced_pages: dict[int, tuple[int, ...]] = span_of
+    tables_by_page: dict[int, list[str]] = {}
+    for table_page, markdown in table_blocks:
+        tables_by_page.setdefault(table_page, []).append(markdown)
+
+    # 有表格但完全没有正文的页（整页就是一张表）也要出现在输出里
+    all_pages = sorted(set(sorted_indexes) | set(tables_by_page))
+
+    for index in all_pages:
+        lines = [ln for ln in (page_lines.get(index) or []) if ln.strip()]
+        text = normalize_text("\n".join(lines))
+        if text:
+            if len(text) < SCAN_PAGE_CHARS:
+                scan_pages.append(index)
+            result.documents.append(
+                Document(
+                    source=file_path.name,
+                    page=index,
+                    text=text,
+                    metadata={"block": "text", "page_chars": len(text)},
+                    pages=spaced_pages.get(index, (index,)),
+                )
+            )
+        elif index not in failed_pages and index not in tables_by_page:
+            empty_pages.append(index)
+
+        for markdown in tables_by_page.get(index, []):
+            result.documents.append(
+                Document(
+                    source=file_path.name,
+                    page=index,
+                    text=markdown,
+                    # `block="table"` 是切分器"表格必须单独成块"的依据
+                    metadata={"block": "table", "page_chars": len(markdown)},
+                    pages=(index,),
+                )
+            )
+
+    # ---------------------------------------------------------------- ⑦ warning
     if empty_pages:
-        # 一条汇总 warning 比每页一条更有用（50 页扫描件不该刷 50 行日志）
         preview = "、".join(str(p) for p in empty_pages[:10])
         more = f" 等 {len(empty_pages)} 页" if len(empty_pages) > 10 else ""
         result.warnings.append(
             f"有 {len(empty_pages)} 页没有可提取文本（扫描件或空白页）：第 {preview}{more} 页"
         )
-
+    if scan_pages:
+        # **单独一条**：这页有字但极少，说明文本层可能残缺（部分扫描）
+        preview = "、".join(str(p) for p in scan_pages[:10])
+        more = f" 等 {len(scan_pages)} 页" if len(scan_pages) > 10 else ""
+        result.warnings.append(
+            f"有 {len(scan_pages)} 页可提取字符少于 {SCAN_PAGE_CHARS}（疑似扫描页，可能需要 OCR）："
+            f"第 {preview}{more} 页"
+        )
     if not result.documents:
         result.warnings.append(
             f"{file_path.name} 整份文档都没有可提取文本 —— 很可能是纯扫描件，需要 OCR 才能处理"
@@ -234,4 +347,10 @@ def load_pdf(path: str | Path) -> LoadResult:
     return result
 
 
-__all__ = ["load_pdf", "normalize_text"]
+__all__ = [
+    "SCAN_PAGE_CHARS",
+    "extract_tables",
+    "load_pdf",
+    "normalize_text",
+    "table_to_markdown",
+]

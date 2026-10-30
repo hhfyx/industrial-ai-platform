@@ -47,7 +47,16 @@ class RecursiveSplitter:
         self.size = size or ChunkSize()
 
     def split(self, documents: Sequence[Document]) -> list[Chunk]:
-        """主入口：逐 Document 切块，页码随块继承。"""
+        """主入口：逐 Document 切块，页码随块继承。
+
+        **表格不切**（`doc.is_table`）：一张表被切开之后，行列关系就没了，
+        "这张表的第三列是什么"再也答不出来 —— 而这是合同问答里最常见的问题。
+        所以表格**整张作为一个 Chunk**，哪怕它超预算。
+
+        超预算是要付代价的（embedding 请求变贵、可能被模型截断），
+        但**切碎表格的代价更大**：切碎的表格不是"信息少了一半"，
+        而是"变成了一堆无法还原的数字"。宁可让一张大表贵一点。
+        """
         chunks: list[Chunk] = []
         for doc in documents:
             text = doc.text.strip()
@@ -55,7 +64,16 @@ class RecursiveSplitter:
                 # 空 Document 直接跳过：产出一个空块会污染索引，
                 # 而"为什么这批少了一条"比"为什么多了一条空的"难查得多。
                 continue
-            pieces = self._split_text(text)
+
+            # 表格整张一块；正文才切分并加重叠。
+            # 正文的切分结果里**不应该出现表格的重叠尾**，所以表格先在
+            # 内容边界上被隔离，再进入合并逻辑（这里直接跳过合并）。
+            pieces = [text] if doc.is_table else self._split_text(text)
+            # `pages` 从 Document 继承，**不重新推断**：
+            # 跨页断句被拼接过之后，一段文字真实覆盖 p6 和 p7，
+            # 只记 `page=6` 会让溯源变成半个真话。见 loaders/pdf.py。
+            inherited_pages = doc.pages or ((doc.page,) if doc.page is not None else ())
+
             for piece in pieces:
                 chunks.append(
                     Chunk(
@@ -63,11 +81,14 @@ class RecursiveSplitter:
                         page=doc.page,
                         source=doc.source,
                         # metadata 里放的是**可过滤**的事实，不是调试信息
-                        metadata={**doc.metadata, "splitter": self.name},
+                        metadata={
+                            **doc.metadata,
+                            "splitter": "table" if doc.is_table else self.name,
+                        },
                         # 全局递增：排序和调试都要一个稳定序号。
                         # 但**它不是主键** —— 主键是内容派生的 `Chunk.id`（见 schema.py）。
                         index=len(chunks),
-                        pages=(doc.page,) if doc.page is not None else (),
+                        pages=inherited_pages,
                     )
                 )
         return chunks

@@ -1,6 +1,20 @@
 * text=auto eol=lf
+
+# ---------------------------------------------------------------- 二进制资产
+# **为什么每加一种二进制格式都要在这里登记**：
+# `text=auto` 让 git 自己判断"是不是文本"。PDF 里没有 NUL 字节时
+# （ReportLab 生成的空画布 PDF 就是这种），git 会把它当文本处理 ——
+# 结果有两个，都很隐蔽：
+#   1. `eol=lf` 会把 PDF 里的 CRLF 改写成 LF，**改坏文件**
+#   2. `git diff` 显示"106 行新增"而不是"Binary file"，review 时看不出改了什么
+# 实测踩到：`tests/fixtures/sample_no_text.pdf` 只有 2163 字节且 0 个 NUL，
+# 差点被当成文本提交（`git diff --numstat` 显示 `106 0`）。
 *.png binary
 *.jpg binary
-*.pptx binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
 *.docx binary
 *.xlsx binary
+*.pptx binary
+*.zip binary
