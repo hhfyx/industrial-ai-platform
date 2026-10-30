@@ -34,7 +34,21 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --frozen
+        # 失败时用 ::error:: 把真实错误写进 annotation。
+        # 为什么加这个：GitHub 的 check-run annotation 只告诉我们
+        # "Process completed with exit code 4"，行号还不可靠（指向注释），
+        # 看不到 uv 到底报了什么。这一步让它自己说出来。
+        run: |
+          if ! uv sync --frozen; then
+            echo "::error::uv sync --frozen 失败（exit $?）"
+            echo "--- uv version ---"
+            uv --version || true
+            echo "--- python ---"
+            python3 --version || true
+            echo "--- retry with verbose to surface cause ---"
+            uv sync --frozen -v 2>&1 | tail -60 || true
+            exit 1
+          fi
 
       - name: Lint
         run: uv run ruff check .
