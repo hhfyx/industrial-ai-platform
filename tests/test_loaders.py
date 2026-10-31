@@ -284,22 +284,42 @@ def test_page_number_lines_are_stripped_by_pattern() -> None:
 
 
 def test_pdf_page_numbers_are_sequential_and_correct() -> None:
-    """**验收核心**：50 页 PDF，页码必须 1..50 连续且对得上。"""
+    """**验收核心**：50 页 PDF，页码必须 1..50 连续且对得上。
+
+    ⚠️ **W5 周二起，一份 PDF 不再是"一页一个 Document"**：标题启发式命中后，
+    标题行会独立成一条 `Document`（`block="heading"`），正文另起一条。
+    所以这里断言的是"**页号序列**"（去重后 1..50 连续），而不是文档条数。
+
+    为什么改成这样而不是改实现：`Document` 的契约是"一段文本 + 出处"，
+    "每页一条"从来只是 loader 的实现选择。把标题行并进页面文本的话，
+    切分器就拿不到节边界 —— 而"标题层级不丢"是本周的验收项。
+    """
     result = load_document(FIXTURES / "sample50.pdf")
-    pages = [d.page for d in result.documents]
-    assert pages == list(range(1, 51))
+    pages = sorted({d.page for d in result.documents})
+    assert pages == list(range(1, 51)), f"页号不连续：{pages[:5]}…{pages[-5:]}"
 
 
 def test_pdf_page_content_matches_its_page_number() -> None:
     """每页内容里的"第 N 章"必须与该页 `page=N` 一致 —— 页码正确的实质证明。
 
     只断言"有 50 个 Document"是不够的：页码全错也能过。
+
+    标题行拆成独立 `Document` 之后，**章节号出现在标题那一条上**，
+    正文那条不含"第 N 章" —— 所以断言按角色分开：
+    标题条必须含本章号，正文条必须属于本页且不带下一章的号。
     """
     result = load_document(FIXTURES / "sample50.pdf")
     for doc in result.documents:
         assert doc.page is not None
-        assert f"第 {doc.page} 章" in doc.text, f"第 {doc.page} 页内容对不上：{doc.text[:40]}"
         assert doc.page in doc.pages, f"第 {doc.page} 页不在自己的 pages 里：{doc.pages}"
+        if doc.block == "heading":
+            assert f"第 {doc.page} 章" in doc.text, f"第 {doc.page} 页的标题对不上：{doc.text[:40]}"
+        else:
+            # 正文条：不能出现**别的页**的章号（出现就说明跨页串了）
+            others = [
+                f"第 {n} 章" for n in range(1, 51) if n != doc.page and f"第 {n} 章" in doc.text
+            ]
+            assert not others, f"第 {doc.page} 页正文混进了 {others} 的章号"
 
 
 def test_pdf_header_and_page_number_are_removed() -> None:
@@ -310,20 +330,30 @@ def test_pdf_header_and_page_number_are_removed() -> None:
 
 
 def test_pdf_body_lines_are_preserved() -> None:
-    """**反向断言**：剔除要精准，正文一行都不能少。"""
+    """**反向断言**：剔除要精准，正文一行都不能少。
+
+    按**页**汇总后再断言（单条 Document 可能只是标题行，只有 1 行）。
+    """
     result = load_document(FIXTURES / "sample50.pdf")
+    by_page: dict[int, list[str]] = {}
     for doc in result.documents:
-        lines = [ln for ln in doc.text.split("\n") if ln.strip()]
-        assert len(lines) >= 3, f"第 {doc.page} 页正文行数不足：{lines}"
+        by_page.setdefault(doc.page, []).append(doc.text)
+    for page, texts in by_page.items():
+        joined = "\n".join(texts)
+        lines = [ln for ln in joined.split("\n") if ln.strip()]
+        assert len(lines) >= 3, f"第 {page} 页正文行数不足：{lines}"
 
 
 def test_pdf_without_header_also_works() -> None:
     """没有页眉页脚的 PDF 不能被误剥离。"""
     result = load_document(FIXTURES / "sample5_no_header.pdf")
-    assert len(result.documents) == 5
+    # 标题行拆条后：5 页 × (标题 + 正文) = 10 条；页号仍是 1..5
+    assert sorted({d.page for d in result.documents}) == [1, 2, 3, 4, 5]
     assert result.warnings == []
     for doc in result.documents:
-        assert f"第 {doc.page} 章" in doc.text
+        assert doc.page is not None
+        if doc.block == "heading":
+            assert f"第 {doc.page} 章" in doc.text
 
 
 # ============================================================ 6. PDF：跨页断句
@@ -658,10 +688,12 @@ def test_all_loaders_return_same_model() -> None:
         for doc in result.documents:
             assert isinstance(doc, Document)
             assert isinstance(doc.text, str) and doc.text
-            # 三个字段三格式都有：page / pages / block
+            # 四个字段三格式都有：page / pages / block
             assert doc.page is None or doc.page >= 1
             assert isinstance(doc.pages, tuple)
-            assert doc.block in {"text", "table", "heading"}
+            # **`code` 是 W5 周二新增的第四种块类型**（Markdown 围栏）：
+            # 代码的切分边界是 `def`/`class` 而不是中文句读，所以必须与正文分开。
+            assert doc.block in {"text", "table", "heading", "code"}
 
 
 def test_all_loaders_mark_tables_the_same_way() -> None:

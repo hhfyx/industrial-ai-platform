@@ -227,9 +227,37 @@ class DelimiterSplitter:
         return [p for p in pieces if p]
 
     def _hard_cut(self, text: str) -> list[str]:
-        """最后手段：等长硬切。**只在没有任何分隔符时发生。**"""
+        """最后手段：等长硬切。**只在没有任何分隔符时发生。**
+
+        ## 硬切也必须躲开数字（实测切坏过）
+
+        `0.05mm` 这种串在没有标点的长文里会被等长硬切成 `…0.05m` + `m…`。
+        后果比"切在句子中间"更糟：**检索时那个数字再也拼不回来** ——
+        `0.05m` 与 `m` 两块都不含完整的 `0.05mm`，命中哪块都答不对精度要求。
+
+        所以每切一刀都用 `safe_cut_position` 往前挪到数字之前。
+        **代价（必须认）**：块可能比预算短一点（挪动幅度是"一个数字串的长度"，
+        典型 5~10 字符）；极端情况（数字串本身比预算还长）挪不动，退回原位置。
+        """
+        from app.rag.chunking.boundaries import safe_cut_position
+
         step = self.size.chunk_chars
-        return [text[i : i + step] for i in range(0, len(text), step)]
+        pieces: list[str] = []
+        start = 0
+        while start < len(text):
+            end = start + step
+            if end >= len(text):
+                pieces.append(text[start:])
+                break
+            # 往前挪到安全位置。**挪动后必须保证有进展**：
+            # 若挪到了 `start` 本身（数字从 start 就开始），退回原位 ——
+            # 否则这一刀切不出任何东西，循环永不结束。
+            cut = safe_cut_position(text, end)
+            if cut <= start:
+                cut = end
+            pieces.append(text[start:cut])
+            start = cut
+        return pieces
 
     def _merge(self, atoms: list[str]) -> list[str]:
         """把原子片贪心合并到 `chunk_chars` 以内，并加尾部重叠。
@@ -238,6 +266,7 @@ class DelimiterSplitter:
         （实测平均 470 字 / 预算 500），换来的是"每块都以句末标点收尾"。
         这笔交易在 RAG 里是划算的：**半句话的块比短 6% 的块糟得多**。
         """
+
         budget = self.size.chunk_chars
         joined: list[str] = []
         buffer = ""
@@ -247,7 +276,11 @@ class DelimiterSplitter:
                 # 重叠：上一块尾部 overlap_chars 字符作为下一块的开头。
                 # **注意这里不能直接拼上去**：拼上去再和 atom 合并会让新块
                 # 一开场就超预算，必须让重叠计入本块长度。
-                tail = buffer[-self.size.overlap_chars :] if self.size.overlap_chars else ""
+                #
+                # **重叠起点也要躲开数字**（实测切坏过）：`buffer[-50:]` 若正好
+                # 落在 `0.05mm` 中间，后一块会以 `05mm` 开头 —— 块首出现半个数字，
+                # 检索命中它时模型看到的精度值是错的。所以把起点往前挪。
+                tail = self._safe_tail(buffer)
                 buffer = tail + atom
             else:
                 buffer += atom
@@ -256,7 +289,34 @@ class DelimiterSplitter:
 
         # 兜底裁一次：只有"重叠 + 单个原子片"本身就超预算时才会触发
         # （例如预算 100 而某句有 150 字）。正常情况下一个字符都不会被裁。
-        return [piece[:budget].strip() for piece in joined if piece.strip()]
+        # 裁的位置同样要躲开数字。
+        return [self._safe_prefix(piece, budget).strip() for piece in joined if piece.strip()]
+
+    def _safe_tail(self, buffer: str) -> str:
+        """取 `buffer` 末尾 `overlap_chars` 字符，但起点不能落在数字中间。
+
+        `overlap_chars == 0` 时返回空串（没有重叠）。
+        挪到 0 也安全时返回空串：宁可这一块不重叠，也不要它以一个半截数字开头。
+        """
+        overlap = self.size.overlap_chars
+        if not overlap:
+            return ""
+        from app.rag.chunking.boundaries import safe_cut_position
+
+        start = len(buffer) - overlap
+        if start <= 0:
+            return buffer if start == 0 else ""
+        safe = safe_cut_position(buffer, start)
+        return buffer[safe:] if safe > 0 else ""
+
+    def _safe_prefix(self, piece: str, budget: int) -> str:
+        """取 `piece` 前 `budget` 字符，末尾不能停在数字中间。"""
+        if len(piece) <= budget:
+            return piece
+        from app.rag.chunking.boundaries import safe_cut_position
+
+        cut = safe_cut_position(piece, budget)
+        return piece[:cut] if cut > 0 else piece[:budget]
 
 
 __all__ = ["DEFAULT_SEPARATORS", "DelimiterSplitter"]

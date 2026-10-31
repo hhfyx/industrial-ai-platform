@@ -74,9 +74,9 @@ def split_by_headings(text: str) -> list[tuple[int, str]]:
 
 
 def _split_table_blocks(block: str, level: int) -> list[tuple[int, str, str]]:
-    """把一块内容里的**表格行**摘出来单独成块。
+    """把一块内容里的**表格行**与**代码围栏**各摘出来单独成块。
 
-    返回 `[(level, block_type, text), ...]`，`block_type` 是 `text` / `table`。
+    返回 `[(level, block_type, text), ...]`，`block_type` 是 `text` / `table` / `code`。
 
     **为什么不直接把整块都算表格**：Markdown 的一节通常"一段正文 + 一张表 + 一段正文"。
     把整节都标成表格，切分器就不会拆它 —— 但正文本来该按语义边界切。
@@ -86,10 +86,23 @@ def _split_table_blocks(block: str, level: int) -> list[tuple[int, str, str]]:
     不识别围栏的话，一段代码会被标成"表格"然后禁止切分 ——
     结果是超大块进 embedding，或者表格语义被错误挂到代码上。
     这与 `split_by_headings` 里"围栏内的 `#` 不是标题"是同一条原则。
+
+    ## 代码块为什么单独标成 `block="code"`
+
+    代码与正文的切分边界完全不同（见 `chunking/code.py`）：
+    正文按中文句读切，代码按 `def`/`class` 等结构边界切，且**必须保留缩进**。
+    如果代码留在 `block="text"` 里，正文切分器会把
+    `def handler(request)` 与 `return {"ok": True}` 分到两块 ——
+    命中的块读不出任何逻辑。
+
+    所以这里把**整个围栏（含首尾围栏行）**摘成一条 `block="code"` 的 Document。
+    围栏行保留在文本里：下游重新渲染（`markdown` → 高亮）需要它，
+    而且**语言标记就在围栏行上**。
     """
     pieces: list[tuple[int, str, str]] = []
     buffer: list[str] = []
     table: list[str] = []
+    code: list[str] = []
     in_fence = False
 
     def flush_text() -> None:
@@ -104,19 +117,37 @@ def _split_table_blocks(block: str, level: int) -> list[tuple[int, str, str]]:
             pieces.append((level, "table", "\n".join(table)))
             table = []
 
+    def flush_code() -> None:
+        nonlocal code
+        if code:
+            pieces.append((level, "code", "\n".join(code)))
+            code = []
+
     for line in block.split("\n"):
         if _FENCE.match(line):
-            # 围栏开关本身属于正文，而且必须先把待收的表格收掉
             flush_table()
-            in_fence = not in_fence
-            buffer.append(line)
+            if not in_fence:
+                # 开围栏：先把之前的正文落袋，代码从这里开始收
+                flush_text()
+                in_fence = True
+                code.append(line)
+            else:
+                # 闭围栏：收尾（**围栏行留在 code 里**，语言标记在它上面）
+                code.append(line)
+                in_fence = False
+                flush_code()
             continue
-        if not in_fence and _TABLE_ROW.match(line):
+        if in_fence:
+            code.append(line)
+            continue
+        if _TABLE_ROW.match(line):
             flush_text()
             table.append(line)
         else:
             flush_table()
             buffer.append(line)
+    # 未闭合的围栏：按代码块收（**不替源文档"修好"它**，只是不让它混进正文）
+    flush_code()
     flush_table()
     flush_text()
     return pieces

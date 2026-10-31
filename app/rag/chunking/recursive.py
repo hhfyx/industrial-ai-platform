@@ -45,38 +45,80 @@ class RecursiveChunking:
         if not docs:
             return []
 
-        splitter = self._splitter or DelimiterSplitter(
-            ChunkSize(chunk_chars=cfg.chunk_chars, overlap_chars=cfg.overlap_chars)
-        )
-        raw = splitter.split(docs)
+        # **代码块先分流**：正文的分隔符表是中文句读，拿它切代码会把
+        # `def handler(request)` 与它的 `return` 分到两块。代码走
+        # `code.split_code`（按 `def`/`class` 结构边界、保留缩进与语言标记）。
+        code_docs = [doc for doc in docs if doc.is_code]
+        text_docs = [doc for doc in docs if not doc.is_code]
 
-        # **重建一遍而不是直接返回 raw**：`DelimiterSplitter` 写入的
-        # `metadata["splitter"]` 是 `"delimiter"` / `"table"`，而本策略对外叫
-        # `"recursive"`。不统一的话，`metadata["splitter"]` 在策略之间不可比，
-        # "这批向量是哪版策略切的"这个排查线索就失效了。
-        #
-        # 表格块保留 `"table"` 标记：那个值说明的不是"哪个策略"，
-        # 而是"这块不参与切分"。混成一个字段是原实现的既成事实，
-        # 这里用 `chunk_strategy` 额外记一份，让两者互不干扰。
         rebuilt: list[Chunk] = []
-        for position, chunk in enumerate(raw):
-            rebuilt.append(
-                Chunk(
-                    text=chunk.text,
-                    page=chunk.page,
-                    source=chunk.source,
-                    metadata={
-                        **chunk.metadata,
-                        "splitter": self.name,
-                        # 表格块的真实来源标记另存，下游（引用"（表格）"）照旧可用
-                        "chunk_strategy": "table" if chunk.is_table else self.name,
+        if text_docs:
+            splitter = self._splitter or DelimiterSplitter(
+                ChunkSize(chunk_chars=cfg.chunk_chars, overlap_chars=cfg.overlap_chars)
+            )
+            for chunk in splitter.split(text_docs):
+                rebuilt.append(
+                    Chunk(
+                        text=chunk.text,
+                        page=chunk.page,
+                        source=chunk.source,
+                        metadata={
+                            **chunk.metadata,
+                            "splitter": self.name,
+                            # 表格块的真实来源标记另存，下游（引用"（表格）"）照旧可用
+                            "chunk_strategy": "table" if chunk.is_table else self.name,
+                        },
+                        index=len(rebuilt),
+                        pages=chunk.pages,
+                        id=chunk.id,
+                    )
+                )
+        # 代码块**最后**追加：正文块先产出，代码块在尾部 —— 这样
+        # `index` 连续且不与正文块交错。块在库里的顺序本来就不参与检索
+        # （检索按分数排序），所以"代码排在文档末尾"只影响调试时的可读顺序。
+        rebuilt.extend(_chunk_code(code_docs, strategy=self.name, index_base=len(rebuilt)))
+
+        return rebuilt
+
+
+def _chunk_code(docs: list[Document], *, strategy: str, index_base: int = 0) -> list[Chunk]:
+    """把代码类 Document 按结构边界切成 Chunk。
+
+    ## 为什么三种策略共用这一份
+
+    代码的切分边界**与策略无关** —— 递归字符、按标题、语义都不会给出
+    更好的代码边界（语义策略算的是"句子向量相似度"，而代码行不是句子）。
+    所以代码块在三处都调这一个函数，保证"同一份代码换策略切出来一样"。
+
+    ## `block="code"` 与语言标记都要传下去
+
+    - `block` 决定下游渲染（要不要包 ```` ``` ````）
+    - `language` 决定高亮，也是"这段是 Python 还是 SQL"的唯一线索
+    """
+    from app.rag.chunking.base import inherited_pages, make_chunk
+    from app.rag.chunking.code import split_code
+
+    out: list[Chunk] = []
+    for doc in docs:
+        blocks = split_code(doc.text)
+        pages = inherited_pages(doc)
+        for block in blocks:
+            out.append(
+                make_chunk(
+                    text=block.text,
+                    doc=doc,
+                    index=index_base + len(out),
+                    strategy=strategy,
+                    pages=pages,
+                    extra_metadata={
+                        # **覆盖 doc.metadata 里的 block**：代码块必须保持 `code`，
+                        # 否则下游会把它当正文重新递归切一次。
+                        "block": "code",
+                        "code_language": block.language,
                     },
-                    index=position,
-                    pages=chunk.pages,
-                    id=chunk.id,
                 )
             )
-        return rebuilt
+    return out
 
 
 __all__ = ["RecursiveChunking"]

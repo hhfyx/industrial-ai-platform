@@ -396,7 +396,11 @@ def test_index_real_pdf_keeps_page_attribution() -> None:
     indexer = Indexer(embedder=HashingEmbedder(dimension=64), store=store)
     report = indexer.index_file(Path(__file__).parent / "fixtures" / "sample50.pdf")
 
-    assert report.documents == 50
+    # **W5 周二起一条 PDF 不再"一页一条 `Document`"**：标题启发式命中后，
+    # 标题行与正文各成一条（见 `loaders/pdf.py::_split_page_by_headings`）。
+    # 所以断言"页数"而不是"文档条数" —— 后者是 loader 的实现选择，不是契约。
+    assert report.pages == 50
+    assert report.documents >= 50, f"拆标题后每页至少一条 Document：{report.documents}"
     assert report.chunks > 0
     assert report.ok is True
 

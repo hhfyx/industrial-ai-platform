@@ -82,6 +82,12 @@ def export_one(
     target = out_dir / f"{source.stem}.{strategy_name}.md"
     target.write_text(text, encoding="utf-8")
 
+    # **半句率**：切分质量的量化代理指标（见 `chunking/quality.py`）。
+    # 它与块数/块长不同 —— 那些只能看出"异常"，这个能看出"边界落错位置"。
+    from app.rag.chunking.quality import measure
+
+    sentence = measure(chunks).as_dict()
+
     return {
         "document": source.name,
         "strategy": strategy_name,
@@ -106,7 +112,21 @@ def export_one(
         # "标题策略在 PDF 上表现如何"这条结论就分不清是切标题还是分页。**
         "heading_fallback": _count_fallback(chunks),
         "splitter_labels": _count_splitter(chunks),
+        # **半句率是本周唯一能量化"切得对不对"的数字**，必须进汇总表。
+        "sentence_rate": sentence["sentence_rate"],
+        "sentence_checked": sentence["chunks"],
+        "sentence_skipped": sentence["skipped"],
+        "sentence_examples": sentence["examples"],
+        # 按块类型分组：表格/代码/正文的边界判据不同，混平均会让指标失去意义
+        "sentence_by_kind": _by_kind(chunks),
     }
+
+
+def _by_kind(chunks: list[Any]) -> dict[str, dict[str, Any]]:
+    """按块类型分组的半句率。**不分组就无法解释这个数字**（见 quality.py）。"""
+    from app.rag.chunking.quality import measure_by_kind
+
+    return measure_by_kind(chunks)
 
 
 def _count_fallback(chunks: list[Any]) -> str | None:
@@ -174,23 +194,43 @@ def summarize(rows: list[dict[str, Any]], out_path: Path) -> None:
     """打印并落盘一张对比表。**这张表是周六做结论的原料，不是结论本身。**"""
     print(
         f"\n{'文档':<22}{'策略':<11}{'块数':>5}{'最小':>5}{'最大':>6}"
-        f"{'平均':>7}{'冗余':>8}  降级/来源"
+        f"{'平均':>7}{'冗余':>8}{'半句率':>9}  降级/来源"
     )
     for row in rows:
         fallback = row["heading_fallback"] or "-"
         print(
             f"{row['document']:<22}{row['strategy']:<11}{row['chunks']:>5}"
             f"{row['chars_min']:>5}{row['chars_max']:>6}{row['chars_avg']:>7}"
-            f"{row['redundancy']:>7.1%}  {fallback}"
+            f"{row['redundancy']:>7.1%}{row['sentence_rate']:>8.2%}  {fallback}"
         )
 
     out_path.write_text(
         json.dumps(
             {
                 "note": (
-                    "块数/长度/冗余只是『可量化的那一面』；切分质量要人工按 "
+                    "块数/长度/冗余/半句率都是『可量化的那一面』。半句率是方向性指标"
+                    "（能看出切点落错位置，看不出论述被拦腰切）—— 切分质量仍要人工按 "
                     "docs/chunking-quality.md 的三条判据读 data/samples/chunking/ 下的样本。"
                 ),
+                "knownConfounds": [
+                    {
+                        "what": "PDF 的 loader 会把标题行拆成独立 Document（block=heading）",
+                        "effect": (
+                            "recursive / semantic 不懂结构，因此标题与正文各成一块（块数翻倍）；"
+                            "heading 会重新合并成整节。所以 PDF 上的块数差异**部分来自 loader**，"
+                            "不全是策略差异 —— 比较块数时必须记得这条。"
+                        ),
+                        "whyAccepted": (
+                            "不拆的话 heading 拿不到节边界（`heading_level` 挂在整页上等于按页切），"
+                            "而'层级信息不丢'是本周验收项。拆是必须的，混淆要写出来而不是藏起来。"
+                        ),
+                    },
+                    {
+                        "what": "semantic 在 hashing 下的断点基于字面相似度",
+                        "effect": "它的半句率与块数在 hashing 与 bge 之间不可比；本表 default 是 hashing。",
+                        "whyAccepted": "hashing 是离线可跑的默认；要语义结论必须用 --embedder bge-small-zh 重跑。",
+                    },
+                ],
                 "samples": rows,
             },
             ensure_ascii=False,

@@ -47,6 +47,7 @@ from app.rag.loaders.clean import (
     strip_page_numbers,
     strip_repeated_lines,
 )
+from app.rag.loaders.pdf_headings import HeadingProbe, probe_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -193,7 +194,12 @@ def _remove_table_lines(lines: list[str], rows: list[list[str | None]]) -> tuple
     return lines, 0
 
 
-def load_pdf(path: str | Path) -> LoadResult:
+def load_pdf(
+    path: str | Path,
+    *,
+    use_heading_heuristic: bool = True,
+    min_heading_confidence: float = 0.6,
+) -> LoadResult:
     """逐页加载 PDF。
 
     返回的 `Document` **一页一个**（表格另起一条），`page` 从 1 开始
@@ -206,6 +212,20 @@ def load_pdf(path: str | Path) -> LoadResult:
 
     **去页眉必须在合并断行之前**：合并会把多行粘成一段，
     粘完之后"首行/末行"这个概念就没有了，重复行统计再也做不了。
+
+    ## `use_heading_heuristic`：PDF 的标题识别是"猜"，必须能关
+
+    PDF 里没有"标题"这个概念，只能靠字号/加粗猜（见 `pdf_headings.py`）。
+    猜错不会报错，只会让"按标题切分"在这一节切错位置 —— 所以：
+
+    - 猜得**不可信**（`confidence < min_heading_confidence` 或字号差不够）→
+      **一行 `heading_level` 都不填**，策略层随后自动降级为按页切。
+      这是任务里"不可靠就降级为递归，别硬做"的落点。
+    - 猜得可信 → 命中的行标 `block="heading"` + `heading_level`，
+      与 Markdown / DOCX 完全同一套下游口径。
+
+    **默认开启**，但两条路都必须有测试守着：一条证明"可信时真的填了"，
+    一条证明"不可信时真的一行都不填"。
     """
     file_path = Path(path)
     result = LoadResult()
@@ -281,6 +301,36 @@ def load_pdf(path: str | Path) -> LoadResult:
         # 拼接后的段落真实覆盖了两页 —— `pages` 记全，`page` 只记起始页
         span_of[index] = tuple(sorted(set(span_of[index]) | {following}))
 
+    # ---------------------------------------------------------------- ⑤' 标题启发式（可选）
+    # **必须在合并断行之后、产出 Document 之前**：标题判据要拿"合并后的段"
+    # 去做行匹配（合并会把标题行与它后面的正文拼成一个段落的情况，
+    # 这里不做那种拼接 —— `can_join` 已经因为"像标题"而拒绝拼接，见 clean.py）。
+    #
+    # 而且必须**用 pypdf 的 visitor 重新扫一遍字号**：原始行流（`raw_pages`）
+    # 已经被去页眉/去页码/摘表格改过，行与字号的对应关系已不成立。
+    probe: HeadingProbe | None = None
+    heading_by_page: dict[int, set[str]] = {}
+    if use_heading_heuristic:
+        probe = probe_pdf(file_path)
+        if probe.is_trustworthy(min_confidence=min_heading_confidence):
+            for page_no, titles in probe.headings.items():
+                heading_by_page[page_no] = set(titles)
+        else:
+            # **不可信 → 一行都不填**。这是"别硬做"的落点：
+            # 硬填会产出一堆"假节"，策略层的按标题切分切在错误的位置，
+            # 而且不会报错 —— 那比降级成按页切糟得多（后者至少行为可预测）。
+            result.warnings.append(
+                f"{file_path.name} 的标题识别不可信"
+                f"（confidence={probe.confidence:.2f}、字号比={probe.ratio:.2f}），"
+                "已降级为按页切分（不填 heading_level）"
+            )
+            logger.info(
+                "PDF 标题启发式不可信，降级：%s（confidence=%.2f ratio=%.2f）",
+                file_path.name,
+                probe.confidence,
+                probe.ratio,
+            )
+
     # ---------------------------------------------------------------- ⑥ 产出 Document
     # 顺序按页码排：某页的正文段 → 该页的表格 → 下一页。表格跟着它所在的页走，
     # 摘要/检索时"这段表格属于哪一节"不会前后颠倒。
@@ -300,15 +350,15 @@ def load_pdf(path: str | Path) -> LoadResult:
         if text:
             if len(text) < SCAN_PAGE_CHARS:
                 scan_pages.append(index)
-            result.documents.append(
-                Document(
-                    source=file_path.name,
-                    page=index,
-                    text=text,
-                    metadata={"block": "text", "page_chars": len(text)},
-                    pages=spaced_pages.get(index, (index,)),
-                )
+            titles = heading_by_page.get(index) or set()
+            page_docs = _split_page_by_headings(
+                text=text,
+                titles=titles,
+                source=file_path.name,
+                page=index,
+                pages=spaced_pages.get(index, (index,)),
             )
+            result.documents.extend(page_docs)
         elif index not in failed_pages and index not in tables_by_page:
             empty_pages.append(index)
 
@@ -345,6 +395,106 @@ def load_pdf(path: str | Path) -> LoadResult:
         )
 
     return result
+
+
+def _split_page_by_headings(
+    *,
+    text: str,
+    titles: set[str],
+    source: str,
+    page: int,
+    pages: tuple[int, ...],
+) -> list[Document]:
+    """按**页内识别到的标题行**把一页拆成多个 `Document`。
+
+    ## 为什么必须拆，而不是给整页打一个 `heading_level`
+
+    第一版的做法是"这一页有标题 → 给整页 `heading_level=1`"。
+    后果很严重：策略层看到"每页都有 heading_level"，于是**每页都开一节** ——
+    等同于按页切，`heading` 策略退化成 `page` 策略，而且 `heading_fallback`
+    还不会被标成 `page`（因为确实有 heading_level）。**那是一条假的成功路径。**
+
+    正确做法：**标题行必须单独成为一个 `Document`**，正文各自成段。
+    这样 `_is_section_start()` 能凭"`block == "heading"`"认出节边界，
+    与 Markdown / DOCX 走完全同一条路 —— 这才是"层级信息不丢"。
+
+    ## 拆分规则
+
+    - 标题行 → `Document(block="heading", heading_level=1, text=标题行)`
+    - 标题行之后、下一个标题之前的正文 → `Document(block="text", heading_level=1)`
+      （**`heading_level` 要带上**：它表示"这段属于哪一级的节"，
+      loader 的既有语义就是这样，Markdown 那边也是这么填的）
+    - 没有任何标题命中 → 整页一个 `Document`，`block="text"`，不填 `heading_level`
+
+    ## 层级为什么统一是 1
+
+    PDF 的启发式只能判断"这行比正文大"，判断不出"这是第几级标题" ——
+    15pt 的章标题与 13pt 的小节标题都是"比 10pt 正文大"。
+    猜层级需要**字号聚类**（15/13/12 → 1/2/3），那是另一层猜测，
+    本格不做：**统一给 1，并如实说明这是"扁平层级"**。
+    硬编一个看起来像三级结构的层级，比扁平更糟 —— 下游会拿它当真实结构用。
+    """
+    if not titles:
+        return [
+            Document(
+                source=source,
+                page=page,
+                text=text,
+                metadata={"block": "text", "page_chars": len(text)},
+                pages=pages,
+            )
+        ]
+
+    docs: list[Document] = []
+    buffer: list[str] = []
+
+    def flush_body() -> None:
+        nonlocal buffer
+        body = "\n".join(buffer).strip()
+        if body:
+            docs.append(
+                Document(
+                    source=source,
+                    page=page,
+                    text=body,
+                    # 正文段带 heading_level：表示"它属于哪个节"，
+                    # 与 Markdown loader 的填法一致（不是"它就是标题"）。
+                    metadata={"block": "text", "heading_level": 1, "page_chars": len(body)},
+                    pages=pages,
+                )
+            )
+        buffer = []
+
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if stripped and stripped in titles:
+            flush_body()
+            docs.append(
+                Document(
+                    source=source,
+                    page=page,
+                    text=stripped,
+                    # **只有"整段就是标题行"才标 heading** —— 与 markdown.py 同一条规矩
+                    metadata={"block": "heading", "heading_level": 1},
+                    pages=pages,
+                )
+            )
+        else:
+            buffer.append(line)
+
+    flush_body()
+    if not docs:
+        # 极端情况：标题命中但全文被 flush 成空（不该发生，但兜底不能产出空列表）
+        return [
+            Document(
+                source=source,
+                page=page,
+                text=text,
+                metadata={"block": "text", "page_chars": len(text)},
+                pages=pages,
+            )
+        ]
+    return docs
 
 
 __all__ = [

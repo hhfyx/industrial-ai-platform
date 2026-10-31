@@ -126,7 +126,7 @@ class Document:
 
     @property
     def block(self) -> str:
-        """块类型：`text` / `table` / `heading`。缺省 `text`。"""
+        """块类型：`text` / `table` / `heading` / `code`。缺省 `text`。"""
         return str(self.metadata.get("block", "text"))
 
     @property
@@ -137,6 +137,16 @@ class Document:
         而"这张表的第三列是什么"恰恰是合同问答里最常见的问题。
         """
         return self.block == "table"
+
+    @property
+    def is_code(self) -> bool:
+        """代码块：**不参与正文递归切分**，按结构边界切（见 `chunking/code.py`）。
+
+        代码与正文的"句子"不是同一个东西：正文界在中文句读，代码界在 `def`/`class`。
+        混着切的后果是 `def handler(request)` 与它的 `return` 分到两块 ——
+        命中哪块都读不出逻辑。
+        """
+        return self.block == "code"
 
 
 @dataclass(frozen=True, slots=True)
@@ -249,13 +259,18 @@ class Chunk:
 
     @property
     def block(self) -> str:
-        """块类型：`text` / `table` / `heading`（从 `Document` 继承而来）。"""
+        """块类型：`text` / `table` / `heading` / `code`（从 `Document` 继承而来）。"""
         return str(self.metadata.get("block", "text"))
 
     @property
     def is_table(self) -> bool:
         """这一块是不是表格。生成层可以用它决定引用里要不要标"（表格）"。"""
         return self.block == "table"
+
+    @property
+    def is_code(self) -> bool:
+        """这一块是不是代码。生成层可以用它决定要不要包 ```` ``` ````。"""
+        return self.block == "code"
 
     @property
     def location(self) -> str:

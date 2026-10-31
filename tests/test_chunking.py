@@ -339,10 +339,13 @@ def test_heading_splits_oversized_section_and_keeps_path() -> None:
     chunks = HeadingChunking().chunk(docs, ChunkingConfig(chunk_chars=300))
 
     assert len(chunks) > 1, "超长节没有被二次切"
-    # 第一片以标题开头；后续片补了路径标记
+    # 第一片以标题开头；后续片补了**完整 section_path**
     assert chunks[0].text.startswith("## 很长的节")
     for chunk in chunks[1:]:
-        assert chunk.text.startswith("【L2 > 很长的节】"), f"后续片没补路径：{chunk.text[:30]!r}"
+        assert chunk.text.startswith("【很长的节】"), f"后续片没补路径：{chunk.text[:30]!r}"
+        # **二次切的每一片都要继承 section_path**（本周验收项之一）
+        assert chunk.metadata.get("section_path") == "很长的节"
+        assert chunk.metadata.get("section_part") is not None
 
 
 def test_heading_respects_max_level() -> None:

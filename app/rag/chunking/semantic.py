@@ -202,6 +202,28 @@ class SemanticChunking:
                 )
                 continue
 
+            # **代码块不参与语义切分**：句向量的相似度对代码行没有意义
+            # （`def load():` 与 `    with open(...)` 在字面与语义上都"不像"，
+            # 但它们是同一个逻辑单元）。代码走结构边界切（见 `chunking/code.py`）。
+            if doc.is_code:
+                from app.rag.chunking.code import split_code
+
+                for block in split_code(doc.text):
+                    chunks.append(
+                        make_chunk(
+                            text=block.text,
+                            doc=doc,
+                            index=len(chunks),
+                            strategy=self.name,
+                            pages=inherited_pages(doc),
+                            extra_metadata={
+                                "block": "code",
+                                "code_language": block.language,
+                            },
+                        )
+                    )
+                continue
+
             segments, breakpoints = self._segment(doc.text, cfg)
             for segment in segments:
                 chunks.append(
