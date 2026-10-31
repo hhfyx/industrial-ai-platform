@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -58,6 +58,25 @@ class IndexReport:
     warnings: list[str] = field(default_factory=list)
     elapsed_ms: int = 0
 
+    # ---- 分阶段耗时（UI 的进度条要用，2026-11-14 加）----
+    # **为什么必须分开记**：任务要求进度条显示"解析 N 页 / 切出 M chunk / 编码耗时"。
+    # 只给一个总耗时就无法回答"慢在哪一步" —— 而用户看到的进度条如果只会在
+    # 0% 和 100% 之间跳，等于没有进度。
+    load_ms: int = 0
+    """解析（loader）耗时。"""
+
+    split_ms: int = 0
+    """切分耗时。"""
+
+    embed_ms: int = 0
+    """向量化耗时。**通常是索引阶段的大头**（bge CPU 实测 ~1.4 ms/条）。"""
+
+    store_ms: int = 0
+    """入库耗时。"""
+
+    pages: int = 1
+    """页数（分页来源取真实页数，非分页来源取段数）。进度条的分母之一。"""
+
     @property
     def ok(self) -> bool:
         """四步计数必须自洽：切出多少块就该有多少向量、写进多少条。
@@ -79,6 +98,11 @@ class IndexReport:
             "warnings": self.warnings,
             "elapsed_ms": self.elapsed_ms,
             "ok": self.ok,
+            "pages": self.pages,
+            "load_ms": self.load_ms,
+            "split_ms": self.split_ms,
+            "embed_ms": self.embed_ms,
+            "store_ms": self.store_ms,
         }
 
 
@@ -100,13 +124,29 @@ class Indexer:
         self.embedder = embedder or get_embedder()
         self.store = store  # 允许为 None：先 index_documents 再 assign_store
 
-    def index_file(self, path: str | Path) -> IndexReport:
-        """从磁盘文件索引。解析失败会抛 `ValueError`（那是真失败）。"""
+    def index_file(self, path: str | Path, *, on_stage: OnStage | None = None) -> IndexReport:
+        """从磁盘文件索引。解析失败会抛 `ValueError`（那是真失败）。
+
+        `on_stage` 是给 UI 的进度回调（见模块顶部的 `OnStage` 说明）。
+        """
         file_path = Path(path)
+        started = time.perf_counter()
+        _notify(on_stage, "load", 0.0, f"解析 {file_path.name}")
         result = load_document(file_path)
-        return self.index_documents(
-            result.documents, source=file_path.name, warnings=result.warnings
+        load_ms = _elapsed_ms(started)
+
+        report = self.index_documents(
+            result.documents,
+            source=file_path.name,
+            warnings=result.warnings,
+            on_stage=on_stage,
         )
+        # 解析耗时在 `index_documents` 之外，回填进来。
+        # **为什么不在 index_documents 里做**：它接收的是已解析的 documents，
+        # 根本不知道解析了多少毫秒。硬塞会让那个函数多一个假参数。
+        report.load_ms = load_ms
+        report.elapsed_ms += load_ms
+        return report
 
     def index_documents(
         self,
@@ -115,6 +155,7 @@ class Indexer:
         source: str | None = None,
         warnings: Sequence[str] | None = None,
         index_offset: int | None = None,
+        on_stage: OnStage | None = None,
     ) -> IndexReport:
         """从已解析的 `Document` 索引（上传接口走这条路：内存里已有文本）。
 
@@ -132,11 +173,15 @@ class Indexer:
         report = IndexReport(
             source=source or (documents[0].source if documents else ""),
             documents=len(documents),
+            pages=_page_count(documents),
             warnings=list(warnings or []),
         )
 
         # ② 切分
+        stage = time.perf_counter()
+        _notify(on_stage, "split", 0.0, f"切分 {report.pages} 页")
         chunks = self.splitter.split(documents)
+        report.split_ms = _elapsed_ms(stage)
         report.chunks = len(chunks)
         if not chunks:
             # 空文档不是异常：报告里 chunks=0、ok=False，调用方按 ok 判断。
@@ -163,21 +208,32 @@ class Indexer:
             ]
 
         # ③ 向量化（批量一次调用，不在循环里逐条调 —— 见 embedding/base.py）
+        stage = time.perf_counter()
+        _notify(on_stage, "embed", 0.0, f"编码 {report.chunks} 块")
         vectors = self.embedder.embed([c.text for c in chunks])
+        report.embed_ms = _elapsed_ms(stage)
         report.vectors = len(vectors)
 
         # ④ 入库（upsert 语义：同一份文件重复索引不会翻倍）
+        stage = time.perf_counter()
+        _notify(on_stage, "store", 0.0, f"入库 {report.chunks} 条")
         report.stored = self.store.upsert(chunks, vectors)
+        report.store_ms = _elapsed_ms(stage)
         report.store_total = self.store.count()
-        report.elapsed_ms = _elapsed_ms(started)
+        report.elapsed_ms = _elapsed_ms(started) + report.load_ms
 
         logger.info(
-            "索引完成：%s（%d 文档 → %d 块 → %d 向量，库内共 %d）",
+            "索引完成：%s（%d 文档 → %d 块 → %d 向量，库内共 %d；"
+            "解析 %dms / 切分 %dms / 编码 %dms / 入库 %dms）",
             report.source,
             report.documents,
             report.chunks,
             report.vectors,
             report.store_total,
+            report.load_ms,
+            report.split_ms,
+            report.embed_ms,
+            report.store_ms,
         )
         return report
 
@@ -187,7 +243,43 @@ class Indexer:
 
 
 def _elapsed_ms(started: float) -> int:
-    return int((time.perf_counter() - started) * 1000)
+    return max(int((time.perf_counter() - started) * 1000), 0)
+
+
+# 进度回调签名：(阶段名, 完成比例 0~1, 人话描述) -> None
+#
+# **为什么用 Callable 而不是引 streamlit**：`indexing` 是纯领域层，
+# 它不该知道"进度条长什么样"。UI 传一个自己的回调进来即可，
+# CLI 传 None，测试传一个记录调用的假对象 —— 三者都不用改领域代码。
+#
+# 阶段名是固定的四个字符串（`load` / `split` / `embed` / `store`），
+# 映射到任务要求的三个可见阶段（解析 N 页 / 切出 M chunk / 编码耗时）。
+OnStage = Callable[[str, float, str], None]
+
+
+def _notify(on_stage: OnStage | None, stage: str, progress: float, message: str) -> None:
+    """安全地调进度回调。
+
+    **回调抛异常不能毁掉索引**：进度条是"展示"，索引是"事实"。
+    让一个画进度条的 bug 把索引搞挂，是最得不偿失的耦合。
+    所以这里吞掉回调的异常并记 warning —— 与 loader 的"能读的读出来"同一原则。
+    """
+    if on_stage is None:
+        return
+    try:
+        on_stage(stage, progress, message)
+    except Exception as exc:  # noqa: BLE001 - 见 docstring
+        logger.warning("进度回调抛异常（已忽略）：%s: %s", type(exc).__name__, exc)
+
+
+def _page_count(documents: Sequence[Document]) -> int:
+    """页数：有页码的取最大页码，否则取段数。
+
+    与 `LoadResult.page_count` 同一个口径 —— **两处口径必须一致**，
+    否则界面上"解析 50 页"和索引报告里的页数会对不上，用户会以为丢了内容。
+    """
+    pages = [doc.page for doc in documents if doc.page is not None]
+    return max(pages) if pages else max(len(documents), 1)
 
 
 def index_paths(

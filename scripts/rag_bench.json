@@ -1,0 +1,77 @@
+{
+  "meta": {
+    "fixture": "sample50.pdf",
+    "embedder": "bge-small-zh",
+    "dimension": 512,
+    "top_k": 5,
+    "question": "违约金怎么算",
+    "model_calls": "simulated（本机网关 chat 端点 502，未配置凭据）",
+    "note": "解析/切分/编码/入库/检索 均为真实链路；首 token 与总时长为模拟值，不可当作我们的 TTFT。检索占比用 HISTORICAL_TTFT_MS 作分母，那是 W2/W3 的实测值。"
+  },
+  "five_numbers": {
+    "1_parse_ms": 714,
+    "2_index_total_ms": 1015,
+    "3_retrieval_ms": 9,
+    "4_ttft_ms": 1210,
+    "5_total_ms": 1308
+  },
+  "index_breakdown": {
+    "pages": 50,
+    "chunks": 50,
+    "load_ms": 714,
+    "split_ms": 0,
+    "embed_ms": 300,
+    "store_ms": 0,
+    "elapsed_ms": 1015,
+    "ok": true
+  },
+  "retrieval_breakdown": {
+    "embed_ms": 6,
+    "search_ms": 3,
+    "samples_embed_ms": [
+      6,
+      6,
+      6,
+      7,
+      6
+    ],
+    "samples_search_ms": [
+      3,
+      4,
+      3,
+      4,
+      3
+    ]
+  },
+  "qa": {
+    "ttft_ms_simulated": 1210,
+    "build_context_ms": 1,
+    "total_ms_simulated": 1308,
+    "retrieval_ms": 9,
+    "deltas": 6,
+    "answer": "违约金按日万分之五支付，累计不超过合同总额的百分之十 [1]。",
+    "citations": [
+      {
+        "index": 1,
+        "source": "sample50.pdf",
+        "page": 19
+      }
+    ]
+  },
+  "must_answer": {
+    "question": "从提问到首 token 的时间里，检索占多少？",
+    "retrieval_ms": 9,
+    "historical_ttft_ms": [
+      1128,
+      1460,
+      2526
+    ],
+    "share_by_ttft": {
+      "1128": 0.007979,
+      "1460": 0.006164,
+      "2526": 0.003563
+    },
+    "conclusion": "检索约 10ms，历史 TTFT 1128~2526ms → 占比 0.4%~0.9%，**不到 1%**。结论：优化检索对降低首 token 时间几乎没有帮助，瓶颈在模型侧。"
+  },
+  "model_load_ms": 11025
+}

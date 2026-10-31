@@ -6,13 +6,13 @@
 
 - **接口不变、实现可换**：同一份 `v1` HTTP 契约，底下从正则换成真实模型调用
   （再换成 JSON Schema 强约束 + 校验回灌），`tests/test_api.py` **一行未改**。
-- **测试能离线跑绿**：**511 个测试，拔掉网线也全绿** —— 这才是"实现真的可替换"无法伪造的证据。
+- **测试能离线跑绿**：**532 个测试，拔掉网线也全绿** —— 这才是"实现真的可替换"无法伪造的证据。
 
 | 项目 | 值 |
 | --- | --- |
 | 端点 | `extract` · `extract/stream` · `chat/stream` · `summarize/stream` |
 | 核心契约 | `POST /api/v1/extract`，`v1.1`（冻结；新增可选字段 `degraded`） |
-| 测试 | **511 个，全离线**（拔网线也全绿），`pytest --cov=app` |
+| 测试 | **532 个，全离线**（拔网线也全绿），`pytest --cov=app` |
 | 镜像 | 多阶段构建；v0.2.0 **待实测**（v0.1.0 曾为 157 MB，见 [Docker](#docker)） |
 | 运行时 | Python 3.11 + uvicorn，非 root（uid 10001） |
 
@@ -105,7 +105,7 @@ POST /api/v1/extract
 
 跨层规则：**服务层与 rag 层都不 import fastapi**。依赖注入是路由层的事，
 `LlmExtractor` 只接受一个 `AsyncOpenAI` 实例（构造参数注入，内部**绝不 new**），
-所以测试里能直接塞 `FakeLLMClient` —— 这也是 **511 个测试全部能离线跑**的原因。
+所以测试里能直接塞 `FakeLLMClient` —— 这也是 **532 个测试全部能离线跑**的原因。
 
 Prompt 层的一句话：**模板只拼字符串、`structured_call` 只管"拿到类型安全对象"、
 `with_structured_output` 这类框架能力实测在本网关不可用**（见
@@ -146,14 +146,17 @@ app/
 ├── services/        extractor.py（规则+extract_rule_based）· llm_extractor.py（LLM+校验回灌）
 ├── schemas/         extract.py（含可选 degraded）· chat.py
 └── cli/             summarize.py · ask.py（RAG 问答：python -m app.cli.ask）
+app/ui/              streamlit_app.py（Web UI：上传 / 索引 / 流式 / 引用展开）
+                     └ 启动：streamlit run app/ui/streamlit_app.py  → :8501
 scripts/             smoke_llm · demo_tools · consume_sse · cost · cost_model
                      latency_breakdown · record_demo · measure_tokens · drill_*
                      rag_cost_compare（长上下文 vs RAG：成本/注意力/更新代价）
                      bge_prefix_ab（query 指令前缀 A/B）· chroma_acceptance（100 条入库 + 10 条已知答案）
                      rag_e2e_demo（完整链路：引用 / 越界编号 / 拒答）· embedding_score_probe（阈值可分性）
+                     rag_bench（五个耗时数字 + 检索占首 token 多少）
                      bge_prefix_ab（query 指令前缀 A/B，走真实链路）
 static/index.html    前端单页（fetch + ReadableStream，含中断/重试）
-tests/               511 个**全离线**测试
+tests/               532 个**全离线**测试
   ├── fake_llm.py    FakeLLMClient（可复用，支持固定回复/脚本/异常/流式）
   ├── conftest.py    autouse: 默认注入离线规则版（拔网线也全绿）
   ├── test_rag_skeleton.py  RAG 骨架 48 条：结构不变量 + 三段链路
@@ -161,6 +164,7 @@ tests/               511 个**全离线**测试
   ├── test_embedding.py   向量层 24 条：手写余弦 vs numpy / 归一化契约 / query 前缀
   ├── test_chroma_store.py 持久化 39 条：distances 方向 / 重启后数据在 / where 过滤
   ├── test_rag_query_chain.py 问答链路 38 条：中文边界 / metadata 继承 / 引用解析 / 拒答
+  ├── test_rag_query_timing.py 编排与打点 21 条：事件顺序 / 分阶段耗时 / 拒答不调模型
   └── fixtures/      make_fixtures.py 脚本生成样本（review 可读）
 app/prompts/         模板库：{qa,summarize,classify,extract}/vN.jinja2 + schema.py
   ├── loader.py      load_prompt(name, version) · 版本切换 · 硬编码业务词检查
@@ -175,6 +179,7 @@ docs/                api-spec.md（冻结契约 v1.1）· cost.md · sse.md · S
                      embedding.md（归一化为何必须 / bge 实测 / query 前缀 A/B / API vs 本地）·
                      chroma-store.md（distances 方向 / 持久化 / metadata 规范 / 100 条验收）·
                      rag-query-chain.md（overlap 必答 / 中文边界 vs LangChain / 引用三层 / 拒答阈值）·
+                     streamlit-ui.md（检索占首 token 多少 / 流式事件顺序 / 引用展开 / 四类健壮性）·
                      design-decisions.md（三条决策 + 代价 + 长上下文必答）
                      why-i-use-langchain.md · container-networking.md
 ```
@@ -187,7 +192,14 @@ docs/                api-spec.md（冻结契约 v1.1）· cost.md · sse.md · S
 uv sync                                   # 创建 .venv 并装依赖
 Copy-Item .env.example .env               # 然后填 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL
 uv run uvicorn app.main:app --reload      # http://127.0.0.1:8000/docs
+
+# 知识库问答 Web UI（W4 主交付）
+uv run streamlit run app/ui/streamlit_app.py   # http://localhost:8501
 ```
+
+> 首次用 `bge-small-zh` 会下载 92 MB 模型（约 16 秒加载）。国内直连
+> `huggingface.co` 解析失败，代码默认走 `hf-mirror.com`；也可自己设
+> `HF_ENDPOINT` / `HF_HOME`（`HF_HOME` 建议指到本项目 `.cache/hf`，别落 C 盘）。
 
 `.env` 里 5 个必需变量：
 
@@ -273,7 +285,7 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 ## 测试能离线跑绿 —— W2 唯一无法伪造的成果
 
 ```powershell
-pytest -q          # 511 passed，拔掉网线也一样
+pytest -q          # 532 passed，拔掉网线也一样
 ```
 
 这 行命令为什么值得单独一节：**它能证明实现真的可替换**。
@@ -417,7 +429,7 @@ W2 做完之后：
 | 断言 | 状态 |
 | --- | --- |
 | `tests/test_api.py` 一行未改 | ✅ |
-| 全套 511 个测试仍全绿（**断网也是**） | ✅ 511 passed |
+| 全套 532 个测试仍全绿（**断网也是**） | ✅ 532 passed |
 | 响应体正常时仍是 4 字段 | ✅ 实测无 `degraded` 键 |
 | 降级时可多 1 个可选字段 | ✅ `degraded: true`，v1.1 向后兼容 |
 | 规则版仍可用 | ✅ `EXTRACTOR_IMPL=rule` 一键回退 |
@@ -640,6 +652,10 @@ fastapi、抽取器接受注入 client"的直接收益。
   什么」（防关键信息被切在边界；代价是冗余 9.4% + top_k 重复）、中文切分边界**对比 LangChain
   实测**（它 4/5 块停在半个词上）、metadata 继承四字段、引用约束三层（prompt/解析/校验）、
   越界编号必须可见、以及"阈值必须挂在 embedder 上"（全局 0.35 曾把正确命中的 0.247 拒掉）
+- [docs/streamlit-ui.md](docs/streamlit-ui.md) —— **Web UI 主交付**：必答题「1.5 秒里检索占多少」
+  （**9ms / 1128~2526ms = 0.36%~0.80%，不到 1%** → 优化检索对首 token 毫无帮助，W8 该动模型侧）、
+  五个耗时数字、`retrieved` 事件必须在 `delta` 之前、参考来源可展开原文、四类健壮性、
+  以及"模拟 TTFT 不能做分母"这个我自己踩过的坑
 - [docs/design-decisions.md](docs/design-decisions.md) —— **四条决策记录**（每条都写代价）：
   ① 长上下文为何替代不了 RAG（成本线性 / lost in the middle / 无法更新与溯源）
   ② 为何 RAG 而非微调 ③ 为何本地 embedding 而非 API ④ 为何先 ChromaDB 而非 Milvus

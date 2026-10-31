@@ -1,0 +1,24 @@
+# Streamlit 配置（提交进仓库，保证"换台机器行为一致"）
+
+[server]
+# 端口固定：文档、截图、demo 录屏都会引用它。随机端口会让"照文档跑不通"。
+port = 8501
+
+# **关掉文件监听**：本项目代码变动不频繁，而 watchfiles 在 Windows 上
+# 会为 `data/` 下的向量库文件反复触发重跑 —— 那会让"上传后进度条闪回 0%"。
+# 需要热重载时临时启动加 `--server.runOnSave true`。
+fileWatcherType = "none"
+
+# 上传上限 200MB。**配置项是 `server.maxUploadSize`，不是 `client.maxUploadSize`** ——
+# 写错位置 Streamlit 只打一行警告然后**静默用默认值 200MB**，
+# 于是"我明明调了上限"和"还是传不上去"同时成立（实测踩到）。
+maxUploadSize = 200
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "light"
+
+[logger]
+level = "info"
