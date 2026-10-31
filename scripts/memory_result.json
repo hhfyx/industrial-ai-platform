@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "platform": "Windows",
+    "python": "3.11.17",
+    "model": "BAAI/bge-small-zh-v1.5",
+    "note": "工作集（RSS），在干净子进程里量；数值随 torch 版本变化，须复跑"
+  },
+  "stages_mb": {
+    "baseline": 20.6,
+    "torch": 55.8,
+    "sentence_transformers": 198.4,
+    "model_load": 432.4,
+    "encode": 548.8,
+    "settled": 548.9
+  },
+  "delta_mb": {
+    "baseline": 0.0,
+    "torch": 35.2,
+    "sentence_transformers": 177.8,
+    "model_load": 411.8,
+    "encode": 528.2,
+    "settled": 528.3
+  }
+}

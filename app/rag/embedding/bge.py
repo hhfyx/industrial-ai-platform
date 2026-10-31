@@ -143,7 +143,25 @@ class BGEEmbedder:
         os.environ.setdefault(HF_ENDPOINT_ENV, DEFAULT_HF_ENDPOINT)
 
         started = time.perf_counter()
-        from sentence_transformers import SentenceTransformer
+        # **import 失败要给一句人话，不能让 ModuleNotFoundError 裸奔**。
+        #
+        # 场景是真实的：Streamlit Cloud 免费层按 `requirements-deploy.txt` 装依赖
+        # （故意不含 torch），此时 `get_embedder("bge-small-zh")` 会在构造上成功
+        # （构造不加载模型，见 `__init__`），但第一次 `embed` 才炸。
+        #
+        # 裸 `ModuleNotFoundError: No module named 'sentence_transformers'`
+        # 会让运维去查"是不是包冲突"，而真相是"你选了一个这个环境装不下的模型"。
+        # 这两件事的应对完全不同（前者修依赖，后者换实现）。
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError as exc:
+            raise RuntimeError(
+                f"bge embedder 不可用：缺少 sentence-transformers（{exc}）。\n"
+                "原因通常是当前环境装不下它 —— bge + torch 实测占用约 561 MB，"
+                "Streamlit Cloud 免费层只有 1 GB。\n"
+                "解决办法：改用 hashing（`RAG_EMBEDDER=hashing`，只有字面检索），"
+                "或换到有更多内存的环境。详见 docs/deploy-notes.md。"
+            ) from exc
 
         logger.info("加载 embedding 模型 %s（首次会下载约 92 MB）…", self.model_name)
         model = SentenceTransformer(self.model_name, device=self.device)

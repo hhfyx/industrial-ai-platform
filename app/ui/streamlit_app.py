@@ -45,12 +45,14 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.llm.client import get_llm_client  # noqa: E402
+from app.rag.deploy_config import describe_runtime, resolve_embedder_name  # noqa: E402
 from app.rag.embedding import get_embedder  # noqa: E402
 from app.rag.indexing import Indexer, IndexReport  # noqa: E402
 from app.rag.loaders import SUPPORTED_EXTENSIONS  # noqa: E402
 from app.rag.query import QAEngine, StreamDone  # noqa: E402
 from app.rag.stores import get_store  # noqa: E402
 from app.rag.stores.chroma import DEFAULT_COLLECTION  # noqa: E402
+from app.ui.evidence import find_evidence_spans, highlight  # noqa: E402
 
 # 上传临时目录：**必须在项目内**（D 盘），不能落到系统 Temp ——
 # 那是"重启后文件没了"以及"清理脚本把用户上传删了"的来源。
@@ -84,6 +86,19 @@ def _load_store(backend: str, collection: str) -> Any:  # noqa: ANN401
     if backend == "chroma":
         return get_store("chroma", collection_name=collection)
     return get_store("memory")
+
+
+def _current_min_score(embedder_name: str) -> str:
+    """读取该 embedder 的拒答阈值（只读属性，不加载模型）。
+
+    **返回字符串而不是 float**：hashing 的值是 `0.0`，直接显示成"0.0"
+    会让人以为是"阈值设错了"，所以显示成 "0.0（已关闭）"。
+    """
+    try:
+        value = get_embedder(embedder_name).recommended_min_score
+    except Exception:  # noqa: BLE001 - 显示用，取不到就不显示原因
+        return "未知"
+    return f"{value}（已关闭）" if value == 0.0 else f"{value}"
 
 
 def _engine(embedder_name: str, backend: str, collection: str, top_k: int) -> QAEngine:
@@ -139,6 +154,19 @@ def _render_sidebar(embedder_name: str, backend: str) -> tuple[str, str, int]:
             help="memory 重启即丢；chroma 持久化到 data/chroma",
         )
         top_k = st.slider("检索条数 top_k", min_value=1, max_value=10, value=5)
+
+        # ---- 降级必须可见 ----
+        # 见到"运行在低内存托管环境"时，把这件事摆在侧栏最显眼的位置。
+        # **悄悄降级等于骗用户**：他以为在做语义检索，实际只有字面匹配。
+        runtime = describe_runtime()
+        if runtime["notice"]:
+            st.warning(runtime["notice"])
+
+        # 当前 embedder 的拒答阈值也显示出来 —— 它是 0.0 就说明"没有拒答闸门"，
+        # 用户该知道这件事，否则会疑惑"为什么问什么都给答案"。
+        st.caption(
+            f"当前向量化：**{embedder_name}**（拒答阈值 {_current_min_score(embedder_name)}）"
+        )
 
         st.divider()
         st.subheader("📚 当前知识库")
@@ -313,8 +341,44 @@ def _render_timing_badge(timing: dict[str, Any]) -> None:
     st.caption("　｜　".join(parts))
 
 
+def _render_chunk_with_evidence(chunk: Any, answer_text: str) -> None:
+    """展开显示 chunk 原文，并把"答案里那句话"高亮出来。
+
+    ## 为什么需要高亮，而不是"整段展开就够了"
+
+    任务说"整段展开 + 页码标注即可"。但一段 500 字的条款里找"按日万分之五"
+    这五个字，人眼要扫三秒 —— 而这三秒恰恰是"引用可不可信"的关键体验：
+    **找不到，用户就不信**。
+
+    所以用 `app/ui/evidence.py` 的 LCS 匹配把依据句标出来。
+
+    ## 两条降级路径都要说清
+
+    | 情况 | 表现 |
+    | --- | --- |
+    | 找到依据 | 粗体高亮命中的那段 |
+    | **找不到**（模型改写幅度大） | 高亮为空，**显式提示"未能在原文中定位依据"** |
+
+    第二种不能静默 —— 用户看到"没有任何高亮"会以为是 UI 坏了，
+    或者更糟：以为整段都是依据。**必须把"没定位到"这件事说出来。**
+    """
+    spans = find_evidence_spans(answer_text, chunk.text)
+    body = chunk.text[:1200] + ("…" if len(chunk.text) > 1200 else "")
+
+    if spans:
+        # 只在**截断范围内**的 span 才高亮：超过 1200 字的区间如果画出来，
+        # 标记会落在省略号之后，看起来像标错了位置。
+        visible = [s for s in spans if s.start < 1200]
+        st.markdown(highlight(body, visible))
+    else:
+        # `st.text` 而不是 `st.markdown`：**没有高亮时原文里可能有 `#` `|` `*`**，
+        # 用 markdown 渲染会把它们吃掉，用户拿去对照 PDF 就搜不到了。
+        st.text(body)
+        st.caption("（未能在原文中定位到支撑句 —— 可能是模型做了较大改写，请人工核对）")
+
+
 def _render_sources(contexts: list[Any], answer: Any) -> None:
-    """「参考来源」：编号 + 文件名 + 页码，可展开看原文。
+    """「参考来源」：编号 + 文件名 + 页码，可展开看原文并高亮依据句。
 
     **只列被真正引用的块**（`Answer.citations` 里的），不是全部检索结果。
     列一堆没被用到的块会让人以为"这些也是依据"。
@@ -334,10 +398,7 @@ def _render_sources(contexts: list[Any], answer: Any) -> None:
                 if citation.page is not None
                 else f"**[{citation.index}]** `{citation.source}`"
             )
-            # `st.text` 而不是 `st.markdown`：原文里的 `#`、`|`、`*`
-            # 会被 Markdown 渲染吃掉，看起来就和 PDF 里不一样了。
-            # 用户是拿这段去对照原文的，格式必须原样。
-            st.text(chunk.text[:1200] + ("…" if len(chunk.text) > 1200 else ""))
+            _render_chunk_with_evidence(chunk, answer.text)
             st.divider()
 
     if answer.invalid_refs:
@@ -444,7 +505,15 @@ def _render_history(turns: int) -> None:
                                 if ctx.get("page") is not None
                                 else f"**[{ctx['index']}]** `{ctx['source']}`"
                             )
-                            st.text(ctx["text"])
+                            # 历史里也要高亮：用户翻回去看旧回答时，
+                            # 同样需要"哪句是依据"。用纯 dict 复现同样的逻辑，
+                            # 不依赖 Chunk 对象（历史里存的是可序列化的 dict）。
+                            spans = find_evidence_spans(message["content"], ctx["text"])
+                            if spans:
+                                st.markdown(highlight(ctx["text"], spans))
+                            else:
+                                st.text(ctx["text"])
+                                st.caption("（未能在原文中定位到支撑句，请人工核对）")
                             st.divider()
                 if message.get("invalid_refs"):
                     st.warning(f"⚠️ 编号 {message['invalid_refs']} 不在检索结果里，已忽略。")
@@ -478,7 +547,14 @@ def main() -> None:
     st.caption("上传文档 → 索引 → 提问。答案带 [n] 引用，可展开查看原文。")
 
     settings = get_settings()
-    embedder_name = st.session_state.get("embedder_name", "hashing")
+    # 默认 embedder 由 `deploy_config` 决定，不是写死 "hashing"：
+    # - 本地（无平台标记）→ hashing（保守，不触发 92 MB 下载）
+    # - Streamlit Cloud → hashing，且侧栏显式提示"已降级"
+    # - 设了 `RAG_EMBEDDER` → 用它（用户显式决定）
+    #
+    # **写死 "hashing" 也能跑**，但那会让"部署侧该降级"只存在于文档里而不在代码里 ——
+    # 文档会被忘掉，代码不会。
+    embedder_name = st.session_state.get("embedder_name", resolve_embedder_name())
     backend = st.session_state.get("backend", "memory")
     # 上一次生效的 embedder —— 用来检测"用户换了模型但库没重建"
     previous_embedder = st.session_state.get("active_embedder")

@@ -1,24 +1,56 @@
-# industrial-ai-platform
+﻿# industrial-ai-platform
 
-**一个用 FastAPI + LLM 做文档智能处理的平台：结构化抽取、流式对话、超长文档摘要。**
+**一个从"调模型"长到"能查、能引、能拒答"的文档智能平台。**
 
-重点不在"调通几个接口"，而在两条能拿证据说话的工程判断：
+四块能力，都是同一条流水线上的前后段：
 
-- **接口不变、实现可换**：同一份 `v1` HTTP 契约，底下从正则换成真实模型调用
-  （再换成 JSON Schema 强约束 + 校验回灌），`tests/test_api.py` **一行未改**。
-- **测试能离线跑绿**：**532 个测试，拔掉网线也全绿** —— 这才是"实现真的可替换"无法伪造的证据。
+| 能力 | 入口 | 一句话 |
+| --- | --- | --- |
+| **知识库问答**（主交付） | `app/ui/streamlit_app.py` | 上传文档 → 检索 → **答案带 `[n]` 引用** → 点开看原文高亮 |
+| 结构化抽取 | `POST /api/v1/extract` | 抽不到就是 `null`，永不编造（有原文回指校验） |
+| 超长文档摘要 | `POST /api/v1/summarize/stream` | map-reduce + 流式，50 页 ≈ 1 秒索引 |
+| 流式对话 | `POST /api/v1/chat/stream` | SSE 逐字，TTFT 有口径 |
+
+重点不在"调通几个接口"，而在四件能拿证据说话的事：
+
+- **接口不变、实现可换**：同一份 `v1` 契约，底下从正则换成真实模型（再换成
+  JSON Schema 强约束 + 校验回灌），`tests/test_api.py` **一行未改**。
+- **测试能离线跑绿**：**567 个测试，拔掉网线也全绿** —— 这是"实现真的可替换"
+  无法伪造的证据。
+- **延迟拆开打点**：一次问答拆成 检索 / 编码 / 填上下文 / 首 token 四段。
+  实测检索只占首 token 的 **0.36%~0.80%** → 优化检索对首字毫无帮助。
+- **知道它哪里不好**：见 [v1 已知问题](#v1-已知问题)。**这一节比效果数字重要。**
 
 | 项目 | 值 |
 | --- | --- |
 | 端点 | `extract` · `extract/stream` · `chat/stream` · `summarize/stream` |
+| Web UI | Streamlit（`:8501`）· 免费层**自动降级**为字面检索（见 [deploy-notes](docs/deploy-notes.md)） |
 | 核心契约 | `POST /api/v1/extract`，`v1.1`（冻结；新增可选字段 `degraded`） |
-| 测试 | **532 个，全离线**（拔网线也全绿），`pytest --cov=app` |
-| 镜像 | 多阶段构建；v0.2.0 **待实测**（v0.1.0 曾为 157 MB，见 [Docker](#docker)） |
-| 运行时 | Python 3.11 + uvicorn，非 root（uid 10001） |
+| 测试 | **567 个，全离线**（拔网线也全绿），覆盖率 80% |
+| 检索 | bge-small-zh（512 维，CPU 单条 10ms）· ChromaDB 持久化 · cosine |
+| 运行时 | Python 3.11 + uvicorn + Streamlit，非 root（uid 10001） |
+
+> **当前状态（v0.4.0）**：RAG 全链路在本地跑通并有测试；
+> **真模型问答与线上链接未验证**（本机网关 chat 端点 502 未配置凭据）。
+> 这条写在 [已知问题](#v1-已知问题) 第 1 条，不藏着。
 
 ---
 
 ## 这个项目解决什么
+
+### ① 知识库问答（主交付）
+
+```powershell
+uv run streamlit run app/ui/streamlit_app.py     # http://localhost:8501
+```
+
+上传 PDF/DOCX/Markdown → 点索引（三阶段进度条 + 四段耗时）→ 提问 →
+逐字出字 → 展开「参考来源」看原文（**依据句高亮**）。
+
+答案里的每个 `[n]` 都能追溯到 `文件名 + 页码`；引用了不存在的编号会**显式告警**
+（"编号 [9] 不在检索结果里"），因为那是模型在编。
+
+### ② 结构化抽取
 
 把一段非结构化文本（合同、工单、简历）按调用方指定的字段抽成结构化数据：
 
@@ -31,96 +63,84 @@ POST /api/v1/extract
 {"request_id": "…", "data": {"合同编号": "HT-2026-001", "甲方": "张三"}, "confidence": 1.0, "elapsed_ms": 101}
 ```
 
-三个设计取向值得先说清楚：
+三个设计取向：
 
-1. **抽不到就是 `null`，永不编造。** 不猜、不补全。这条不只写在 prompt 里，
-   `LlmExtractor._ground_value` 会做**原文回指校验**：模型给出的值必须在正文里能找到依据，
-   否则丢弃为 `null`。prompt 拦不住幻觉，代码能。
+1. **抽不到就是 `null`，永不编造。** 不只写在 prompt 里，`LlmExtractor._ground_value`
+   会做**原文回指校验**：模型给出的值必须在正文里能找到依据，否则丢弃为 `null`。
 2. **所有非 2xx 是同一个 4 字段形状**（`code` / `message` / `request_id` / `details`）。
-   调用方写一次错误处理就能覆盖 400/422/500。
-3. **实现可换，契约冻死。** `docs/api-spec.md` 是唯一不能动的东西，
-   规则版 → LLM 版是一次真实演进，不是重写。
+3. **实现可换，契约冻死。** `docs/api-spec.md` 是唯一不能动的东西。
 
 ---
 
 ## 架构
 
 ```
-                       ┌──────────────────────────────────────────────┐
-  浏览器 / CLI  ──────▶│  app/api/v1/            路由层（4 个端点）      │
-                       │    extract.py     结构化抽取（v1 契约，冻结）   │
-                       │    stream.py      抽取流式（SSE，event: end）  │
-                       │    chat.py        聊天流式（SSE，[DONE]）      │
-                       │    summarize.py   文档摘要流式（上传 + SSE）    │
-                       └───────────────┬──────────────────────────────┘
-                                       │  ExtractorDep / get_llm_client
-                       ┌───────────────▼──────────────────────────────┐
-                       │  app/core/                  装配与横切         │
-                       │    deps.py     Extractor Protocol + 回退开关  │
-                       │    config.py   LLMSettings + SecretStr        │
-                       │    logging.py  装配 handler（否则 info 丢失）  │
-                       │    sse.py      DisconnectWatcher（断开即停）   │
-                       └───────────────┬──────────────────────────────┘
-                                       │
-      ┌────────────────────────────────┼────────────────────────────────┐
-      │  W3 Prompt 层（本层是"约束模型"的全部手段）                        │
-      │                                                                │
-      │  ┌──────────────────┐   ┌──────────────────┐  ┌──────────────┐ │
-      │  │ app/prompts/     │   │ core/llm/        │  │ scripts/     │ │
-      │  │  模板库           │──▶│  structured.py   │◀─│ .cache/      │ │
-      │  │                  │   │                  │  │ 实验缓存      │ │
-      │  │ {qa,summarize,   │   │ structured_call  │  │              │ │
-      │  │  classify,extract│   │  ├ json_object   │  │ 命中即不发请求│ │
-      │  │ }/vN.jinja2      │   │  ├ Pydantic 校验  │  │ 实测快 5179x │ │
-      │  │  + schema.py     │   │  └ 报错原文回灌   │  └──────────────┘ │
-      │  │                  │   │     ≤2 轮        │                     │
-      │  │ loader.py        │   │                  │  ┌──────────────┐ │
-      │  │  版本切换         │   │ 三层防线：        │  │ eval/        │ │
-      │  │  硬编码业务词检查  │   │  ①prompt ②格式   │──│ prompt-sets/ │ │
-      │  └──────────────────┘   │  ③Pydantic(真源) │  │ 40 条输入池   │ │
-      │                         └──────────────────┘  └──────────────┘ │
-      └────────────────────────────────┼────────────────────────────────┘
-                                       │
-                       ┌───────────────▼──────────────────────────────┐
-                       │  app/services/               抽取的两套实现    │
-                       │    llm_extractor.py  LlmExtractor   ◀ 默认    │
-                       │      ├─ CorrectionsLoop  校验失败回灌（≤2 轮） │
-                       │      ├─ _coerce_scalar  数字→字符串（本地修）  │
-                       │      └─ degraded=True   用尽后标降级          │
-                       │    extractor.py      RuleExtractor  ◀ 兜底    │
-                       │      └─ extract_rule_based() 降级入口         │
-                       │                                              │
-                       │    rag/loaders/   PDF / DOCX / Markdown      │
-                       │    rag/summarize.py  map-reduce 超长文档       │
-                       └───────────────┬──────────────────────────────┘
-                       ┌───────────────▼──────────────────────────────┐
-                       │  app/core/llm/              模型接入层        │
-                       │    client.py    get_llm_client() 进程级单例   │
-                       │    streaming.py stream_chat + TTFT 口径      │
-                       │    retry.py     指数退避+抖动 / 多 key 熔断   │
-                       │    tools.py     Function Calling 注册表      │
-                       │    tool_loop.py 单/多轮闭环                  │
-                       └──────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│  Web UI（Streamlit，:8501）    app/ui/                               │
+│    streamlit_app.py   上传 / 索引 / 流式 / 参考来源展开               │
+│    evidence.py        LCS 定位依据句 → 原文高亮（不是整段糊出来）      │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │ 只用四个装配点：get_embedder / get_store
+                             │                Indexer / QAEngine
+┌────────────────────────────▼────────────────────────────────────────┐
+│  RAG 编排（无 fastapi、无 streamlit）        app/rag/                │
+│                                                                     │
+│   ① 索引段（离线，一次）                                             │
+│       loaders/   PDF 逐页 → Document(page)                          │
+│                  ├ pdfplumber 表格 → Markdown（不进文字流）          │
+│                  ├ docx/markdown 标题层级进 metadata                 │
+│                  └ clean.py 四类噪声四种判据（不许改写正文）          │
+│       splitters/ 中文分隔符优先级（。！？；，），只合并完整原子片       │
+│       embedding/ bge-small-zh 512 维（或 hashing 降级）              │
+│                  vector.py 归一化 + 余弦（全链路唯一相似度入口）      │
+│       stores/    Chroma 持久化 / 内存（同 Protocol）                 │
+│                                                                     │
+│   ② 检索段（每次）   query→向量→cosine→TopK → 阈值闸门                │
+│   ③ 生成段（每次）   拼上下文[1][2]… → 流式调模型 → 解析[n] → 引用    │
+│                     query.py  QATiming：embed/search/context/ttft    │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │  ExtractorDep / get_llm_client
+┌────────────────────────────▼────────────────────────────────────────┐
+│  API 层（FastAPI，:8000）                   app/api/v1/ · app/core/   │
+│    extract.py     结构化抽取（v1 契约，冻结）                        │
+│    stream.py      抽取流式（SSE，event: end）                        │
+│    chat.py        聊天流式（SSE，[DONE]）                            │
+│    summarize.py   文档摘要流式（上传 + SSE）                          │
+│                                                                     │
+│    core/     deps.py（Extractor Protocol + 回退）· config.py          │
+│              errors.py（统一错误体）· sse.py（断开即停）              │
+│    core/llm/ client.py 进程级单例 · streaming.py TTFT 口径            │
+│              retry.py 指数退避 · structured.py 校验回灌 ≤2 轮         │
+│                                                                     │
+│    services/ llm_extractor.py（默认）· extractor.py（规则兜底）        │
+│    prompts/  {qa,summarize,classify,extract}/vN.jinja2 + 硬编码检查   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-跨层规则：**服务层与 rag 层都不 import fastapi**。依赖注入是路由层的事，
-`LlmExtractor` 只接受一个 `AsyncOpenAI` 实例（构造参数注入，内部**绝不 new**），
-所以测试里能直接塞 `FakeLLMClient` —— 这也是 **532 个测试全部能离线跑**的原因。
+**跨层规则是硬的**：
 
-Prompt 层的一句话：**模板只拼字符串、`structured_call` 只管"拿到类型安全对象"、
-`with_structured_output` 这类框架能力实测在本网关不可用**（见
-[why-i-use-langchain.md](docs/why-i-use-langchain.md)）。
+| 规则 | 为什么 |
+| --- | --- |
+| `app/rag/` 与 `services/` **不 import fastapi** | 依赖注入是路由层的事；服务层只接受构造参数 |
+| `app/rag/` **不 import streamlit** | UI 只有展示职责。所以 567 条测试**不需要 Streamlit** 就能跑 |
+| UI **不 import** rag 内部实现 | 只用四个装配点，改检索逻辑不影响界面 |
+| 相似度**只有一个入口**（`vector.cosine`） | 没有"直接算内积"的旁路，防住"忘了归一化"这个静默 bug |
+
+这三条不是洁癖 —— 它们各自对应一个**会静默出错**的场景。详见
+[rag-architecture.md](docs/rag-architecture.md) 与 [streamlit-ui.md](docs/streamlit-ui.md)。
 
 ### 目录
 
 ```
 app/
-├── api/v1/          extract.py · stream.py · chat.py · summarize.py
-├── core/            config.py · deps.py · errors.py · middleware.py · logging.py · sse.py
-│   └── llm/         client.py · streaming.py · retry.py · tools.py · tool_loop.py
+├── ui/              ★ Web UI（主交付）
+│   ├── streamlit_app.py  上传 / 索引进度 / 流式 / 引用展开 / 四类健壮性
+│   └── evidence.py       LCS 找依据句 → 原文高亮
 ├── rag/             RAG 三段骨架（W4）
 │   ├── schema.py    ★ Document / Chunk（page 从第一步就在结构里）
-│   ├── loaders/     ① 解析（★ 统一解析：页码 / 表格 / 扫描件 / 清洗）
+│   ├── query.py     QAEngine + QATiming（分阶段打点）
+│   ├── deploy_config.py  免费层降级决策（hashing vs bge）
+│   ├── loaders/     ① 解析
 │   │   ├── clean.py     四类噪声四种判据 + "清洗不改写正文"的红线
 │   │   ├── pdf.py       pypdf 逐页 + pdfplumber 表格 → Markdown；跨页拼接记 span
 │   │   ├── docx.py      段落 + 标题层级进 metadata；表格同 PDF 格式
@@ -129,6 +149,7 @@ app/
 │   │   ├── base.py        ChunkSize（含 overlap<chunk 约束）+ Splitter Protocol
 │   │   ├── delimiter.py   DelimiterSplitter：中文分隔符优先级 + 只合并完整原子片
 │   │   └── recursive.py   兼容层（周三的 import 路径 → DelimiterSplitter）
+
 │   ├── embedding/   ③ 向量化
 │   │   ├── vector.py    归一化 + 余弦（全链路唯一的相似度入口）
 │   │   ├── bge.py       bge-small-zh-v1.5（512 维 / 512 token；query 侧自动加前缀）
@@ -151,12 +172,14 @@ app/ui/              streamlit_app.py（Web UI：上传 / 索引 / 流式 / 引�
 scripts/             smoke_llm · demo_tools · consume_sse · cost · cost_model
                      latency_breakdown · record_demo · measure_tokens · drill_*
                      rag_cost_compare（长上下文 vs RAG：成本/注意力/更新代价）
-                     bge_prefix_ab（query 指令前缀 A/B）· chroma_acceptance（100 条入库 + 10 条已知答案）
-                     rag_e2e_demo（完整链路：引用 / 越界编号 / 拒答）· embedding_score_probe（阈值可分性）
-                     rag_bench（五个耗时数字 + 检索占首 token 多少）
                      bge_prefix_ab（query 指令前缀 A/B，走真实链路）
+                     chroma_acceptance（100 条入库 + 10 条已知答案）
+                     rag_e2e_demo（完整链路：引用 / 越界编号 / 拒答）
+                     embedding_score_probe（阈值可分性）· measure_memory（内存实测）
+                     rag_bench（五个耗时数字 + 检索占首 token 多少）
+                     regression_w4（跨层回归：API/prompts/summarize/CLI/AB）
 static/index.html    前端单页（fetch + ReadableStream，含中断/重试）
-tests/               532 个**全离线**测试
+tests/               567 个**全离线**测试
   ├── fake_llm.py    FakeLLMClient（可复用，支持固定回复/脚本/异常/流式）
   ├── conftest.py    autouse: 默认注入离线规则版（拔网线也全绿）
   ├── test_rag_skeleton.py  RAG 骨架 48 条：结构不变量 + 三段链路
@@ -180,26 +203,40 @@ docs/                api-spec.md（冻结契约 v1.1）· cost.md · sse.md · S
                      chroma-store.md（distances 方向 / 持久化 / metadata 规范 / 100 条验收）·
                      rag-query-chain.md（overlap 必答 / 中文边界 vs LangChain / 引用三层 / 拒答阈值）·
                      streamlit-ui.md（检索占首 token 多少 / 流式事件顺序 / 引用展开 / 四类健壮性）·
-                     design-decisions.md（三条决策 + 代价 + 长上下文必答）
+                     deploy-notes.md（免费层内存实测 / hashing 降级 / 5 个部署坑）·
+                     design-decisions.md（6 条决策 + 代价 + 长上下文必答）
                      why-i-use-langchain.md · container-networking.md
 ```
 
 ---
 
-## 快速开始
+## 快速开始（三条命令）
 
 ```powershell
-uv sync                                   # 创建 .venv 并装依赖
-Copy-Item .env.example .env               # 然后填 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL
-uv run uvicorn app.main:app --reload      # http://127.0.0.1:8000/docs
-
-# 知识库问答 Web UI（W4 主交付）
-uv run streamlit run app/ui/streamlit_app.py   # http://localhost:8501
+uv sync                                                      # ① 装依赖
+Copy-Item .env.example .env                                  # ② 填 LLM_API_KEY / BASE_URL / MODEL
+uv run streamlit run app/ui/streamlit_app.py                 # ③ 打开 http://localhost:8501
 ```
 
-> 首次用 `bge-small-zh` 会下载 92 MB 模型（约 16 秒加载）。国内直连
-> `huggingface.co` 解析失败，代码默认走 `hf-mirror.com`；也可自己设
+打开后：上传 `tests/fixtures/sample50.pdf` → 点「索引」→ 问「违约金怎么算」
+→ 展开「参考来源」看原文高亮。
+
+<details>
+<summary>API 侧（可选）</summary>
+
+```powershell
+uv run uvicorn app.main:app --reload      # http://127.0.0.1:8000/docs
+curl.exe http://127.0.0.1:8000/health     # {"status":"ok"}
+```
+
+</details>
+
+> **首次用 `bge-small-zh` 会下载 92 MB 模型**（加载约 16 秒）。国内直连
+> `huggingface.co` 会 DNS 失败，代码默认走 `hf-mirror.com`；也可自己设
 > `HF_ENDPOINT` / `HF_HOME`（`HF_HOME` 建议指到本项目 `.cache/hf`，别落 C 盘）。
+>
+> **不想下载？** 默认就是 `hashing`（1 MB，纯 CPU，只有字面检索）。
+> 语义检索才需要 bge。
 
 `.env` 里 5 个必需变量：
 
@@ -224,6 +261,49 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 
 > Windows 上必须用 `curl.exe`（PowerShell 的 `curl` 是 `Invoke-WebRequest` 别名），
 > 且 JSON 用 `--data-binary "@file"` 传，行内引号会被 PowerShell 吃掉。
+
+---
+
+## v1 已知问题
+
+> **这一节是这份 README 里最该被读的部分。**
+> 召回率不高不是问题（任何人第一次都这样）；**不知道它哪里不好**才是问题。
+> 每条都写清"现状 / 为什么 / 怎么修"。
+
+### 🔴 阻断类（会让线上不能用）
+
+| # | 问题 | 现状 | 为什么 | 怎么修 |
+| --- | --- | --- | --- | --- |
+| 1 | **真模型问答未验证** | 本地网关 chat 端点返回 `502 未配置凭据`，所有真实问答路径**没跑过** | 环境限制，不是代码缺陷 | 换一个可用的 `LLM_API_KEY` 重跑 `scripts/rag_e2e_demo.py` 与线上六步清单 |
+| 2 | **线上链接未创建** | Streamlit Cloud 需要 GitHub 账号授权，我这边只有本地 git | 没有账号级凭据 | 手动在 share.streamlit.io 新建 app，入口填 `app/ui/streamlit_app.py` |
+| 3 | **免费层语义检索降级** | 线上默认 `hashing`（只有字面相似） | bge 实测占 **528 MB**，加框架开销撞 1 GB 上限 | ONNX 量化版（未验证）/ 付费层 / 换 API embedding |
+
+### 🟡 能力类（能用但达不到"好"）
+
+| # | 问题 | 现状 | 为什么 | 怎么修 |
+| --- | --- | --- | --- | --- |
+| 4 | **召回率没有基线** | 只有 10 条人造语料的 top3 人工判断（命中 8/10） | 没有业务文档、没有标注集 | W5 建评测集，跑 hit@k / MRR |
+| 5 | **TopK 与 overlap 凭直觉** | `top_k=5`、`overlap=50` **都没有数据支撑** | 没做过消融 | W5 做 `overlap ∈ {0,50,100}` × `top_k ∈ {3,5,8}` 的矩阵 |
+| 6 | **纯向量检索对关键词强查询失败** | "设备送到什么地址"命中失败（top3 全是带"设备"的条款） | 向量相似度对专有名词/地址不敏感 | 混合检索（BM25 + 向量），或加 query 改写 |
+| 7 | **引用只是"存在"不是"正确"** | 校验了编号是否在给定集合内，**没校验引用的内容是否真支撑那句结论** | 后者需要模型判断或人工标注 | 用 evidence 的 LCS 命中率做弱校验（已有雏形），下一步做严格校验 |
+| 8 | **多轮不解决指代** | 保留 3 轮历史，但"它/那个条款"无法关联到文档 | 需要 query 改写 + 实体链接 | W8 |
+| 9 | **表格超 512 token 被截断** | bge `max_seq_length=512` ≈ 757 字；2000 字的大表截断 | 表不切分（切碎更糟）是刻意取舍 | 表格单独摘要后再索引 |
+
+### 🟢 工程类（不影响 demo，影响交付质量）
+
+| # | 问题 | 现状 | 为什么 | 怎么修 |
+| --- | --- | --- | --- | --- |
+| 10 | **多进程写 Chroma 会锁** | 单 worker 正常，多 worker 未测 | SQLite 后端写并发差 | 换 Milvus，或加写队列 |
+| 11 | **并发会话内存未测** | `cache_resource` 是进程级单例 | 需要线上观测 | 压测 / 限流 |
+| 12 | **docker compose 没接 UI** | 只有 API service | 时间分配给了 README | 加 `ui` service（端口 8501:8501） |
+| 13 | **无增量更新** | 只有整份重建 | `delete_by_source` 有了，但没做"改一页只重算那一页" | 按 `store_id` 比对差异 |
+| 14 | **无权限隔离** | 所有用户共享一个库 | demo 阶段不需要 | 按 `metadata` 过滤（结构已支持：扁平标量） |
+
+### 如果我只有一天来继续改，我会按这个顺序
+
+1. **解决凭据 → 跑真模型**（问题 1）。没有真模型，后面所有质量结论都是空的。
+2. **建 50 条评测集**（问题 4）。有了它，问题 5/6/7 才从"凭感觉"变成"有依据"。
+3. **混合检索**（问题 6）。它是最便宜的质量提升，且能证明"知道哪里不好"。
 
 ---
 
@@ -285,7 +365,7 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 ## 测试能离线跑绿 —— W2 唯一无法伪造的成果
 
 ```powershell
-pytest -q          # 532 passed，拔掉网线也一样
+pytest -q          # 567 passed，拔掉网线也一样
 ```
 
 这 行命令为什么值得单独一节：**它能证明实现真的可替换**。
@@ -429,7 +509,7 @@ W2 做完之后：
 | 断言 | 状态 |
 | --- | --- |
 | `tests/test_api.py` 一行未改 | ✅ |
-| 全套 532 个测试仍全绿（**断网也是**） | ✅ 532 passed |
+| 全套 567 个测试仍全绿（**断网也是**） | ✅ 567 passed |
 | 响应体正常时仍是 4 字段 | ✅ 实测无 `degraded` 键 |
 | 降级时可多 1 个可选字段 | ✅ `degraded: true`，v1.1 向后兼容 |
 | 规则版仍可用 | ✅ `EXTRACTOR_IMPL=rule` 一键回退 |
@@ -668,6 +748,12 @@ fastapi、抽取器接受注入 client"的直接收益。
 - [docs/weekly/w3.md](docs/weekly/w3.md) —— **W3 周复盘**：五次判定/统计口径错误、
   三道自测错题（FC 谁执行 / 流式错误 / 哪些文件不能动）、
   以及 W4 开工清单（摘要延迟必须换 reasoning 档位）
+- [docs/weekly/w4.md](docs/weekly/w4.md) —— **W4 周复盘（RAG 周）**：六个必答题实测答案汇总、
+  **内存测量错了两次差点把部署结论做反**（tasklist CSV 含逗号 + launcher PID 不是被测进程）、
+  拔网测试卡 90 秒的根因、五条本周学到的、W5 的三个可验证目标
+- [docs/deploy-notes.md](docs/deploy-notes.md) —— **部署踩坑**：免费层内存实测
+  （模型栈 527 MB vs 1 GB 上限）、为什么选 hashing 而非 ONNX、降级必须可见、
+  以及"我无法创建线上链接"的诚实说明
 - `learn/llm/01_params.md` —— 采样参数实测（temperature / seed / max_tokens / stop）
 - `learn/llm/02_function_calling.md` —— Function Calling 实测与网关踩坑
 

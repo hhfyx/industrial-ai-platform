@@ -886,4 +886,20 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    # **W4 追加**：Windows 控制台默认 GBK，而本脚本会打印 ✅/❌ 这类符号。
+    # 不加这几行，`--dry-run` 会在打印第一行结果时抛
+    #   UnicodeEncodeError: 'gbk' codec can't encode character '\u274c'
+    # 那条错误看起来像"脚本坏了"，实际只是"控制台编码不对"。
+    #
+    # 同一模式在 `app/cli/ask.py` 与 `app/cli/summarize.py` 里都有 ——
+    # 这是 Windows 上所有"打印中文/符号"的 CLI 的共同前置。
+    import sys as _sys
+    from contextlib import suppress as _suppress
+
+    for _stream in (_sys.stdout, _sys.stderr):
+        _reconfigure = getattr(_stream, "reconfigure", None)
+        if _reconfigure is not None:
+            with _suppress(ValueError, OSError):
+                _reconfigure(encoding="utf-8")
+
     asyncio.run(main())

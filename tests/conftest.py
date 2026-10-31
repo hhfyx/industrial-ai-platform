@@ -30,7 +30,9 @@ W2 的灵魂要求是：**拔掉网线，`pytest -q` 必须全绿**。
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 
@@ -60,3 +62,56 @@ def offline_extractor() -> Iterator[None]:
     app.dependency_overrides[get_extractor] = lambda: RuleExtractor()
     yield
     app.dependency_overrides.pop(get_extractor, None)
+
+
+def _bge_is_cached() -> bool:
+    """本地 HF 缓存里是否已经有 bge 模型。
+
+    只看**目录存在**，不检查文件完整性 —— 缓存损坏时模型加载会自己报错，
+    那是更直接的信号，不需要这里预判。
+    """
+    hf_home = os.environ.get("HF_HOME")
+    roots = [Path(hf_home)] if hf_home else []
+    roots.append(Path.home() / ".cache" / "huggingface")
+    return any((root / "hub" / "models--BAAI--bge-small-zh-v1.5").exists() for root in roots)
+
+
+@pytest.fixture(autouse=True, scope="session")
+def force_hf_offline_when_cached() -> Iterator[None]:
+    """**有缓存时强制 huggingface 离线，避免"拔网线"时卡住**。
+
+    ## 这个 fixture 是踩了坑才加的
+
+    W4 周日验收要求"拔网线 `pytest -q` 全绿"。我用死代理
+    （`HTTPS_PROXY=http://127.0.0.1:1`）模拟断网，结果 **`test_embedding.py`
+    卡住 90 秒不返回**。
+
+    原因不是测试写得不对，而是 `huggingface_hub` 在加载模型前会**先连网校验
+    commit hash**。网络不可达时它走重试与超时，单次等待就很长；
+    `httpx` 的重试叠加之后就成了"看起来挂死"。
+
+    **而模型其实早在本地缓存里** —— 实测设 `HF_HUB_OFFLINE=1` 后，
+    同一个加载只要 2 秒，并打印 "Using cached commit hash"。
+
+    所以：**缓存存在时强制离线**。这既让"拔网线全绿"成立，
+    也让 CI 不会因为 Hub 波动而变慢或变红。
+
+    ## 为什么只在"有缓存"时强制
+
+    缓存不存在时强制离线会让测试直接失败（模型加载不了）——
+    那种失败的信息（"no such file"）比"网络超时"更好懂，但也没必要
+    在一台干净机器上把它变成错误。所以这里保守：有缓存才离线，
+    没缓存就让它去下载（第一次跑的人本来就要下载一次）。
+    """
+    previous = {key: os.environ.get(key) for key in ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE")}
+    if _bge_is_cached():
+        os.environ.setdefault("HF_HUB_OFFLINE", "1")
+        os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+    try:
+        yield
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value

@@ -1,0 +1,58 @@
+# Streamlit Community Cloud 部署依赖（**精简版**）
+#
+# ## 为什么不直接用 `requirements.txt`
+#
+# 仓库根的 `requirements.txt` 是 `uv export` 出来的**完整运行时依赖**，
+# 含 `torch`（CPU 版约 900 MB）与 `sentence-transformers`。
+# Streamlit Cloud 免费层：
+#
+#   1. **1 GB 内存** —— bge + torch 实测占 561 MB，叠加框架开销会 OOM
+#   2. **安装时长有限** —— 900 MB 的 wheel 经常超时
+#   3. **磁盘配额有限**
+#
+# 所以部署侧用这个文件：**不含 torch / sentence-transformers**，
+# 于是 `app/rag/embedding/bge.py` 的 `import` 会失败 → `get_embedder("bge-small-zh")`
+# 报一句人话 → `deploy_config` 默认走 `hashing`。
+#
+# ## 这不是"阉割版"，是"明确的能力边界"
+#
+# 线上 demo 的能力 = 上传 + 索引 + 检索 + 流式 + 引用 + 拒答，**全部可用**；
+# 只有"语义检索"这一项降级成"字面检索"。
+#
+# **把降级写在部署配置里，比让它悄悄 OOM 好得多** ——
+# 前者用户能看到"当前为字面检索"，后者是"应用隔几分钟重启一次"。
+#
+# ## 如果要用 bge（付费层 / 更多内存）
+#
+#     RAG_EMBEDDER=bge-small-zh
+#
+# 并在这个文件里加上 torch + sentence-transformers。
+# 那份 pyproject 已经写了（见 `[project] dependencies`），
+# 复制过来即可 —— **不要手写版本号**，用 `uv export` 生成保持与本地一致。
+
+# ---------------------------------------------------------------- Web UI
+streamlit==1.66.1
+
+# ---------------------------------------------------------------- RAG 核心（无 torch）
+# 向量库：Chroma 是纯 Python + sqlite，不拉 torch
+chromadb==1.5.9
+# 文档解析
+pypdf==6.21.2
+pdfplumber==0.11.10
+python-docx==1.2.0
+# 模板渲染（qa v2 模板）
+jinja2==3.1.6
+# 配置
+pydantic==2.13.5
+pydantic-settings==2.11.0
+# LLM 客户端（只用到 chat.completions）
+openai==3.37.0
+# token 计数（成本估算）
+tiktoken==0.14.0
+# 中文分块用到的标准库之外没有依赖，这里不用列
+
+# ---------------------------------------------------------------- 不装的（说明理由，避免被"帮你补上"）
+# torch / sentence-transformers —— 见文件头，部署侧靠 hashing 降级
+# langchain / langchain-openai —— W3 的结论是不用它的结构化输出链路，
+#   线上也不需要；只在本地做 A/B 对照实验时用
+# pytest / ruff / playwright / reportlab —— 开发依赖，部署不需要
