@@ -1,0 +1,11 @@
+{
+  "langchain": {
+    "chunks": 5,
+    "total": 2297
+  },
+  "mine": {
+    "chunks": 5,
+    "total": 2328
+  },
+  "source_chars": 2128
+}

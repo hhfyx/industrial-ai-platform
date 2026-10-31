@@ -12,15 +12,34 @@
 取 500 字符 / 50 字符重叠 —— 这个量级是"一段完整论述"的常见长度，
 不是拍脑袋：一份 A4 合同条款段通常 200–600 字，取 500 让大多数条款**整段落在一个块里**。
 
-**为什么必须有重叠**：跨块的信息断裂只能靠重叠缓解。一个"若甲方未按期付款，
-则乙方有权…"的条件句被切在中间时，重叠至少让下一块还能看到条件的前半句。
-代价是存储涨约 10%（50/500），检索可能返回近重复块 —— 后者用 id 去重即可，
-前者是必须付的钱。
+**为什么必须有重叠**：跨块的信息断裂只能靠重叠缓解（完整论证见 `delimiter.py`）。
+代价是索引冗余约 9.4%（实测）、chunk 数变多、检索时更容易命中重复内容。
+
+## 两个名字，一个实现
+
+`DelimiterSplitter` 是正式名（核心是**中文分隔符优先级表**，不是"递归"这个技巧）。
+`RecursiveSplitter` 是别名，保留因为 W4 周三的文档与测试引用的是它 ——
+**改名不该顺手把历史文档的链接打死**。
+
+`recursive.py` 现在是 `DelimiterSplitter` 的兼容导出层，
+它存在的唯一理由是"`from app.rag.splitters.recursive import RecursiveSplitter`
+这条 import 还能用"。新代码请从 `app.rag.splitters` 直接拿。
 """
 
 from __future__ import annotations
 
 from app.rag.splitters.base import ChunkSize, Splitter
-from app.rag.splitters.recursive import RecursiveSplitter
+from app.rag.splitters.delimiter import DEFAULT_SEPARATORS, DelimiterSplitter
 
-__all__ = ["ChunkSize", "RecursiveSplitter", "Splitter"]
+# 别名：周三的代码/文档/测试用的是这个名字。两者是**同一个类**，
+# 用赋值而不是 `class RecursiveSplitter(DelimiterSplitter)` ——
+# 子类会让 `isinstance` 与 `name` 出现两种答案，而它们本该是同一件事。
+RecursiveSplitter = DelimiterSplitter
+
+__all__ = [
+    "DEFAULT_SEPARATORS",
+    "ChunkSize",
+    "DelimiterSplitter",
+    "RecursiveSplitter",
+    "Splitter",
+]

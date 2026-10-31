@@ -46,6 +46,12 @@ class HashingEmbedder:
 
     name = "hashing"
 
+    # **0.0 = 关掉拒答闸门**，这是诚实而不是偷懒。
+    # 实测（scripts/embedding_score_probe.py）：hashing 的"相关"（0.148/0.273/0.387）
+    # 与"无关"（0.190）分布**完全重叠** —— 任何单一阈值都会误杀真答案。
+    # 假装它有阈值，只会制造"有时拒答有时不拒"的怪行为。
+    recommended_min_score = 0.0
+
     # **保留这个属性，即使它永远是空串**。用途有两个：
     # 1. A/B 脚本靠 `embedder.query_instruction = ""` 做开关（加/不加前缀）。
     #    缺这个属性会让 `getattr(..., "")` 静默降级成"永远不加"，

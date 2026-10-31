@@ -1,0 +1,78 @@
+{
+  "meta": {
+    "relevant_pairs": 4,
+    "irrelevant_pairs": 4,
+    "note": "样本小，阈值只作量级参考；跨 embedder 的分数不可比"
+  },
+  "embedders": {
+    "hashing-64": {
+      "relevant_min": 0.1484,
+      "relevant_max": 0.4783,
+      "irrelevant_min": -0.0975,
+      "irrelevant_max": 0.1491,
+      "separable": false,
+      "suggested_threshold": null,
+      "scores": {
+        "relevant": [
+          0.4595,
+          0.1484,
+          0.1503,
+          0.4783
+        ],
+        "irrelevant": [
+          0.0934,
+          0.1491,
+          -0.0774,
+          -0.0975
+        ]
+      },
+      "declared_min_score": 0.0
+    },
+    "hashing-256": {
+      "relevant_min": 0.0882,
+      "relevant_max": 0.4839,
+      "irrelevant_min": 0.0,
+      "irrelevant_max": 0.1481,
+      "separable": false,
+      "suggested_threshold": null,
+      "scores": {
+        "relevant": [
+          0.3893,
+          0.0882,
+          0.1834,
+          0.4839
+        ],
+        "irrelevant": [
+          0.105,
+          0.1481,
+          0.0277,
+          0.0
+        ]
+      },
+      "declared_min_score": 0.0
+    },
+    "bge-small-zh": {
+      "relevant_min": 0.5776,
+      "relevant_max": 0.6763,
+      "irrelevant_min": 0.2534,
+      "irrelevant_max": 0.3668,
+      "separable": true,
+      "suggested_threshold": 0.4722,
+      "scores": {
+        "relevant": [
+          0.6457,
+          0.5776,
+          0.6763,
+          0.6332
+        ],
+        "irrelevant": [
+          0.2534,
+          0.3668,
+          0.3018,
+          0.3208
+        ]
+      },
+      "declared_min_score": 0.35
+    }
+  }
+}

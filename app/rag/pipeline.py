@@ -126,16 +126,35 @@ class RagPipeline:
         client: object,
         model: str,
         top_k: int | None = None,
+        min_score: float | None = None,
         extra_request: dict[str, object] | None = None,
     ) -> Answer:
-        """完整问答：检索 → 拼上下文 → 调模型 → 带引用返回。"""
+        """完整问答：检索 → 拼上下文 → 调模型 → 带引用返回。
+
+        **必须把检索分数传给生成层**：`generate_answer` 的分数闸门靠它拒答。
+        不传的话（`scores=None`）闸门会被跳过，于是"库里只有字面碰巧相似的垃圾"
+        时模型会拿它当依据硬答 —— 那正是要防的。
+
+        ## 阈值从 embedder 取，不是全局常量
+
+        `min_score` 不传时用 `self.embedder.recommended_min_score`。
+        这条改动来自一个真实的测试失败：用 `HashingEmbedder` 时全局的 0.35
+        把正确命中的答案（分数 0.247）误判成"未找到"并拒答。
+        实测发现 hashing 的相关/无关分数**完全重叠**（0.148~0.387 vs 0.190），
+        任何单一阈值都无意义 —— 所以它给 `0.0`（关掉闸门），而 bge 给 `0.35`。
+
+        传 `0.0` 表示**显式关掉**闸门（与"忘了传"是两件事，后者更危险）。
+        """
         retrieved = self.retrieve(question, top_k=top_k)
+        threshold = self.embedder.recommended_min_score if min_score is None else min_score
         return await generate_answer(
             question,
             retrieved.chunks,
             client=client,
             model=model,
             max_context_chars=self.max_context_chars,
+            min_score=threshold,
+            scores=retrieved.scores(),
             extra_request=extra_request,
         )
 

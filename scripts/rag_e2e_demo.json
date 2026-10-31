@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "client": "ScriptedClient（假模型，本机网关 502 未配置凭据）",
+    "embedder": "hashing-256",
+    "corpus_size": 3,
+    "note": "验的是链路结构，不是答案质量；真模型接入尚未验证"
+  },
+  "cases": {
+    "with_citation": {
+      "question": "逾期交付的违约金怎么算",
+      "retrieval_order": [
+        {
+          "rank": 1,
+          "page": 2
+        },
+        {
+          "rank": 2,
+          "page": 1
+        },
+        {
+          "rank": 3,
+          "page": 3
+        }
+      ],
+      "answer": "乙方逾期交付的，按日万分之五支付违约金 [1]。",
+      "citations": [
+        {
+          "index": 1,
+          "label": "合同.pdf 第 2 页",
+          "page": 2
+        }
+      ],
+      "prompt_has_constraint": true
+    },
+    "invalid_refs": {
+      "answer": "违约金按日万分之五计算 [2]，另见 [9]。",
+      "valid": [
+        2
+      ],
+      "invalid": [
+        9
+      ]
+    },
+    "refuse_empty": {
+      "refused": true,
+      "text": "知识库中未找到相关内容。\n\n我没有在你的知识库里找到能回答这个问题的内容，因此不作回答。如果这个问题确实应该有答案，请确认相关文档已经导入。"
+    },
+    "refuse_low_score": {
+      "refused": true,
+      "top_score": 0.03861253647802503,
+      "threshold": 0.99
+    }
+  }
+}

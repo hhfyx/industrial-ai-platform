@@ -21,16 +21,24 @@ from __future__ import annotations
 
 from app.rag.generation.base import (
     DEFAULT_CONTEXT_CHARS,
+    DEFAULT_MIN_SCORE,
+    REFUSAL_TEXT,
     Answer,
     Citation,
     build_context,
+    extract_refs,
     generate_answer,
+    resolve_citations,
 )
 
 __all__ = [
     "DEFAULT_CONTEXT_CHARS",
+    "DEFAULT_MIN_SCORE",
+    "REFUSAL_TEXT",
     "Answer",
     "Citation",
     "build_context",
+    "extract_refs",
     "generate_answer",
+    "resolve_citations",
 ]

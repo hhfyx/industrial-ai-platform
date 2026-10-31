@@ -508,10 +508,21 @@ async def test_generate_answer_short_circuits_on_empty_context() -> None:
     """一条都没命中时**不调模型**：让模型对着空上下文回答，它唯一能做的就是编。
 
     省这次调用不是目的，避免一次必然的幻觉才是。
+
+    **话术在 W4 周五改过**：从"资料中没有提到相关内容。"改成 `REFUSAL_TEXT`
+    （"知识库中未找到相关内容…"）。改的理由是责任划分：前者听起来像
+    "模型看过资料但没找到"，后者明确是**我们的检索没找到**。
+    用户该做的是"检查文档有没有导入"，而不是"再问一遍试试"——
+    两种表述引导的行动完全不同。
+
+    所以断言改为比对常量而不是硬编字符串：**话术还会改，语义不会变**。
     """
+    from app.rag.generation import REFUSAL_TEXT
+
     client = FakeClient()
     answer = await generate_answer("违约金怎么算", [], client=client, model="m")
-    assert answer.text == "资料中没有提到相关内容。"
+    assert answer.text == REFUSAL_TEXT
+    assert answer.refused is True
     assert answer.citations == []
     assert client.completions.calls == [], "空上下文时不该发起模型调用"
 
@@ -574,11 +585,24 @@ def test_pipeline_end_to_end_offline() -> None:
 
 @pytest.mark.anyio
 async def test_pipeline_answer_returns_cited_answer() -> None:
+    """完整链路：索引 → 检索 → 调模型 → 带引用返回。
+
+    **`min_score=0.0` 是显式传的，不是漏传**：这条测试用 `HashingEmbedder`
+    （`RagPipeline` 的默认），它的 `recommended_min_score` 就是 0.0 ——
+    因为 hashing 的相关/无关分数完全重叠，任何阈值都无意义。
+    这里显式写出来，是为了让读测试的人知道"没有阈值在起作用"，
+    而不是以为"默认阈值放过了它"。
+
+    bge 上的真实阈值行为在 `test_rag_query_chain.py` 里测。
+    """
     pipeline = RagPipeline(top_k=2)
     pipeline.index_text("违约金按合同总额的千分之一计算。", source="合同")
-    answer = await pipeline.answer("违约金怎么算", client=FakeClient(), model="m")
+    answer = await pipeline.answer("违约金怎么算", client=FakeClient(), model="m", min_score=0.0)
+
     assert answer.text
-    assert answer.citations
+    assert not answer.refused
+    assert answer.citations, "答案里带了 [1]，引用列表不该为空"
+    assert answer.citations[0].source == "合同"
 
 
 def test_pipeline_index_text_has_no_fake_page() -> None:
