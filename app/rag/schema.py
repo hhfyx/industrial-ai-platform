@@ -176,6 +176,19 @@ class Chunk:
             # 这里必须有：让"忘记填 id"从静默的重复入库变成不可能发生。
             object.__setattr__(self, "id", self.content_id())
 
+        # **`page` 与 `pages` 不许互相矛盾**：单页块 `pages` 必须是 `(page,)`。
+        #
+        # 为什么在这里补：手工构造 `Chunk(text=..., page=7)` 时 `pages` 默认是 `()`,
+        # 于是同一个对象里 "起始页是 7" 和 "不覆盖任何页" 同时成立 ——
+        # 那是**结构上的谎言**。它在往返（Chunk → metadata → Chunk）时会暴露：
+        # `page=7` 活下来了，`pages` 变成空元组，引用显示 `p7` 但覆盖范围是空的。
+        #
+        # 实测就是这么发现的：`tests/test_chroma_store.py` 的
+        # `test_document_roundtrip_keeps_page_attribution` 断言 `pages == (7,)` 时拿到 `()`。
+        # 与其让每个构造点都记得填，不如让结构自己保证一致。
+        if not self.pages and self.page is not None:
+            object.__setattr__(self, "pages", (self.page,))
+
     def content_id(self) -> str:
         """按 (source, 起始页, 正文) 算出的稳定 id。
 
@@ -188,6 +201,51 @@ class Chunk:
         这是**有意**的 —— 完全相同的文本入库两次没有检索价值，去重才是正确行为。
         """
         return _digest(self.source, str(self.page), self.text)
+
+    @property
+    def doc_id(self) -> str:
+        """文档级标识：`source` 的短哈希（10 位十六进制）。
+
+        **为什么用哈希而不是直接用文件名**：文件名里有中文、空格、括号、`‰`，
+        而 Chroma 的 id 只允许 `[a-zA-Z0-9._-]` 且在部分版本上会被校验。
+        直接用文件名会在某个客户的文件上炸 —— 而那时你已经上线了。
+
+        **为什么是 10 位**：足够长到不撞（2^40），又足够短到能人眼读 id。
+        取 `source` 而不是 `source + 内容`：文档改了内容仍是"同一份文档"，
+        `doc_id` 不该变 —— 否则"按文档删除旧版"这件事做不了。
+        """
+        return _digest(self.source)[:10]
+
+    @property
+    def store_id(self) -> str:
+        """**存储主键**：`{doc_id}_{page}_{chunk_index}`。
+
+        这是给向量库用的 id，与 `id`（内容派生）**分工不同**，两者都要有：
+
+        | | `id`（内容派生） | `store_id`（位置派生） |
+        | --- | --- | --- |
+        | 格式 | `sha256(source,page,text)[:16]` | `a1b2c3d4e5_-1_0` |
+        | 变了会怎样 | 内容变 → 变成新记录（旧记录成孤儿） | 位置不变 → **原地覆盖** |
+        | 用途 | 引用去重、跨库一致性、调试 | 向量库主键、按文档/页码定位 |
+        | 可读性 | 无（一串哈希） | **有**（打开库就能看出是哪份文档的哪一块） |
+
+        **为什么存储主键用位置派生**：任务要求"可复现"，而且要让
+        "第 7 页第 2 块"这件事在库里直接可查 —— 用哈希做主键的话，
+        排查时你只能拿着哈希反查，而那段代码通常还没写。
+
+        **代价（必须写清）**：位置派生意味着**改切分参数后 id 会指向不同内容**。
+        `chunk_chars` 从 500 改到 800，第 3 块可能从"违约条款"变成"付款条款"，
+        但两条记录的 `store_id` 都是 `xxx_7_2` —— upsert 会把旧内容**静默覆盖**。
+
+        这不是 bug，是这份取舍的另一面。应对方式是**重建索引前先按 source 删干净**
+        （`VectorStore.delete_by_source`），而不是指望 id 帮你发现不一致。
+        内容派生的 `id` 仍然保留在 metadata 里，用来做"这条记录是不是同一个内容"的判定。
+
+        页码为 `None`（Markdown/DOCX）时用 `-1` 占位，与 `to_payload()`
+        里的编码保持一致 —— **编码只出现一次，解码也只出现一次**。
+        """
+        page = -1 if self.page is None else self.page
+        return f"{self.doc_id}_{page}_{self.index}"
 
     @property
     def block(self) -> str:
@@ -211,10 +269,34 @@ class Chunk:
     def to_payload(self) -> dict[str, Any]:
         """给存储层的扁平记录。
 
-        **正文同时也进 metadata**：向量库返回的是 `document` 字段，
-        但不同后端在"是否默认回传正文"上行为不一致。把正文再存一份到 metadata
-        会让存储翻倍 —— 所以这里**不这么做**，而是在 store 接口里把
-        `text` 作为一等字段显式传出（见 `stores.base.SearchHit`）。
+        **metadata 字段规范（定版，改它要同步改 `ChromaStore` 与测试）**：
+
+        | 字段 | 类型 | 例子 | 用途 |
+        | --- | --- | --- | --- |
+        | `source` | str | `合同A.pdf` | 按文档过滤 / 引用展示 |
+        | `page` | int | `7` / `-1` | 按页码过滤；`-1` 表示"无页"（编码见 `restore_location`） |
+        | `pages` | str | `6,7` | 跨页块的覆盖范围（逗号分隔） |
+        | `chunk_index` | int | `3` | 块序号，与 `store_id` 对齐 |
+        | `doc_id` | str | `a1b2c3d4e5` | 按文档批量删除 |
+        | `block` | str | `text` / `table` / `heading` | 区分表格块 |
+        | `content_id` | str | 16 位哈希 | **内容派生 id**，用于"是不是同一内容"的判定 |
+
+        **全部是扁平标量**（str/int/float/bool）—— 这条约束是 Chroma 逼出来的：
+        它的 `where` 只支持比较与逻辑组合，嵌套结构不支持。
+        结构上先保证可移植，而不是等迁移时才发现"这个过滤写不了"。
+
+        **正文只存一份（在 Chroma 的 `documents` 字段）**：
+        再往 metadata 存一份会让存储翻倍，而检索时 `documents` 是默认返回的
+        （实测：默认 include 就含 `documents`）。
+
+        **`content_id` 为什么要进 metadata**：Chroma 的主键位被
+        `store_id`（位置派生）占了，而引用去重、`QueryResult` 的 `Chunk.id`
+        需要的是**内容派生**的那个 id。不存进 metadata 的话，从库里读回来
+        只能拿到 `store_id` —— 实测就是这么发现的：roundtrip 后
+        `chunk.id` 变成了 `fcd1543fcc_3_0` 而不是 16 位哈希。
+
+        键名用 `content_id` 而不是 `id`：Chroma 的响应里 `ids` 是它自己的主键位，
+        同名字段放 metadata 里会让人误以为两个是同一个东西。
         """
         return {
             "id": self.id,
@@ -225,6 +307,8 @@ class Chunk:
                 "page": -1 if self.page is None else self.page,
                 "pages": ",".join(str(p) for p in self.pages),
                 "chunk_index": self.index,
+                "doc_id": self.doc_id,
+                "content_id": self.id,
             },
         }
 

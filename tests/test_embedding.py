@@ -332,13 +332,24 @@ def test_bge_end_to_end_retrieval_finds_semantic_match() -> None:
 
     这是 `HashingEmbedder` 做不到的事（它只有字面相似）——
     `"钱什么时候能到账"` 与 `"十五个工作日内付款"` 没有一个字相同。
+
+    **`append=True` 是必须的，而且这个测试曾经因此挂掉**：
+    三条条款共用 `source="合同"`，默认 `append=False` 的语义是
+    "这段就是该 source 的全部内容"——于是后一条覆盖前一条，
+    库里只剩最后一条（质保期），查"钱什么时候到账"自然命中不到付款条款。
+
+    这不是测试写错了，是 `index_text` 原来的语义有缺陷：
+    **它在"同一份文档多次追加"这个用法下会静默丢数据**。
+    修法是给它一个显式的 `append` 开关（见 `pipeline.index_text` 的 docstring）。
     """
     from app.rag.pipeline import RagPipeline
 
     pipeline = RagPipeline(embedder=get_embedder("bge-small-zh"), top_k=1)
-    pipeline.index_text("第五条 付款计划：验收合格后十五个工作日内付款。", source="合同")
-    pipeline.index_text("第六条 违约责任：按日万分之五支付违约金。", source="合同")
-    pipeline.index_text("第十三条 质保期：验收合格之日起 12 个月。", source="合同")
+    pipeline.index_text(
+        "第五条 付款计划：验收合格后十五个工作日内付款。", source="合同", append=True
+    )
+    pipeline.index_text("第六条 违约责任：按日万分之五支付违约金。", source="合同", append=True)
+    pipeline.index_text("第十三条 质保期：验收合格之日起 12 个月。", source="合同", append=True)
 
     hits = pipeline.retrieve("钱什么时候能到账").hits
     assert hits, "检索不到"

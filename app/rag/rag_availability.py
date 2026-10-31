@@ -49,4 +49,16 @@ def numpy_available() -> bool:
     return _module_exists("numpy")
 
 
-__all__ = ["bge_available", "numpy_available"]
+def chroma_available() -> bool:
+    """chromadb 是否可用。
+
+    **`ChromaStore` 的测试全部挂在它上面**：没装 chromadb 的环境里那批测试 skip，
+    而不是让整套测试红 —— 与 `bge_available` 同一个处理。
+
+    注意这**不是**在削弱测试：装了 chromadb 的机器（本机、完整镜像）
+    会跑全部测试。"可选依赖缺失时降级"和"测试覆盖被永久削弱"是两件事。
+    """
+    return _module_exists("chromadb")
+
+
+__all__ = ["bge_available", "chroma_available", "numpy_available"]

@@ -27,7 +27,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from app.rag.embedding.vector import cosine
-from app.rag.schema import Chunk
+from app.rag.schema import Chunk, MetadataValue
 from app.rag.stores.base import SearchHit
 
 
@@ -52,10 +52,21 @@ class InMemoryVectorStore:
                 "向量与块的按位对应关系已失效"
             )
         for chunk, vector in zip(chunks, vectors, strict=True):
-            self._rows[chunk.id] = (chunk, list(vector))
+            # **按 `store_id` 而不是 `id` 存**：与 ChromaStore 保持同一个覆盖语义
+            # （位置派生 → 同位置的新内容覆盖旧内容）。两个实现用不同主键，
+            # 会让"内存里测通过的幂等性"在 Chroma 上不成立 —— 那种不一致最难查。
+            # `id`（内容派生）仍在 chunk 上，可用于去重与调试。
+            self._rows[chunk.store_id] = (chunk, list(vector))
         return len(chunks)
 
-    def search(self, vector: list[float], top_k: int = 5) -> list[SearchHit]:
+    def search(
+        self,
+        vector: list[float],
+        top_k: int = 5,
+        *,
+        where: dict[str, MetadataValue] | None = None,
+    ) -> list[SearchHit]:
+        """按向量检索，可选精确匹配过滤。"""
         if top_k <= 0:
             raise ValueError("top_k 必须为正数")
         if not self._rows:
@@ -63,9 +74,38 @@ class InMemoryVectorStore:
 
         scored: list[SearchHit] = []
         for chunk, stored in self._rows.values():
+            if where and not _matches(chunk, where):
+                continue
             scored.append(SearchHit(chunk=chunk, score=_cosine(vector, stored)))
 
         # `-score` 排序：同分时按插入序稳定输出，测试可复现。
+        scored.sort(key=lambda hit: -hit.score)
+        return scored[:top_k]
+
+    def search_in_pages(
+        self,
+        vector: list[float],
+        *,
+        page_from: int,
+        page_to: int,
+        top_k: int = 5,
+        where: dict[str, MetadataValue] | None = None,
+    ) -> list[SearchHit]:
+        """按页码区间检索（含两端）。与 `ChromaStore` 的语义保持一致。"""
+        if page_from > page_to:
+            raise ValueError(f"page_from({page_from}) 不能大于 page_to({page_to})")
+        if top_k <= 0:
+            raise ValueError("top_k 必须为正数")
+        if not self._rows:
+            return []
+
+        scored: list[SearchHit] = []
+        for chunk, stored in self._rows.values():
+            if chunk.page is None or not (page_from <= chunk.page <= page_to):
+                continue
+            if where and not _matches(chunk, where):
+                continue
+            scored.append(SearchHit(chunk=chunk, score=_cosine(vector, stored)))
         scored.sort(key=lambda hit: -hit.score)
         return scored[:top_k]
 
@@ -75,13 +115,51 @@ class InMemoryVectorStore:
     def clear(self) -> None:
         self._rows.clear()
 
+    def delete_by_source(self, source: str) -> int:
+        """按 source 删除。**与 Chroma 的语义必须一致** —— 见 `base.VectorStore`。"""
+        doomed = [key for key, (chunk, _) in self._rows.items() if chunk.source == source]
+        for key in doomed:
+            del self._rows[key]
+        return len(doomed)
+
+    def count_by_source(self, source: str) -> int:
+        """该 source 已有多少块。追加时用来算 `index_offset`。"""
+        return sum(1 for chunk, _ in self._rows.values() if chunk.source == source)
+
     # ------------------------------------------------------------------ 仅供测试
 
     def ids(self) -> list[str]:
-        """导出当前所有 id（按插入序）。测试用它断言幂等入库 ——
-        "重复 upsert 后条数不变、id 不变"这一条内容派生的核心性质，
-        没有这个方法就只能靠 `count()` 间接推。"""
+        """导出当前所有存储主键（`store_id`，按插入序）。
+
+        测试用它断言"重复 upsert 后条数不变、主键不变"——
+        没有这个方法就只能靠 `count()` 间接推。
+        """
         return list(self._rows)
+
+
+def _matches(chunk: Chunk, where: dict[str, MetadataValue]) -> bool:
+    """精确匹配过滤（与 Chroma 的 `where={"k": v}` 语义对齐）。
+
+    查的字段范围与 Chroma 那边一致：`source` / `page` / `chunk_index` / `doc_id`
+    都在 `to_payload()` 里，这里也按同样的字段解析 —— 两个实现的过滤结果必须相同，
+    否则"内存里测通过、Chroma 上过滤不到"会变成一类无法复现的 bug。
+    """
+    for key, expected in where.items():
+        if key == "source":
+            actual: MetadataValue = chunk.source
+        elif key == "page":
+            actual = -1 if chunk.page is None else chunk.page
+        elif key == "chunk_index":
+            actual = chunk.index
+        elif key == "doc_id":
+            actual = chunk.doc_id
+        elif key == "id":
+            actual = chunk.id
+        else:
+            actual = chunk.metadata.get(key)  # type: ignore[assignment]
+        if actual != expected:
+            return False
+    return True
 
 
 def _cosine(a: Sequence[float], b: Sequence[float]) -> float:

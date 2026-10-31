@@ -31,6 +31,12 @@ scripts/.cache/
 .cache/
 **/models--*/
 
+# 向量库落盘目录（ChromaStore 的 PersistentClient 写在这里）
+# **同样不能入库**：sqlite + hnsw 二进制文件，几万条就几十 MB，
+# 而且是"可以从源文档重建的派生物"—— 入库等于把缓存当源码。
+# 例外：如果要提交一个小夹具库供他人复现，用 `!` 显式放行具体子目录。
+data/
+
 # Type checking / linting caches
 .mypy_cache/
 .ruff_cache/

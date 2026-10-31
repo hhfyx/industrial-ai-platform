@@ -67,17 +67,48 @@ class RagPipeline:
         """索引一个磁盘文件。"""
         return self.indexer.index_file(path)
 
-    def index_text(self, text: str, *, source: str) -> IndexReport:
+    def index_text(self, text: str, *, source: str, append: bool = False) -> IndexReport:
         """索引一段内存文本（上传接口走这条路：文件已在内存里，不必先落盘）。
 
         **单页文档 `page=None`**：一段粘贴进来的文本没有页的概念，
         硬给 `page=1` 会让"第 1 页"变成谎言 —— 和 `Document.page` 的设计一致。
+
+        ## `append` 参数是为一个真实 bug 加的
+
+        默认 `append=False` 表示"**这段文本就是 `source` 的全部内容**"：
+        先按 source 删干净，再写。这与"索引一份文件"的语义一致 ——
+        同一份文件重新上传，旧版本必须消失。
+
+        原来没有 `append`，于是频繁调用 `index_text(text, source="合同")`
+        （每段都是同一份"文档"的第 0 块）时，**后一次会静默覆盖前一次**：
+        实测连续入 3 条不同文本，库里只剩 1 条，而每次 `IndexReport.ok` 都是 `True`。
+
+        这个 bug 是 `tests/test_embedding.py` 的 bge 端到端测试抓出来的：
+        它想入 3 条不同条款再检索，结果只有最后一条在库里，命中自然不对。
+        **一次"看起来与 Chroma 无关"的测试，抓出了索引语义的缺陷** ——
+        这也是"换 store 时要跑全套测试"的实际价值。
+
+        `append=True` 的语义是"把这段加到已有内容后面"（同一 source 累积多个块）。
+        显式选择比隐式默认安全：想追加的人会写出来，不想追加的人不会误伤。
         """
         from app.rag.schema import Document
+
+        if append:
+            # 追加：新块的序号接在已有块后面。
+            # **必须算偏移量**：`index_documents()` 切出来的块 index 从 0 开始，
+            # 而 store_id 是 `{doc_id}_{page}_{chunk_index}` —— 不偏移的话
+            # 每批第一块都是 `_0`，后一批覆盖前一批（实测连续追加 3 条只剩 1 条）。
+            offset = self.store.count_by_source(source)
+        else:
+            # 覆盖语义：先按 source 清掉旧版本，再写新的。
+            # **必须在写入前删**，否则"旧文档 10 块、新文档 1 块"会留下 9 条孤儿。
+            self.store.delete_by_source(source)
+            offset = 0
 
         return self.indexer.index_documents(
             [Document(source=source, page=None, text=text)],
             source=source,
+            index_offset=offset,
         )
 
     # ------------------------------------------------------------------ 检索 + 生成

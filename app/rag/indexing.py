@@ -114,11 +114,17 @@ class Indexer:
         *,
         source: str | None = None,
         warnings: Sequence[str] | None = None,
+        index_offset: int | None = None,
     ) -> IndexReport:
         """从已解析的 `Document` 索引（上传接口走这条路：内存里已有文本）。
 
         `warnings` 透传 loader 的告警：**"有 3 页没文本"这件事必须跟着报告一起走**，
         否则索引报告显示"全绿"，而用户永远不知道那 3 页查不到。
+
+        `index_offset` 决定块的起始序号。默认 `None` 表示"从 0 开始"，
+        即"这批就是该 source 的全部内容"。**同一 source 追加多批时必须传偏移量**，
+        否则每批的第一块都是 `_0`，`store_id` 相同 → 后一批覆盖前一批。
+        实测：连续追加 3 条不同文本，库里只剩 1 条，而每批 `ok` 都是 True。
         """
         if self.store is None:
             raise RuntimeError("Indexer 没有装配 store；请传 store= 或先调用 assign_store()")
@@ -139,6 +145,22 @@ class Indexer:
             report.elapsed_ms = _elapsed_ms(started)
             report.store_total = self.store.count()
             return report
+
+        # ②' 追加时把块序号整体平移，让 store_id 不与已有块冲突。
+        # `Chunk` 是 frozen 的，所以要重建一批（而不是就地改 index）。
+        if index_offset:
+            chunks = [
+                Chunk(
+                    text=c.text,
+                    page=c.page,
+                    source=c.source,
+                    metadata=c.metadata,
+                    index=c.index + index_offset,
+                    pages=c.pages,
+                    id=c.id,  # 内容派生的 id **不随位置变** —— 这正是它与 store_id 的分工
+                )
+                for c in chunks
+            ]
 
         # ③ 向量化（批量一次调用，不在循环里逐条调 —— 见 embedding/base.py）
         vectors = self.embedder.embed([c.text for c in chunks])

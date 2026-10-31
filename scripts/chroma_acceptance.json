@@ -1,0 +1,299 @@
+{
+  "meta": {
+    "vectors": 100,
+    "documents": 5,
+    "embedder": "bge-small-zh",
+    "dimension": 512,
+    "collection": "acceptance",
+    "distance_space": "cosine",
+    "note": "本周不做量化，命中位置为人工判断的参考记录",
+    "corpus_design": "5 份文档 × 20 条互不相同的条款。第一版让 5 份内容相同，top3 被重复内容占满导致假未命中 —— 那是语料缺陷不是检索失败，教训保留在脚本注释里"
+  },
+  "persistence": {
+    "count_after_reopen": 100
+  },
+  "where_filter": {
+    "by_source": 20,
+    "page_range_2_3": 20
+  },
+  "known_answers": {
+    "total": 10,
+    "top1": 6,
+    "top2": 1,
+    "top3": 1,
+    "miss": 2,
+    "top1_source_correct": 10,
+    "details": [
+      {
+        "question": "违约了要赔多少钱",
+        "expected": "按日万分之五支付违约金",
+        "expected_source": "合同B_运维服务.pdf",
+        "position": "top1",
+        "top1_source_correct": true,
+        "top3": [
+          {
+            "score": 0.6618,
+            "source": "合同B_运维服务.pdf",
+            "page": 1,
+            "text": "第六条 违约责任：乙方逾期交付的，按日万分之五支付违约金，累"
+          },
+          {
+            "score": 0.6043,
+            "source": "合同B_运维服务.pdf",
+            "page": 2,
+            "text": "违约金抵扣：违约金可直接从应付款项中扣除。"
+          },
+          {
+            "score": 0.5321,
+            "source": "合同B_运维服务.pdf",
+            "page": 2,
+            "text": "赔偿上限：任何一方的赔偿责任不超过合同总额。"
+          }
+        ]
+      },
+      {
+        "question": "什么时候付钱",
+        "expected": "十五个工作日内付款",
+        "expected_source": "合同A_技术服务.pdf",
+        "position": "top1",
+        "top1_source_correct": true,
+        "top3": [
+          {
+            "score": 0.5526,
+            "source": "合同A_技术服务.pdf",
+            "page": 1,
+            "text": "第五条 付款计划：甲方按里程碑分期支付合同价款，验收合格后十"
+          },
+          {
+            "score": 0.5383,
+            "source": "合同A_技术服务.pdf",
+            "page": 3,
+            "text": "付款前提：每笔付款以乙方提交完整交付文档为前提条件。"
+          },
+          {
+            "score": 0.5031,
+            "source": "合同A_技术服务.pdf",
+            "page": 5,
+            "text": "尾款条件：尾款支付以系统上线运行满三十日为前提。"
+          }
+        ]
+      },
+      {
+        "question": "验收不合格怎么办",
+        "expected": "书面确认验收合格",
+        "expected_source": "合同A_技术服务.pdf",
+        "position": "未命中",
+        "top1_source_correct": true,
+        "top3": [
+          {
+            "score": 0.6514,
+            "source": "合同A_技术服务.pdf",
+            "page": 2,
+            "text": "验收整改：验收不通过的，乙方须在十个工作日内完成整改并重新提"
+          },
+          {
+            "score": 0.6108,
+            "source": "合同B_运维服务.pdf",
+            "page": 1,
+            "text": "第十三条 质保期：系统验收合格之日起 12 个月，质保期内免"
+          },
+          {
+            "score": 0.59,
+            "source": "合同B_运维服务.pdf",
+            "page": 1,
+            "text": "质量瑕疵：修复后仍不满足验收标准的，甲方可要求更换或退款。"
+          }
+        ]
+      },
+      {
+        "question": "软件的著作权归谁",
+        "expected": "软件著作权归甲方所有",
+        "expected_source": "合同D_软件开发.pdf",
+        "position": "top1",
+        "top1_source_correct": true,
+        "top3": [
+          {
+            "score": 0.6244,
+            "source": "合同D_软件开发.pdf",
+            "page": 1,
+            "text": "第八条 知识产权：本项目产生的软件著作权归甲方所有，乙方保留"
+          },
+          {
+            "score": 0.4512,
+            "source": "合同D_软件开发.pdf",
+            "page": 4,
+            "text": "版本控制：乙方须将交付代码纳入版本管理并保留提交记录。"
+          },
+          {
+            "score": 0.448,
+            "source": "合同E_保密协议.pdf",
+            "page": 3,
+            "text": "诉讼例外：涉及知识产权侵权的可向有管辖权的法院起诉。"
+          }
+        ]
+      },
+      {
+        "question": "保密要保密多久",
+        "expected": "保密期三年",
+        "expected_source": "合同E_保密协议.pdf",
+        "position": "top2",
+        "top1_source_correct": true,
+        "top3": [
+          {
+            "score": 0.6879,
+            "source": "合同E_保密协议.pdf",
+            "page": 2,
+            "text": "保密期限：合同终止后保密义务继续有效三年。"
+          },
+          {
+            "score": 0.64,
+            "source": "合同E_保密协议.pdf",
+            "page": 1,
+            "text": "第九条 保密义务：双方对合同履行中知悉的商业秘密负有保密义务"
+          },
+          {
+            "score": 0.5739,
+            "source": "合同E_保密协议.pdf",
+            "page": 1,
+            "text": "保密范围：含技术方案、报价、客户名单与未公开的经营数据。"
+          }
+        ]
+      },
+      {
+        "question": "地震导致延期谁负责",
+        "expected": "互不承担违约责任",
+        "expected_source": "合同B_运维服务.pdf",
+        "position": "top1",
+        "top1_source_correct": true,
+        "top3": [
+          {
+            "score": 0.6237,
+            "source": "合同B_运维服务.pdf",
+            "page": 5,
+            "text": "不可抗力：因地震、洪水、疫情等不可抗力导致延期，双方互不承担"
+          },
+          {
+            "score": 0.4821,
+            "source": "合同C_设备采购.pdf",
+            "page": 3,
+            "text": "仓储费用：甲方原因导致延迟收货的，仓储费用由甲方承担。"
+          },
+          {
+            "score": 0.474,
+            "source": "合同B_运维服务.pdf",
+            "page": 5,
+            "text": "责任划分：因甲方违规操作导致的损坏由甲方承担。"
+          }
+        ]
+      },
+      {
+        "question": "打官司去哪里仲裁",
+        "expected": "杭州仲裁委员会",
+        "expected_source": "合同E_保密协议.pdf",
+        "position": "top3",
+        "top1_source_correct": true,
+        "top3": [
+          {
+            "score": 0.5869,
+            "source": "合同E_保密协议.pdf",
+            "page": 4,
+            "text": "送达地址：双方确认的送达地址适用于仲裁文书送达。"
+          },
+          {
+            "score": 0.544,
+            "source": "合同E_保密协议.pdf",
+            "page": 3,
+            "text": "仲裁费用：仲裁费用由败诉方承担。"
+          },
+          {
+            "score": 0.4825,
+            "source": "合同E_保密协议.pdf",
+            "page": 1,
+            "text": "第十一条 争议解决：协商不成的，提交杭州仲裁委员会按其规则仲"
+          }
+        ]
+      },
+      {
+        "question": "设备送到什么地址",
+        "expected": "文一西路 969 号",
+        "expected_source": "合同C_设备采购.pdf",
+        "position": "未命中",
+        "top1_source_correct": true,
+        "top3": [
+          {
+            "score": 0.5087,
+            "source": "合同C_设备采购.pdf",
+            "page": 1,
+            "text": "附件一 设备清单：工业网关 20 台，型号 GW-300，单"
+          },
+          {
+            "score": 0.5083,
+            "source": "合同C_设备采购.pdf",
+            "page": 1,
+            "text": "到货验收：设备到货后三个工作日内双方共同开箱验货。"
+          },
+          {
+            "score": 0.4985,
+            "source": "合同C_设备采购.pdf",
+            "page": 3,
+            "text": "序列号登记：设备序列号须在交付清单中逐台登记。"
+          }
+        ]
+      },
+      {
+        "question": "保修期多长",
+        "expected": "12 个月",
+        "expected_source": "合同B_运维服务.pdf",
+        "position": "top1",
+        "top1_source_correct": true,
+        "top3": [
+          {
+            "score": 0.6216,
+            "source": "合同B_运维服务.pdf",
+            "page": 1,
+            "text": "第十三条 质保期：系统验收合格之日起 12 个月，质保期内免"
+          },
+          {
+            "score": 0.519,
+            "source": "合同E_保密协议.pdf",
+            "page": 2,
+            "text": "保密期限：合同终止后保密义务继续有效三年。"
+          },
+          {
+            "score": 0.5105,
+            "source": "合同B_运维服务.pdf",
+            "page": 3,
+            "text": "延保条款：质保期届满后可续签年度维保，费用为合同额的百分之八"
+          }
+        ]
+      },
+      {
+        "question": "工程师多久能到现场",
+        "expected": "四十八小时内到位",
+        "expected_source": "合同B_运维服务.pdf",
+        "position": "top1",
+        "top1_source_correct": true,
+        "top3": [
+          {
+            "score": 0.6087,
+            "source": "合同B_运维服务.pdf",
+            "page": 4,
+            "text": "现场支持：重大故障时乙方须派工程师到场，四十八小时内到位。"
+          },
+          {
+            "score": 0.5141,
+            "source": "合同C_设备采购.pdf",
+            "page": 2,
+            "text": "调试标准：安装完成后须连续运行七十二小时无故障方视为调试完成"
+          },
+          {
+            "score": 0.4855,
+            "source": "合同C_设备采购.pdf",
+            "page": 4,
+            "text": "培训计划：为甲方运维人员提供 3 天培训，含上机实操与考核。"
+          }
+        ]
+      }
+    ]
+  }
+}
