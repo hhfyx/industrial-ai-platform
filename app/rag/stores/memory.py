@@ -126,6 +126,22 @@ class InMemoryVectorStore:
         """该 source 已有多少块。追加时用来算 `index_offset`。"""
         return sum(1 for chunk, _ in self._rows.values() if chunk.source == source)
 
+    def get_by_content_id(self, content_id: str) -> Chunk | None:
+        """按内容派生 id 回查块（见 `base.VectorStore.get_by_content_id`）。
+
+        **遍历而不是建二级索引**：这个类是几千条量级的上限（见模块 docstring），
+        为一个排查/校验用的读接口加一份索引，等于让每次 `upsert` 都多维护一张表 ——
+        而"回查"在生产上只在引用校验和评测里被调几次。真要快，该换 `chroma`，
+        不是在这里加索引。
+
+        按插入序返回第一条：同一段文字被索引在两个位置时，两条记录内容相同，
+        给谁都不错；稳定取第一条是为了让测试可复现。
+        """
+        for chunk, _ in self._rows.values():
+            if chunk.id == content_id:
+                return chunk
+        return None
+
     # ------------------------------------------------------------------ 仅供测试
 
     def ids(self) -> list[str]:

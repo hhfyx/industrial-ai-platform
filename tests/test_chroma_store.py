@@ -520,6 +520,91 @@ def test_content_id_survives_roundtrip(tmp_path) -> None:
     assert hit.chunk.id == chunk.id, "从库里读回来的 id 与写入时不同"
 
 
+# ============================================================ 6.5 按引用回查原文
+
+
+def test_get_by_content_id_returns_same_chunk(tmp_path) -> None:
+    """**拿 `Citation.chunk_id` 回查原文** —— "引用双向可校验"的最后一跳。
+
+    这条补的是 W4 v1 的一个真缺口：引用列表里一直带着 `chunk_id`，
+    但**没有任何公共入口能拿它回库里取原文**（只能走 `store._collection.get(...)`
+    这条私有路径）。于是"抽查任意 chunk 回查原文"在代码层面是做不成的，
+    W5 想按引用的页码/跨页归属判命中也写不出来。
+    """
+    store = _store(tmp_path)
+    embedder = HashingEmbedder(dimension=_DIM)
+    crosspage = Chunk(text="跨页的违约金条款", page=6, source="A.pdf", pages=(6, 7), index=2)
+    other = Chunk(text="另一段无关内容", page=9, source="B.pdf", index=0)
+    chunks = [crosspage, other]
+    store.upsert(chunks, embedder.embed([c.text for c in chunks]))
+
+    found = store.get_by_content_id(crosspage.id)
+
+    assert found is not None
+    # 字段必须逐条还原，不只是 text —— `pages` 丢了就还是"半个真话"
+    assert found.id == crosspage.id
+    assert found.text == crosspage.text
+    assert found.page == 6
+    assert found.pages == (6, 7), f"回查丢了跨页范围：{found.pages}"
+    assert found.source == "A.pdf"
+    assert found.index == 2
+    # 与检索路径拿到的块**字段完全一致**（共用 _chunk_from_row 的原因）
+    hit = store.search(embedder.embed_query(["跨页的违约金条款"])[0], top_k=1)[0]
+    assert hit.chunk == found, "检索回来的块与回查回来的块不一致 —— 还原逻辑写了两份"
+
+
+def test_get_by_content_id_unknown_and_empty(tmp_path) -> None:
+    """查不到返回 `None`，**不抛**：引用里带了一个库里没有的 id 是数据问题，
+    应当由调用方（UI / 审计脚本）报成"引用不可核"，而不是让整个渲染崩掉。"""
+    store = _store(tmp_path)
+    embedder = HashingEmbedder(dimension=_DIM)
+    chunk = _chunk("存在的块", page=1, source="A.pdf")
+    store.upsert([chunk], embedder.embed([chunk.text]))
+
+    assert store.get_by_content_id("不存在的id") is None
+    assert store.get_by_content_id("") is None, "空 id 应该短路，不该去扫全表"
+
+
+def test_get_by_content_id_survives_reopen(tmp_path) -> None:
+    """回查要能跨进程使用 —— 它的现实用途是"翻历史消息 / 复核旧日志里的引用"，
+    那都发生在**另一个进程**里。"""
+    path = tmp_path / "chroma"
+    embedder = HashingEmbedder(dimension=_DIM)
+    chunk = _chunk("跨进程可回查的块", page=4, source="A.pdf")
+
+    first = ChromaStore(path, collection_name="lookup_test")
+    first.upsert([chunk], embedder.embed([chunk.text]))
+    del first
+
+    second = ChromaStore(path, collection_name="lookup_test")
+    found = second.get_by_content_id(chunk.id)
+    assert found is not None and found.text == chunk.text and found.page == 4
+
+
+def test_in_memory_and_chroma_agree_on_lookup() -> None:
+    """**两个实现必须给出同样的回查结果**。
+
+    Protocol 只检查方法存在，不检查语义 —— 少实现一个、或密钥取错字段，
+    表现为"内存里回查到了、Chroma 上没有"，那类不一致最难查。
+    """
+    embedder = HashingEmbedder(dimension=_DIM)
+    chunk = Chunk(text="同一条内容", page=5, source="A.pdf", pages=(5,))
+    vectors = embedder.embed([chunk.text])
+
+    memory = InMemoryVectorStore()
+    memory.upsert([chunk], vectors)
+
+    found = memory.get_by_content_id(chunk.id)
+    assert found is not None
+    assert (found.id, found.text, found.page, found.pages) == (
+        chunk.id,
+        chunk.text,
+        5,
+        (5,),
+    )
+    assert memory.get_by_content_id("不存在") is None
+
+
 # ============================================================ 7. 误用防线
 
 

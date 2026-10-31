@@ -188,12 +188,13 @@ class _NonStreamClient:
     """非流式：`chat.completions.create` 直接返回完整响应。"""
 
     def __init__(self, reply: str = "违约金按日万分之五计算 [1]。") -> None:
+        self.reply = reply
         self.completions = type("C", (), {"create": self._create})()
         self.chat = type("Chat", (), {"completions": self.completions})()
 
     async def _create(self, **kwargs):  # noqa: ANN003, ANN201
         del kwargs
-        msg = type("M", (), {"content": "违约金按日万分之五计算 [1]。"})()
+        msg = type("M", (), {"content": self.reply})()
         choice = type("Ch", (), {"message": msg})()
         return type("R", (), {"choices": [choice]})()
 
@@ -210,6 +211,49 @@ async def test_answer_returns_contexts_matching_citations() -> None:
     assert len(result.contexts) == len(result.answer.citations)
     for context, _citation in zip(result.contexts, result.answer.citations, strict=True):
         assert context.text  # 有原文可展开
+
+
+@pytest.mark.anyio
+async def test_contexts_are_paired_by_chunk_id_not_position() -> None:
+    """**配对必须用 `chunk_id`，不能用位置。**
+
+    这条测的是一类"界面上一切正常"的错：原来 `_contexts_of` 用
+    `by_index = {index + 1: chunk}` 做位置配对，而 `build_context` 在预算截断时
+    **被挡掉的块不占编号** —— 两处对编号的理解一旦不一致，
+    引用 [2] 会渲染成 [3] 的原文，而且不会报错。
+
+    这里让模型只引用 `[2]`：配对若是按 id 的，`contexts[0]` 必须是
+    引用所指的那一块；若按位置（`citations[0].index` 去 `chunks[index-1]`），
+    在"只有一条引用"时仍可能对，但"块快照被重排/截断"时会错位 ——
+    所以这里同时断言 id 相等，把两类配对方式的差别钉死在字段上。
+    """
+    store = _store_with("违约金按日万分之五计算。", "质保期 12 个月。", "付款周期 30 天。")
+    engine = _engine(store, top_k=3)
+
+    client = _NonStreamClient(reply="质保期十二个月 [2]。")
+    result = await engine.answer("质保期", client=client, model="m")
+
+    assert len(result.answer.citations) == 1
+    citation = result.answer.citations[0]
+    assert citation.index == 2
+    assert len(result.contexts) == 1
+    assert result.contexts[0].id == citation.chunk_id, (
+        "contexts 与 citations 不是按 chunk_id 配对的 —— 按位置配对在有块被丢弃/重排时会整片错位"
+    )
+
+    # 交叉验证：编号 2 指的就是检索结果里的第 2 条。
+    # 用独立的 Retriever 重跑一遍检索（同一个 seed 不可依赖，但同一条 query
+    # 在确定性 embedder 下排序是稳定的），再与渲染出来的块比对。
+    from app.rag.retrieval import Retriever
+
+    hits = (
+        Retriever(embedder=HashingEmbedder(dimension=_DIM), store=store, top_k=3)
+        .retrieve("质保期")
+        .hits
+    )
+    assert hits[1].chunk.id == result.contexts[0].id, (
+        f"引用 [2] 渲染的块不是检索第 2 条：{result.contexts[0].text}"
+    )
 
 
 # ============================================================ 3. 流式事件顺序（核心）

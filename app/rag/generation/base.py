@@ -115,15 +115,46 @@ class Citation:
     """来源文件名。"""
 
     page: int | None
-    """页码；非分页格式为 None。**这个字段就是"page 从第一步就要在结构里"的回报**。"""
+    """起始页码；非分页格式为 None。**这个字段就是"page 从第一步就要在结构里"的回报**。"""
 
     chunk_id: str
     """对应块的稳定 id（内容派生）。用于"同一条引用被重复命中"的去重，也用于回查原文。"""
 
+    pages: tuple[int, ...] = ()
+    """这块**实际覆盖**的全部页码。
+
+    ## 为什么 `page` 不够（这是 design-decisions §5 自己点名的"半个真话"）
+
+    跨页段落被拼接之后，一块可能横跨 p6 与 p7。只带 `page=6` 时：
+    用户点进 p6 找不到后半截，点进 p7 又找不到前半截 —— 而 demo 现场最容易被
+    点穿的正是这个位置。文档里早就写了这条规则，但引用层一直没执行，
+    于是"结构里有 `pages`、引用里只剩 `page`"，链路末端又退回半个真话。
+
+    ## 为什么是"末尾带默认值"
+
+    它是新增字段，且老调用点（测试里手工构造 `Citation`）不该因为这次改动全挂。
+    默认 `()` 的语义是"这个调用方不知道覆盖范围"，与 `Chunk.pages` 的空值一致 ——
+    **不伪造成 `(page,)`**：那是往结构里塞一条没人验证过的断言。
+
+    ## 展示口径
+
+    用 `label` 而不是让每个前端自己拼：`第 6 页` vs `第 6-7 页` 这件小事
+    在 CLI / UI / JSON 三处各拼一遍，迟早有一处写成 `第 6 页` 而实际跨页。
+    """
+
     @property
     def label(self) -> str:
-        """人类可读的引用标签，给前端直接显示。"""
-        return f"{self.source} 第 {self.page} 页" if self.page is not None else self.source
+        """人类可读的引用标签，给前端直接显示。
+
+        **有跨页信息时优先显示范围**：单页块 `pages=(7,)` 与只有 `page=7`
+        都显示 `第 7 页`；跨页块显示 `第 6-7 页`。两者都不丢信息。
+        """
+        span = self.pages or ((self.page,) if self.page is not None else ())
+        if not span:
+            return self.source
+        if len(span) == 1:
+            return f"{self.source} 第 {span[0]} 页"
+        return f"{self.source} 第 {span[0]}-{span[-1]} 页"
 
 
 @dataclass
@@ -240,11 +271,18 @@ def build_context(
 
 
 def _to_citation(index: int, chunk: Chunk) -> Citation:
+    """`Chunk` → `Citation`：**`pages` 必须跟着走**，不能只传起始页。
+
+    这条是本次补齐的第 1 条的另一半：`Chunk.pages` 从解析一路继承下来，
+    如果在这里被截成 `page`，"跨页归属"就在**引用层**又丢一次 ——
+    库里有、结构里有、用户看不到，等于还是半个真话。
+    """
     return Citation(
         index=index,
         source=chunk.source,
         page=chunk.page,
         chunk_id=chunk.id,
+        pages=chunk.pages,
     )
 
 

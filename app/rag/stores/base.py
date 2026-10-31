@@ -10,6 +10,7 @@
 | `clear` | 运维 | 重建索引前 |
 | `delete_by_source` | 运维 / 增量更新 | **W4 周四新增**：重建某份文档前先删干净 |
 | `search(where=...)` | 检索段 | **W4 周四新增**：按 source / 页码过滤 |
+| `get_by_content_id` | 生成段 / UI / 审计 | **W4 收尾新增**：按引用回查原文（双向校验的落地） |
 
 `delete_by_source` 是这周四才加的 —— 它原来被刻意不加（"没有调用方就不加，
 接口宁缺勿滥"）。现在有了真实的调用方：**位置派生 id 的代价**就是
@@ -135,5 +136,35 @@ class VectorStore(Protocol):
         实测连续追加 3 条不同文本，库里只剩 1 条，而每批的 `IndexReport.ok` 都是 True。
 
         有了这个计数，追加方就能算出 `index_offset`，让新块的 id 接在已有块后面。
+        """
+        ...
+
+    def get_by_content_id(self, content_id: str) -> Chunk | None:
+        """按**内容派生 id**（`Chunk.id`）回查块。查不到返回 `None`。
+
+        ## 为什么需要它（这是"引用双向可校验"的最后一跳）
+
+        引用链路前两跳本来就在：正文 `[n]` ↔ `Answer.citations`（`resolve_citations`），
+        引用列表里也带着 `chunk_id`。断的是第三跳 —— **拿着 `chunk_id` 回库里取原文**。
+        没有这一跳，"引用可核对"只能靠 UI 把检索时的块快照留在内存里：
+        刷新页面、翻历史消息、拿 CLI 的 `--json` 结果去复核，那三处都没有块对象。
+
+        更要紧的是**评测**：W5 要按"引用指向的页码/跨页归属"判命中，
+        而 `Citation` 只带 `page`，被引用的那块到底是 `p6` 还是 `p6-7`
+        只能回库看 `pages` 元组。回查入口缺席时，这条判定写不出来。
+
+        ## 为什么按 `content_id` 而不是 `store_id`
+
+        `Citation.chunk_id` 是 `chunk.id`（内容派生，见 `schema.Chunk.content_id`），
+        而存储主键是 `store_id`（位置派生）。两者分工写在 `schema` 的表格里：
+        **内容派生 id 跨重建稳定，位置派生 id 会随切分参数指向不同内容**。
+        引用要的是"这段文字"，所以按内容 id 查；同一个内容在半库里可能有多条
+        （重复文本的不同位置），按插入序取第一条即可，调用方不需要知道位置。
+
+        ## 两个实现都必须有
+
+        缺一个，`runtime_checkable` 的 Protocol 断言照样过（Protocol 只查方法存在），
+        而"内存里回查到了、Chroma 上没有"会变成一类只在生产复现的 bug ——
+        所以 `tests/test_chroma_store.py` 对两个实现跑同一组回查断言。
         """
         ...

@@ -29,15 +29,40 @@ from app.rag.stores import SearchHit, VectorStore
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_TOP_K = 4
-"""默认取 4 条。
+DEFAULT_TOP_K = 5
+"""默认取 5 条。**这是全项目唯一一处 top_k 默认值，别处都必须引用它。**
 
-**为什么不是 10**：按每块 500 字算，4 块 ≈ 2000 字 ≈ 1400 token，
-留出了系统提示词、问题和输出的空间。取 10 条会把这个数字翻到 3500 token，
-而在召回率没验证过的前提下（见 `HashingEmbedder` 的说明），
-多给的 6 条里大部分是噪声 —— **噪声进上下文会实实在在拉低答案质量**，
-这不是"多给点总没坏处"。
+## 为什么从 4 改成 5（不是"调了个参数"）
+
+原来这里写 4，而 `QAEngine` / CLI `--top-k` / UI 滑块都是 5 —— 于是
+"默认取几条"这个问题有四个答案，且**没有一个地方写得出来它是哪个**。
+W5 要跑 `top_k ∈ {3, 5, 8}` 的矩阵，如果基线本身是 4 还是 5 都说不清，
+那张矩阵的第一个问题就是"你拿什么当对照"。
+
+收敛到 5 的理由是**对齐已经上线的三处**，不是我认为 5 比 4 好：
+4 与 5 都还没被实验证明过（README 已知问题 #5、design-decisions §4 都写着这点）。
+
+## 为什么不是 10
+
+按每块 500 字算，5 块 ≈ 2500 字 ≈ 1690 token，加系统提示词与输出仍在预算内。
+取 10 条会把这个数字翻到 3500 token，而在召回率没验证过的前提下
+（见 `HashingEmbedder` 的说明），多给的几条里大部分是噪声 ——
+**噪声进上下文会实实在在拉低答案质量**，这不是"多给点总没坏处"。
+
+> 具体数字见 `docs/design-decisions.md` §4：500 字 + 50 重叠、5 × 500 = 2500 字
+> ≈ 1690 token，与这里的口径一致。
 """
+
+
+def default_top_k() -> int:
+    """默认 top_k 的**取值出口**。
+
+    存在的意义不是多一层函数，而是让"谁在用默认值"这件事可被搜索到：
+    调用方写 `default_top_k()` 时，W5 改参数只改一处；
+    写死 `top_k=5` 的地方则在评审时一眼能看见。`tests/test_rag_skeleton.py`
+    有一条断言守住"CLI / UI / QAEngine / Retriever 四处一致"。
+    """
+    return DEFAULT_TOP_K
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,21 +103,42 @@ class Retriever:
         self.store = store
         self.top_k = top_k
 
-    def retrieve(self, query: str, *, top_k: int | None = None) -> RetrievalResult:
+    def retrieve(
+        self,
+        query: str,
+        *,
+        top_k: int | None = None,
+        k: int | None = None,
+    ) -> RetrievalResult:
         """检索。
+
+        ## 参数名契约：`top_k` 是规范名，`k` 是它的别名
+
+        W4 的开工清单里写的是 `retrieve(query, k=5)`，而实现里叫 `top_k` ——
+        两者都留，是因为两边都已经有真实调用方：项目内部一路用 `top_k`
+        （`QAEngine`、CLI、UI 都是 `top_k=`），而外部/文档口径写 `k`。
+        只留一个，另一方就要改调用点；而这类"改个参数名"的改动最容易
+        在某个没被测试覆盖的分支上变成 `TypeError`。
+
+        **两者同时传且不相等时直接抛** —— 不静默取其一。同时传两个不同的
+        条数说明调用方自己也没想清要几条，猜一个会得到"检索 5 条、上下文按 3 条拼"
+        这种事后无法解释的结果。
 
         **空 query 直接返回空结果，不调 embedder**：空字符串的向量是零向量，
         零向量与任何向量的余弦都是 0，于是会返回一堆"分数全是 0"的块 ——
         看起来检索成功，实际是随便挑的。让它在源头就返回空，问题才能被看见。
         """
         started = time.perf_counter()
-        k = self.top_k if top_k is None else top_k
-        if k <= 0:
+        if k is not None and top_k is not None and k != top_k:
+            raise ValueError(f"top_k({top_k}) 与 k({k}) 同时给出且不相等，无法判断取几条")
+        requested = top_k if top_k is not None else k
+        k_value = self.top_k if requested is None else requested
+        if k_value <= 0:
             raise ValueError("top_k 必须为正数")
 
         text = (query or "").strip()
         if not text:
-            return RetrievalResult(query=query, hits=(), top_k=k, elapsed_ms=_ms(started))
+            return RetrievalResult(query=query, hits=(), top_k=k_value, elapsed_ms=_ms(started))
 
         # ① query 向量化：与索引共用 embedder，见模块 docstring。
         #
@@ -103,12 +149,12 @@ class Retriever:
         query_vector = self.embedder.embed_query([text])[0]
 
         # ②③ 相似度 + TopK 由 store 一次完成（store 才知道怎么做相似度）
-        hits = self.store.search(query_vector, top_k=k)
+        hits = self.store.search(query_vector, top_k=k_value)
 
         result = RetrievalResult(
             query=query,
             hits=tuple(hits),
-            top_k=k,
+            top_k=k_value,
             elapsed_ms=_ms(started),
         )
         logger.debug(
@@ -125,4 +171,4 @@ def _ms(started: float) -> int:
     return int((time.perf_counter() - started) * 1000)
 
 
-__all__ = ["DEFAULT_TOP_K", "RetrievalResult", "Retriever"]
+__all__ = ["DEFAULT_TOP_K", "RetrievalResult", "Retriever", "default_top_k"]

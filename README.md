@@ -1,4 +1,4 @@
-﻿# industrial-ai-platform
+# industrial-ai-platform
 
 **一个从"调模型"长到"能查、能引、能拒答"的文档智能平台。**
 
@@ -736,9 +736,12 @@ fastapi、抽取器接受注入 client"的直接收益。
   （**9ms / 1128~2526ms = 0.36%~0.80%，不到 1%** → 优化检索对首 token 毫无帮助，W8 该动模型侧）、
   五个耗时数字、`retrieved` 事件必须在 `delta` 之前、参考来源可展开原文、四类健壮性、
   以及"模拟 TTFT 不能做分母"这个我自己踩过的坑
-- [docs/design-decisions.md](docs/design-decisions.md) —— **四条决策记录**（每条都写代价）：
-  ① 长上下文为何替代不了 RAG（成本线性 / lost in the middle / 无法更新与溯源）
-  ② 为何 RAG 而非微调 ③ 为何本地 embedding 而非 API ④ 为何先 ChromaDB 而非 Milvus
+- [docs/design-decisions.md](docs/design-decisions.md) —— **六条决策记录**（每条都写代价），
+  另加一节必答题（长上下文为何替代不了 RAG：成本线性 / lost in the middle / 无法更新与溯源）：
+  ① 为何 RAG 而非微调 ② 为何本地 embedding 而非 API ③ 为何先 ChromaDB 而非 Milvus
+  ④ 为何 500 字 + 50 重叠（**并明写"这两个数字都没有数据支撑"，待 W5 用矩阵替换**）
+  ⑤ 为何 `page` 必须进 metadata（不能事后补，非分页格式不伪造页码）
+  ⑥ 为何拒答阈值挂在 embedder 上而不是全局常量（hashing 的分布完全重叠）
 - [docs/weekly/w1.md](docs/weekly/w1.md) —— **W1 总览**：先冻契约再写实现、
   5 个 handler 焊死错误形状、镜像 242→211→157 MB 的瘦身账本、
   以及"装完 Docker Desktop ≠ 引擎起来了"等四条机制级认知

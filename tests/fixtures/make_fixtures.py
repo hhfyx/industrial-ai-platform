@@ -366,6 +366,9 @@ def main() -> int:
 
     targets = [
         make_pdf(FIXTURE_DIR / "sample50.pdf", pages=50, with_header=True),
+        # W5 切分策略对比的样本：20 页。**必须能被脚本重新生成**，
+        # 否则"20 页 PDF"会变成一个只有作者知道内容的神秘二进制文件。
+        make_pdf(FIXTURE_DIR / "sample20.pdf", pages=20, with_header=True),
         make_pdf(FIXTURE_DIR / "sample5_no_header.pdf", pages=5, with_header=False),
         make_pdf_with_table(FIXTURE_DIR / "sample_table.pdf"),
         make_pdf_crosspage(FIXTURE_DIR / "sample_crosspage.pdf", pages=3),

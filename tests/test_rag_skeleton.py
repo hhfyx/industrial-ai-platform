@@ -18,6 +18,9 @@
 
 from __future__ import annotations
 
+import inspect
+from pathlib import Path
+
 import pytest
 
 from app.rag import Chunk, Document
@@ -447,6 +450,73 @@ def test_retrieve_rejects_bad_top_k() -> None:
     retriever = Retriever(embedder=HashingEmbedder(), store=InMemoryVectorStore())
     with pytest.raises(ValueError, match="top_k"):
         retriever.retrieve("问题", top_k=0)
+
+
+def test_retrieve_accepts_k_alias() -> None:
+    """W4 开工清单写的是 `retrieve(query, k=5)`，实现里叫 `top_k` —— **两个都要认**。
+
+    这条不是"兼容性洁癖"：清单是**给未来的自己看的契约**，
+    而清单里的调用签名与代码里的不一致时，下一个人（或 W5 做矩阵的脚本）
+    会照着清单写 `k=5` 然后拿到 `TypeError` —— 而那种错误发生在实验脚本里，
+    很容易被当成"数据有问题"。
+    """
+    store = InMemoryVectorStore()
+    embedder = HashingEmbedder(dimension=16)
+    chunks = [Chunk(text=f"第 {i} 段内容", page=i, source="a.pdf") for i in range(1, 9)]
+    store.upsert(chunks, embedder.embed([c.text for c in chunks]))
+    retriever = Retriever(embedder=embedder, store=store, top_k=2)
+
+    assert len(retriever.retrieve("段内容", k=5).hits) == 5
+    # 不传则用构造时的默认
+    assert len(retriever.retrieve("段内容").hits) == 2
+    # 两者同时传且一致时不炸
+    assert len(retriever.retrieve("段内容", top_k=3, k=3).hits) == 3
+
+    # **装配层（RagPipeline）也必须认 `k`**：清单里写的就是 pipeline.retrieve(k=5)，
+    # 只在 Retriever 上支持的话，从装配层调用的人拿到的仍是 TypeError。
+    pipeline = RagPipeline(store=store, embedder=embedder, top_k=2)
+    assert len(pipeline.retrieve("段内容", k=5).hits) == 5
+    assert len(pipeline.retrieve("段内容").hits) == 2
+
+
+def test_retrieve_rejects_conflicting_k_and_top_k() -> None:
+    """同时传两个不同的条数**必须抛**，不能静默取其一。
+
+    猜一个会得到"检索 5 条、上下文按 3 条拼"这种事后无法解释的结果 ——
+    而它不会报错，只会让某一条引用指向一个没进上下文的块。
+    """
+    retriever = Retriever(embedder=HashingEmbedder(), store=InMemoryVectorStore())
+    with pytest.raises(ValueError, match="k"):
+        retriever.retrieve("问题", top_k=3, k=5)
+
+
+def test_default_top_k_is_single_sourced() -> None:
+    """**默认 top_k 只能有一个数值**：`Retriever` / `QAEngine` / CLI / UI 四处一致。
+
+    改这一条之前：`Retriever.DEFAULT_TOP_K = 4`，而 `QAEngine`、CLI `--top-k`、
+    UI 滑块都是 5 —— 于是"默认取几条"有四个答案，且没有一处写得清基线是哪个。
+    W5 要跑 `top_k ∈ {3, 5, 8}` 的矩阵，基线说不清就等于矩阵没有对照组。
+
+    这条断言只做一件事：**把"四处一致"变成会失败的事实**，
+    而不是靠人记得同步。
+    """
+    from app.cli.ask import _build_parser
+    from app.rag.query import QAEngine
+    from app.rag.retrieval import DEFAULT_TOP_K, default_top_k
+
+    assert DEFAULT_TOP_K == default_top_k() == 5
+
+    engine_default = inspect.signature(QAEngine.__init__).parameters["top_k"].default
+    assert engine_default == DEFAULT_TOP_K, "QAEngine 的默认 top_k 与 DEFAULT_TOP_K 不一致"
+
+    cli_default = _build_parser().parse_args(["问题"]).top_k
+    assert cli_default == DEFAULT_TOP_K, "CLI --top-k 的默认值与 DEFAULT_TOP_K 不一致"
+
+    # UI 滑块：读源码而不是 import streamlit（测试不该依赖 UI 框架能跑起来）。
+    ui_source = (Path(__file__).resolve().parents[1] / "app" / "ui" / "streamlit_app.py").read_text(
+        encoding="utf-8"
+    )
+    assert "value=DEFAULT_TOP_K" in ui_source, "UI 滑块的默认值写死了数字，没引用 DEFAULT_TOP_K"
 
 
 def test_retrieval_result_exposes_chunks_without_scores() -> None:

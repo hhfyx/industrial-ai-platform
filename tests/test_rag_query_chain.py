@@ -328,6 +328,41 @@ def test_resolve_citations_maps_to_source_and_page() -> None:
     assert citations[1].label == "合同.pdf 第 9 页"
 
 
+def test_citation_carries_pages_for_crosspage_chunk() -> None:
+    """**跨页块的 `pages` 必须跟到引用层**，不能只剩 `page`。
+
+    这是 W4 v1 前置检查第 1 条的第二个半截：`Chunk.pages` 从解析一路继承到库，
+    却在 `_to_citation` 处被截成起始页 —— 于是用户看到的引用是 `第 6 页`，
+    而那块实际横跨 p6-p7。design-decisions §5 自己点名这是"半个真话"，
+    文档写了规则、引用层没执行，这就是那个缺口。
+    """
+    crosspage = Chunk(text="跨页的违约责任条款", page=6, source="合同.pdf", pages=(6, 7), index=0)
+    _, available = build_context([crosspage])
+
+    citation = available[0]
+    assert citation.page == 6, "起始页仍要保留（单页引用最简）"
+    assert citation.pages == (6, 7), f"引用层丢了跨页范围：{citation.pages}"
+    assert citation.label == "合同.pdf 第 6-7 页", f"标签该显示范围，实际：{citation.label}"
+    # `chunk_id` 也要在，否则无法回查（见 stores.get_by_content_id）
+    assert citation.chunk_id == crosspage.id
+
+
+def test_citation_pages_defaults_empty_for_legacy_construction() -> None:
+    """手工构造 `Citation` 时 `pages` 有默认值 —— 老调用点不该因为新字段全挂。
+
+    默认是 `()`（"不知道覆盖范围"），**不是伪造成 `(page,)`**。
+    label 在没有 `pages` 时回退到 `page`，两者都不丢信息。
+    """
+    from app.rag.generation import Citation
+
+    legacy = Citation(index=1, source="合同.pdf", page=8, chunk_id="x")
+    assert legacy.pages == ()
+    assert legacy.label == "合同.pdf 第 8 页", "没有 pages 时应回退到 page"
+
+    no_page = Citation(index=2, source="notes.md", page=None, chunk_id="y")
+    assert no_page.label == "notes.md", "无页码来源只显示文件名"
+
+
 def test_resolve_citations_flags_out_of_range() -> None:
     """**越界编号必须被记录，不能静默丢弃。**
 
@@ -371,6 +406,42 @@ async def test_answer_carries_numbered_citations() -> None:
     assert answer.citations[0].source == "合同.pdf"
     assert answer.citations[0].page == 7
     assert "[1]" in answer.text
+    # **引用里必须带可回查的 id**：正文 [n] ↔ 引用列表 ↔ chunk id 的第三跳。
+    assert answer.citations[0].chunk_id == _two_chunks()[0].id
+
+
+@pytest.mark.anyio
+async def test_citation_chunk_id_can_be_looked_up_in_store() -> None:
+    """**双向可校验**：拿 `Answer.citations[n].chunk_id` 回库，必须取回同一段原文。
+
+    这是前置检查第 4 条真正意义上的"双向"：
+    正向是"块 → 上下文编号 → 答案里的 [n]"，反向是"[n] → Citation → chunk_id → 库里的块"。
+    只有正向时，"引用可核对"依赖于把检索时的块快照留在内存里 ——
+    刷新页面、翻历史、拿 CLI 的 JSON 去复核，那三处都没有块对象。
+
+    这条还顺带守住一个更隐蔽的一致性：**回查回来的 `pages` 必须与引用里的一致**。
+    """
+    from app.rag.embedding import HashingEmbedder
+    from app.rag.stores import InMemoryVectorStore
+
+    chunks = [
+        Chunk(text="违约金按合同总额的千分之一计算。", page=7, source="合同.pdf"),
+        Chunk(text="逾期超过三十日，甲方有权解除合同。", page=9, source="合同.pdf"),
+    ]
+    embedder = HashingEmbedder(dimension=64)
+    store = InMemoryVectorStore()
+    store.upsert(chunks, embedder.embed([c.text for c in chunks]))
+
+    client = FakeClient("违约金按合同总额的千分之一计算 [1]。")
+    answer = await generate_answer("违约金怎么算", chunks, client=client, model="m", scores=[0.9])
+
+    citation = answer.citations[0]
+    looked_up = store.get_by_content_id(citation.chunk_id)
+
+    assert looked_up is not None, "按引用的 chunk_id 回查不到原文 —— 双向校验断在第三跳"
+    assert looked_up.text == chunks[0].text, "回查到的不是同一段原文"
+    assert looked_up.page == citation.page
+    assert looked_up.pages == citation.pages
 
 
 @pytest.mark.anyio

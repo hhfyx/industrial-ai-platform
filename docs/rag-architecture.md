@@ -125,6 +125,7 @@ Embedder.embed(texts: Sequence[str]) -> list[list[float]]
 ```python
 VectorStore.upsert(chunks, vectors) -> int   # 必须幂等
 VectorStore.search(vector, top_k)  -> list[SearchHit]
+VectorStore.get_by_content_id(chunk_id) -> Chunk | None   # W4 收尾新增，见下
 VectorStore.count() / clear()
 ```
 
@@ -134,12 +135,23 @@ VectorStore.count() / clear()
   静默截断会把"漏了一条"伪装成"索引成功但检索差一点"。
 - `SearchHit` 自带 `Chunk` 快照（不只 `id + score`）：生成层不需要第二次回查，
   也就不存在"回查时索引已经变了"的窗口。
+- **`get_by_content_id` 是"引用双向可校验"的最后一跳**：正向是
+  "块 → 上下文编号 → 答案里的 `[n]`"，反向是 "`[n]` → `Citation` → `chunk_id` → 库里的块"。
+  没有它，回查原文只能走 `store._collection.get(...)` 这条私有路径 ——
+  刷新页面、翻历史消息、拿 CLI 的 `--json` 复核这三处都拿不到块对象。
+  按 `content_id`（内容派生）查、不按 `store_id`（位置派生）：
+  引用要的是"这段文字"，位置会随切分参数指向不同内容。
 
 ### ⑤ 检索：`str` → `List[SearchHit]`
 
 ```python
-Retriever(embedder=同一个, store=同一个).retrieve(query, top_k=4)
+Retriever(embedder=同一个, store=同一个).retrieve(query, top_k=5)  # k= 也可（别名）
+Retriever(embedder=同一个, store=同一个).retrieve(query, k=5)
 ```
+
+> `top_k` 是规范名，`k` 是别名：W4 开工清单写的是 `retrieve(query, k=5)`，
+> 而实现里叫 `top_k`。两个都留，是因为两边都已有真实调用方；**同时传两个不同的值会抛**
+> （静默取其一会出现"检索 5 条、上下文按 3 条拼"这种事后无法解释的结果）。
 
 三条硬规则：
 
@@ -147,21 +159,33 @@ Retriever(embedder=同一个, store=同一个).retrieve(query, top_k=4)
    所以 `Retriever` 构造时要求显式传 embedder，**不给默认值**（默认值在这里是有害的）。
 2. **空 query 直接返回空**，不调 embedder：零向量会返回一堆"分数全 0"的块，
    看起来检索成功，实际是随便挑的。
-3. `top_k` 默认 4（≈ 2000 字 ≈ 1400 token）。取 10 会把上下文推到 3500 token，
-   而在召回率未验证的前提下，多给的 6 条大多是噪声 —— **噪声进上下文会实实在在拉低答案质量**。
+3. `top_k` 默认 **5**（只定义在 `app/rag/retrieval.py::DEFAULT_TOP_K`，别处一律引用它）。
+   5 块 ≈ 2500 字 ≈ 1690 token。取 10 会把上下文推到 3500 token，
+   而在召回率未验证的前提下，多给的那几条大多是噪声 —— **噪声进上下文会实实在在拉低答案质量**。
+
+   > 收敛到 5 的理由是**对齐已上线的 CLI / UI / QAEngine 三处**，不是"5 比 4 好"：
+   > 4 与 5 都还没被实验证明（README 已知问题 #5、design-decisions §4）。
+   > 但四个默认值都在时，"默认取几条"没人说得清 —— W5 的 `top_k ∈ {3,5,8}` 矩阵
+   > 也就没有对照基线。`test_default_top_k_is_single_sourced` 守着这条。
 
 ### ⑥ 生成：`List[Chunk]` + `str` → `Answer`
 
 ```python
 Answer(text, citations: list[Citation], context_chars, used_chunks)
-Citation(index, source, page, chunk_id) → label = "合同.pdf 第 7 页"
+Citation(index, source, page, pages, chunk_id) → label = "合同.pdf 第 7 页" / "第 6-7 页"
 ```
 
 - **上下文里每块带编号 `[n]`，要求模型在答案里标注 `[n]`**。
   编号 → `Chunk` 的映射由我们掌握，模型只负责"引用哪一条"，
   不负责"那一条在哪个文件、哪一页"（它会把页码说错，而且很自信）。
+- **`Citation.pages` 必须跟着走**：只有 `page` 时，跨页块的引用显示"第 6 页"，
+  而它实际横跨 p6-p7 —— 用户点进 p6 找不到后半截（design-decisions §5 的"半个真话"）。
+  `label` 统一渲染范围，CLI / UI / JSON 三处不再各自拼。
 - **超预算整块丢弃，不截断块**：截一半的块会让模型读残句，
   然后照着残句给出一个"看起来有依据"的错答案 —— 比少给一块糟得多。
+  ⚠️ 注意它带来的一个后效：**被挡掉的块不占编号**，所以"引用 [n] ↔ 第 n 块"
+  不能按位置配对。`_contexts_of` 因此改用 `chunk_id` 配对（曾经的 `by_index`
+  在有块被丢弃时会整片错位，且不报错）。
 - **零命中时直接返回固定话术，不调模型**：让模型对着空上下文回答，它唯一能做的就是编。
 
 ---

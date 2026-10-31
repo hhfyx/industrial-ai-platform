@@ -113,11 +113,22 @@ class RagPipeline:
 
     # ------------------------------------------------------------------ 检索 + 生成
 
-    def retrieve(self, query: str, *, top_k: int | None = None) -> RetrievalResult:
+    def retrieve(
+        self,
+        query: str,
+        *,
+        top_k: int | None = None,
+        k: int | None = None,
+    ) -> RetrievalResult:
         """只做检索，不调模型。**联调时先看它** ——
         答案不对时，第一步要分清是"没检索到"还是"检索到了但模型没用好"。
+
+        `k` 是 `top_k` 的别名（见 `Retriever.retrieve`）：W4 开工清单写的是
+        `retrieve(query, k=5)`，而实现里叫 `top_k`。**装配层也要认这个名字**，
+        否则从 `RagPipeline` 调用的人拿到的仍是 `TypeError` ——
+        而那正是"清单与代码不一致"最容易落到的地方。
         """
-        return self.retriever.retrieve(query, top_k=top_k)
+        return self.retriever.retrieve(query, top_k=top_k, k=k)
 
     async def answer(
         self,

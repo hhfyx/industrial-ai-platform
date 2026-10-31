@@ -47,6 +47,7 @@ from app.rag.generation import (
     build_context,
     resolve_citations,
 )
+from app.rag.retrieval import DEFAULT_TOP_K
 from app.rag.schema import Chunk
 from app.rag.stores import VectorStore
 
@@ -149,7 +150,7 @@ class QAEngine:
         *,
         embedder: Embedder,
         store: VectorStore,
-        top_k: int = 5,
+        top_k: int = DEFAULT_TOP_K,
         max_context_chars: int = DEFAULT_CONTEXT_CHARS,
         min_score: float | None = None,
     ) -> None:
@@ -362,11 +363,37 @@ def _contexts_of(answer: Answer, chunks: Sequence[Chunk]) -> list[Chunk]:
     那几条（按编号升序），而 `chunks` 是全部检索结果。UI 的"参考来源"应该
     只列被引用到的 —— 列一堆没被用到的块会让人以为"这些也是依据"。
 
-    找不到对应块时跳过（不抛）：那说明引用编号与上下文不一致，
-    该由 `invalid_refs` 报出来，而不是在这里崩掉整个渲染。
+    ## 配对用 `chunk.id`，不用编号，也不用位置
+
+    W4 收尾时这里原来是 `by_index = {index + 1: chunk for index, chunk in enumerate(chunks)}`，
+    也就是说"引用 [n] 对应 `chunks[n-1]`"——一个**位置配对**。它能跑对，
+    但前提是 `build_context` 与这里对"编号"的理解完全一致。而这个前提
+    在预算截断处最脆：`build_context` 里**被预算挡掉的块不占编号**
+    （见那边 `index = len(citations) + 1`），所以 `chunks[n-1]` 与引用的第 n 条
+    在"有块被丢弃"时并不总是同一个块。
+
+    现在的做法是拿 `citation.chunk_id`（内容派生 id）去 `chunks` 里找。
+    它同时给了三件事：
+    ① 配对不依赖两处对编号的隐式约定；
+    ② `citation.chunk_id` 能直接用于 `store.get_by_content_id()` 回查（双向校验）；
+    ③ 找不到时能明确区分两种坏情况（见下）。
+
+    ## 两种"找不到"，都要能看见
+
+    | 情况 | 含义 | 这里怎么做 |
+    | --- | --- | --- |
+    | 编号越界 | 模型编了 `[7]` 而只有 3 条 | 由 `Answer.invalid_refs` 报，不在这里崩 |
+    | 编号在界内但 id 对不上 | 引用与块快照错配 | 跳过该条（渲染少一条），不能伪造一个块 |
+
+    找不到时**返回长度可能小于 `citations`**，UI 侧必须按 id 而非 `zip()` 渲染 ——
+    否则一条错配会让后面全部错位，显示的原文与编号整片对不上。
     """
-    by_index = {index + 1: chunk for index, chunk in enumerate(chunks)}
-    return [by_index[c.index] for c in answer.citations if c.index in by_index]
+    by_id = {chunk.id: chunk for chunk in chunks}
+    matched = [by_id[c.chunk_id] for c in answer.citations if c.chunk_id in by_id]
+    if len(matched) < len(answer.citations):
+        missing = [c.index for c in answer.citations if c.chunk_id not in by_id]
+        logger.warning("引用与块快照错配，无法渲染的编号：%s", missing)
+    return matched
 
 
 __all__ = ["QAEngine", "QAResult", "QATiming", "StreamDone"]

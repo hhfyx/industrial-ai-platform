@@ -50,6 +50,7 @@ from app.rag.embedding import get_embedder  # noqa: E402
 from app.rag.indexing import Indexer, IndexReport  # noqa: E402
 from app.rag.loaders import SUPPORTED_EXTENSIONS  # noqa: E402
 from app.rag.query import QAEngine, StreamDone  # noqa: E402
+from app.rag.retrieval import DEFAULT_TOP_K  # noqa: E402
 from app.rag.stores import get_store  # noqa: E402
 from app.rag.stores.chroma import DEFAULT_COLLECTION  # noqa: E402
 from app.ui.evidence import find_evidence_spans, highlight  # noqa: E402
@@ -153,7 +154,16 @@ def _render_sidebar(embedder_name: str, backend: str) -> tuple[str, str, int]:
             index=0 if backend == "memory" else 1,
             help="memory 重启即丢；chroma 持久化到 data/chroma",
         )
-        top_k = st.slider("检索条数 top_k", min_value=1, max_value=10, value=5)
+        top_k = st.slider(
+            "检索条数 top_k",
+            min_value=1,
+            max_value=10,
+            value=DEFAULT_TOP_K,
+            help=(
+                f"默认 {DEFAULT_TOP_K}，与 CLI / QAEngine 同一口径"
+                "（唯一的默认值定义在 app/rag/retrieval.py）"
+            ),
+        )
 
         # ---- 降级必须可见 ----
         # 见到"运行在低内存托管环境"时，把这件事摆在侧栏最显眼的位置。
@@ -382,6 +392,17 @@ def _render_sources(contexts: list[Any], answer: Any) -> None:
 
     **只列被真正引用的块**（`Answer.citations` 里的），不是全部检索结果。
     列一堆没被用到的块会让人以为"这些也是依据"。
+
+    ## 配对按 `chunk_id`，不按位置
+
+    原来这里是 `zip(answer.citations, contexts)` —— 一个**位置配对**。
+    它错得不容易被发现：只要有一条引用找不到对应块（预算截断、
+    快照错配），后面每一条都会错位一格 —— 用户看到的是
+    "编号 [2] 的原文其实是 [3] 那段"。这种错比缺失更难发现，
+    因为界面上一切正常。
+
+    所以这里建 `chunk_id → chunk` 的映射，逐条按 id 取；
+    取不到的**显式说明**，而不是悄悄少渲染一条。
     """
     if not contexts:
         if answer.invalid_refs:
@@ -391,15 +412,31 @@ def _render_sources(contexts: list[Any], answer: Any) -> None:
             )
         return
 
-    with st.expander(f"📖 参考来源（{len(contexts)} 条）", expanded=False):
-        for citation, chunk in zip(answer.citations, contexts, strict=False):
-            st.markdown(
-                f"**[{citation.index}]** `{citation.source}` · **P{citation.page}**"
-                if citation.page is not None
-                else f"**[{citation.index}]** `{citation.source}`"
-            )
+    by_id: dict[str, Any] = {getattr(chunk, "id", ""): chunk for chunk in contexts}
+    renderable = [c for c in answer.citations if c.chunk_id in by_id]
+    stranded = [c for c in answer.citations if c.chunk_id not in by_id]
+
+    with st.expander(f"📖 参考来源（{len(renderable)} 条）", expanded=False):
+        for citation in renderable:
+            chunk = by_id[citation.chunk_id]
+            # 页码**必须显示跨页范围**：跨页块（pages=(6,7)）只显示 P6 就是"半个真话"，
+            # 用户点进 p6 找不到后半截（design-decisions §5）。
+            span = citation.pages
+            if span and len(span) > 1:
+                where = f"**P{span[0]}-{span[-1]}**"
+            elif citation.page is not None:
+                where = f"**P{citation.page}**"
+            else:
+                where = ""
+            st.markdown(f"**[{citation.index}]** `{citation.source}` · {where}".rstrip(" ·"))
             _render_chunk_with_evidence(chunk, answer.text)
             st.divider()
+
+    if stranded:
+        st.warning(
+            f"⚠️ 编号 {[c.index for c in stranded]} 的引用在本次检索快照里找不到对应块，"
+            "已跳过渲染 —— 这表示引用与块错配（不是「知识库没有」），请核对。"
+        )
 
     if answer.invalid_refs:
         st.warning(
@@ -460,11 +497,28 @@ async def _stream_answer(
             "role": "assistant",
             "content": final_text,
             "citations": [
-                {"index": c.index, "source": c.source, "page": c.page, "label": c.label}
+                {
+                    "index": c.index,
+                    "source": c.source,
+                    "page": c.page,
+                    "pages": list(c.pages),
+                    "label": c.label,
+                    "chunk_id": c.chunk_id,
+                }
                 for c in done.answer.citations
             ],
             "contexts": [
-                {"index": c.index, "text": c.text[:1200], "source": c.source, "page": c.page}
+                {
+                    "index": c.index,
+                    "text": c.text[:1200],
+                    "source": c.source,
+                    "page": c.page,
+                    "pages": list(c.pages),
+                    # **chunk_id 必须进历史**：历史渲染要从 `citations` 找到对应块，
+                    # 没有 id 就只能按位置配对 —— 那正是"编号 [2] 显示成 [3] 原文"
+                    # 这类错位的来源（见 `_render_history` 的说明）。
+                    "chunk_id": c.id,
+                }
                 for c in (done.contexts if not done.answer.refused else [])
             ],
             "invalid_refs": done.answer.invalid_refs,
@@ -498,16 +552,27 @@ def _render_history(turns: int) -> None:
                     _render_timing_badge(message["timing"])
                 contexts = message.get("contexts") or []
                 if contexts:
-                    with st.expander(f"📖 参考来源（{len(contexts)} 条）", expanded=False):
-                        for ctx in contexts:
-                            st.markdown(
-                                f"**[{ctx['index']}]** `{ctx['source']}` · **P{ctx['page']}**"
-                                if ctx.get("page") is not None
-                                else f"**[{ctx['index']}]** `{ctx['source']}`"
+                    # **历史侧同样按 chunk_id 配对**：旧消息里可能没有 id
+                    # （升级前存进 session_state 的历史），那时按 id 找不到块 ——
+                    # 显式少显示一条，而不是按位置猜（猜错会整片错位）。
+                    by_id = {ctx.get("chunk_id"): ctx for ctx in contexts if ctx.get("chunk_id")}
+                    citations = message.get("citations") or []
+                    with st.expander(f"📖 参考来源（{len(by_id)} 条）", expanded=False):
+                        for citation in citations:
+                            ctx = by_id.get(citation.get("chunk_id"))
+                            if ctx is None:
+                                continue
+                            span = citation.get("pages") or (
+                                [citation["page"]] if citation.get("page") is not None else []
                             )
-                            # 历史里也要高亮：用户翻回去看旧回答时，
-                            # 同样需要"哪句是依据"。用纯 dict 复现同样的逻辑，
-                            # 不依赖 Chunk 对象（历史里存的是可序列化的 dict）。
+                            where = (
+                                f"**P{span[0]}-{span[-1]}**"
+                                if len(span) > 1
+                                else (f"**P{span[0]}**" if span else "")
+                            )
+                            st.markdown(
+                                f"**[{citation['index']}]** `{citation['source']}` · {where}"
+                            )
                             spans = find_evidence_spans(message["content"], ctx["text"])
                             if spans:
                                 st.markdown(highlight(ctx["text"], spans))

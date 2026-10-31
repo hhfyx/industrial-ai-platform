@@ -38,6 +38,7 @@ from app.core.config import get_settings  # noqa: E402
 from app.core.llm.client import get_llm_client  # noqa: E402
 from app.rag.embedding import get_embedder  # noqa: E402
 from app.rag.pipeline import RagPipeline  # noqa: E402
+from app.rag.retrieval import DEFAULT_TOP_K  # noqa: E402
 
 
 def _force_utf8_stdout() -> None:
@@ -65,7 +66,12 @@ def _build_parser() -> argparse.ArgumentParser:
         default=[],
         help="要索引的文档路径（.pdf/.docx/.md）。传了就先索引再提问",
     )
-    parser.add_argument("--top-k", type=int, default=5, help="检索取几条（默认 5）")
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=DEFAULT_TOP_K,
+        help=f"检索取几条（默认 {DEFAULT_TOP_K}，与 UI / QAEngine 同一口径）",
+    )
     parser.add_argument(
         "--min-score",
         type=float,
@@ -187,40 +193,7 @@ async def _run(args: argparse.Namespace) -> int:
         )
 
     if args.json:
-        print(
-            json.dumps(
-                {
-                    "question": question,
-                    "answer": answer.text,
-                    "refused": answer.refused,
-                    "citations": [
-                        {
-                            "index": c.index,
-                            "source": c.source,
-                            "page": c.page,
-                            "label": c.label,
-                            "chunk_id": c.chunk_id,
-                        }
-                        for c in answer.citations
-                    ],
-                    "invalid_refs": answer.invalid_refs,
-                    "top_score": answer.top_score,
-                    "context_chars": answer.context_chars,
-                    "used_chunks": answer.used_chunks,
-                    "retrieved": [
-                        {
-                            "score": hit.score,
-                            "source": hit.chunk.source,
-                            "page": hit.chunk.page,
-                            "text": hit.chunk.text,
-                        }
-                        for hit in retrieved.hits
-                    ],
-                },
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        print(json.dumps(_json_payload(question, answer, retrieved), ensure_ascii=False, indent=2))
         return 0
 
     print(answer.text)
@@ -239,6 +212,52 @@ async def _run(args: argparse.Namespace) -> int:
     if answer.refused:
         print("\n（拒答：检索无结果或分数低于阈值，未调用模型）", file=sys.stderr)
     return 0
+
+
+def _json_payload(question: str, answer: Any, retrieved: Any) -> dict[str, Any]:  # noqa: ANN401
+    """`--json` 的输出结构。**抽成函数是为了能被测试直接断言**。
+
+    内联在 `print(...)` 里时，唯一的验证方式是跑一次 CLI 再肉眼读输出 ——
+    而"引用里到底有没有 `chunk_id` / `pages`"恰恰是双向校验与跨页溯源的关键字段，
+    必须能被自动化测试守住。
+
+    字段口径：
+    - `citations[].pages` / `retrieved[].pages`：跨页覆盖范围。只给 `page`
+      就是"半个真话"（design-decisions §5）。
+    - `citations[].chunk_id` ↔ `retrieved[].chunk_id`：两边都是**内容派生** id，
+      于是能在不碰库的情况下断言"这条引用确实来自这次检索的某一块"。
+    """
+    return {
+        "question": question,
+        "answer": answer.text,
+        "refused": answer.refused,
+        "citations": [
+            {
+                "index": c.index,
+                "source": c.source,
+                "page": c.page,
+                "pages": list(c.pages),
+                "label": c.label,
+                "chunk_id": c.chunk_id,
+            }
+            for c in answer.citations
+        ],
+        "invalid_refs": answer.invalid_refs,
+        "top_score": answer.top_score,
+        "context_chars": answer.context_chars,
+        "used_chunks": answer.used_chunks,
+        "retrieved": [
+            {
+                "score": hit.score,
+                "source": hit.chunk.source,
+                "page": hit.chunk.page,
+                "pages": list(hit.chunk.pages),
+                "chunk_id": hit.chunk.id,
+                "text": hit.chunk.text,
+            }
+            for hit in retrieved.hits
+        ],
+    }
 
 
 class _NullClient:

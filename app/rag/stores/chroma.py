@@ -312,6 +312,38 @@ class ChromaStore:
         """导出全部 id（测试与排查用）。顺序不保证。"""
         return list(self._collection.get(include=[]).get("ids") or [])
 
+    def get_by_content_id(self, content_id: str) -> Chunk | None:
+        """按内容派生 id 回查块（见 `base.VectorStore.get_by_content_id`）。
+
+        **用 `where={"content_id": …}` 而不是用 Chroma 的 `ids=`**：
+        Chroma 的主键位被 `store_id`（位置派生）占了，拿 `content_id` 去 `get(ids=…)`
+        会**静默返回空**（id 不存在），看起来像"引用指向的块不见了"。
+        这正是 `to_payload()` 把 `content_id` 另存一份进 metadata 的原因。
+
+        `include=["documents", "metadatas"]` 是显式的（与 `_query` 同一个理由：
+        不依赖默认值）。**不取 `distances`**：这不是相似度查询，没有分数可言 ——
+        让返回签名是 `Chunk | None` 而不是 `SearchHit`，就是为了让"回查"和"检索"
+        在类型上就分得开，调用方不会误以为这里能拿到分数。
+        """
+        if not content_id:
+            # 空 id 直接返回 None：`where={"content_id": ""}` 会扫全表且必然无果，
+            # 而调用方传空串通常是"引用里没带 id"，那是数据问题，不是库问题。
+            return None
+        raw = self._collection.get(
+            where={"content_id": content_id},
+            include=["documents", "metadatas"],
+        )
+        ids = raw.get("ids") or []
+        if not ids:
+            return None
+        documents = raw.get("documents") or []
+        metadatas = raw.get("metadatas") or []
+        return _chunk_from_row(
+            store_id=ids[0],
+            text=documents[0] if documents else "",
+            metadata=metadatas[0] if metadatas else {},
+        )
+
     # ------------------------------------------------------------------ 内部
 
     def _query(
@@ -342,28 +374,10 @@ class ChromaStore:
         for store_id, text, metadata, distance in zip(
             ids, documents, metadatas, distances, strict=True
         ):
-            meta = dict(metadata or {})
-            page, pages = restore_location(meta)
-            # 我们自己写进 metadata 的规范字段（见 `schema.Chunk.to_payload`）。
-            # 其余键是 loader/切分器留下的业务元数据（`block`、`heading_level`…），
-            # 要原样还给上层 —— **过滤掉它们会让"表格块"在检索后变回普通文本**，
-            # 而那正是生成层决定"引用要不要标（表格）"的依据。
-            reserved = {"source", "page", "pages", "chunk_index", "doc_id", "content_id"}
             hits.append(
                 SearchHit(
-                    chunk=Chunk(
-                        text=text or "",
-                        page=page,
-                        source=str(meta.get("source", "")),
-                        # `content_id` 是内容派生的（见 schema.to_payload）。
-                        # 从库里读回来时直接用它，**不要重新算** —— 重新算要拿
-                        # (source,page,text) 拼一遍，而 text 可能是被截断过的。
-                        # 兜底用 `store_id`：老版本写进去的记录没有 content_id，
-                        # 那时至少要有个可用的标识，而不是空字符串。
-                        id=str(meta.get("content_id", store_id)),
-                        metadata={k: v for k, v in meta.items() if k not in reserved},
-                        index=int(meta.get("chunk_index", 0)),
-                        pages=pages,
+                    chunk=_chunk_from_row(
+                        store_id=str(store_id), text=text or "", metadata=metadata
                     ),
                     # **这一行就是必答题的落地**：distance 越小越像，
                     # 换成相似度（越大越像）再交出去。
@@ -371,6 +385,45 @@ class ChromaStore:
                 )
             )
         return hits
+
+
+def _chunk_from_row(store_id: str, text: str, metadata: dict | None) -> Chunk:
+    """一行 Chroma 记录 → `Chunk`。**检索与回查共用这一份还原逻辑**。
+
+    ## 为什么必须共用
+
+    这段还原里有三条各自能出错、且错了都不报错的规则：
+    ① `page` 的 `-1 → None` 编码（只在 `restore_location` 里解码）
+    ② `content_id` 优先、`store_id` 兜底（老记录没有 `content_id`）
+    ③ 保留业务元数据（`block`/`heading_level`），只剔除我们自己的保留键
+
+    写成两份的后果是"检索回来的块"和"按 id 回查的块"字段不一致 ——
+    而引用校验正是拿两者比对。那种不一致的表现是
+    "同一条引用，正文里是 p7、回查是 p6-7"，最难查。
+
+    ## ③ 为什么要保留业务元数据
+
+    其余键是 loader/切分器留下的业务元数据（`block`、`heading_level`…），
+    要原样还给上层 —— **过滤掉它们会让"表格块"在检索后变回普通文本**，
+    而那正是生成层决定"引用要不要标（表格）"的依据。
+    """
+    meta = dict(metadata or {})
+    page, pages = restore_location(meta)
+    reserved = {"source", "page", "pages", "chunk_index", "doc_id", "content_id"}
+    return Chunk(
+        text=text or "",
+        page=page,
+        source=str(meta.get("source", "")),
+        # `content_id` 是内容派生的（见 schema.to_payload）。
+        # 从库里读回来时直接用它，**不要重新算** —— 重新算要拿
+        # (source,page,text) 拼一遍，而 text 可能是被截断过的。
+        # 兜底用 `store_id`：老版本写进去的记录没有 content_id，
+        # 那时至少要有个可用的标识，而不是空字符串。
+        id=str(meta.get("content_id", store_id)),
+        metadata={k: v for k, v in meta.items() if k not in reserved},
+        index=int(meta.get("chunk_index", 0)),
+        pages=pages,
+    )
 
 
 def _build_where(where: dict[str, MetadataValue] | None) -> dict | None:
