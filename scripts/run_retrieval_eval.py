@@ -67,6 +67,22 @@
 两个分开的数（`false_refusal` / `false_accept`）。合成一个数会把权衡藏起来
 （`docs/retrieval-params.md` §3.3 已经踩过这个坑：单看"合计错"会选出
 牺牲大量真答案的阈值）。
+
+## ⚠ 「检索窗口」与「top_k」是两件事，混用会差出题数（W6 修）
+
+一次运行要读出 k=1/3/5/8/10 各档的 recall，所以 `store.search` 拉的是
+**最大窗口** `max(KS)` = 10。但**线上实际只用 `top_k`=5 条**，因此：
+
+| 概念 | 含义 | 谁在用 |
+| --- | --- | --- |
+| 检索窗口 `max(KS)` | 只为一次跑出多档 recall 而拉宽 | `evaluate_query` 的 `k` |
+| `top_k` | 线上真实喂给模型的条数 | `recall_miss` / 端到端答对 |
+
+第一版把两者混了：`recall_miss` 写成 `not o.hit`（= 不在 top10 里），
+于是报告写「召回未命中 23 条」，同一份报告的 Recall@5 却显示未命中 24 条
+（40 - 16）。差的那条是 m-04（排第 7），它在错例表里也被整条漏掉。
+现在 `summarize(top_k=...)` 强制两者分开算，并有测试锁住恒等式
+`len(recall_miss) == answerable - recall@top_k.hits`。
 """
 
 from __future__ import annotations
@@ -309,14 +325,26 @@ class QueryOutcome:
 
 
 def evaluate_query(*, item: GoldItem, hits: list[Any], k: int) -> QueryOutcome:
-    """判定一条题。
+    """判定一条题。`k` 是**检索窗口**（不是线上 top_k）。
 
     ## 多跳的口径：**全部锚点都命中才算命中**
 
     排名取"最靠后的那个锚点"的排名 —— 因为要看到两处，
     起决定作用的是较晚出现的那一处。只命中一个 → 记 `None`（未命中）。
+
+    ## `k` 只截断窗口，不等于 top_k
+
+    一次运行要同时读出 k=1/3/5/8/10 各档 recall，所以调用方拉的是最大窗口，
+    `hit_rank` 也按窗口算。**「这条题在 top5 里算不算命中」由 `summarize(top_k=5)`
+    判**，不在这里判 —— 两处的 k 分工不同，混用会让同一份报告上下自相矛盾
+    （见模块 docstring 里 W6 的那段）。
+
+    这里仍然把 `hits` 截到 `k` 条，是为了让"窗口"这个参数**真的起作用**：
+    第一版传了 `k` 却完全没读，于是调用方传 `k=5`、实际却按 10 条判，
+    而且没有任何信号。截断之后，传错窗口会立刻反映在 `hit_rank` 上。
     """
-    positions = {hit.chunk.id: index for index, hit in enumerate(hits, start=1)}
+    window = list(hits)[:k] if k > 0 else []
+    positions = {hit.chunk.id: index for index, hit in enumerate(window, start=1)}
     ranks = tuple(positions.get(chunk_id) for chunk_id in item.gold_chunk_ids)
 
     if item.is_refusal:
@@ -331,8 +359,8 @@ def evaluate_query(*, item: GoldItem, hits: list[Any], k: int) -> QueryOutcome:
         type=item.type,
         hit_rank=rank,
         anchor_ranks=ranks,
-        top_score=hits[0].score if hits else None,
-        top_k_ids=[hit.chunk.id for hit in hits],
+        top_score=window[0].score if window else None,
+        top_k_ids=[hit.chunk.id for hit in window],
     )
 
 
@@ -342,8 +370,30 @@ def summarize(
     items: list[GoldItem],
     ks: tuple[int, ...],
     threshold: float,
+    top_k: int = 5,
 ) -> dict[str, Any]:
-    """把逐条结果压成指标。**每一项的分母都写在报告里。**"""
+    """把逐条结果压成指标。**每一项的分母都写在报告里。**
+
+    ## `top_k` 是「被度量召回率的那一档」，必须显式传（W6 修的）
+
+    `outcomes` 里的 `hit_rank` 是在**检索窗口**（通常是 `max(KS)` = 10）里算的，
+    这样一次运行就能读出任意一档的 recall。但**「召回未命中」和「端到端答对」
+    的定义必须钉在线上真实使用的 `top_k` 上**，不能顺手用最大窗口。
+
+    第一版就是顺手用了：`recall_miss` 写成 `not o.hit`，而 `o.hit` 只要求
+    「在 top10 里出现」—— 于是排第 7 的题不算 miss，报告里写「召回未命中 23 条」，
+    而 `Recall@5` 明明显示未命中 24 条（40 - 16）。**同一个报告的上下两段自相矛盾**，
+    差的那 1 条（实测是 m-04，排第 7）在错例表里也被漏掉了。
+
+    同类错还有一处：`answered_correctly` 也是用 `o.hit` 配阈值，
+    于是「端到端答对 20/50」里混进了一条「top10 才命中」的题 ——
+    分子用 top10、分母旁边写的 Recall@5 用 top5，两个数不可比。
+
+    现在三个数的口径**全部对齐到 `top_k`**：
+    - `recall_miss` = `hit_rank is None or hit_rank > top_k`
+    - `answered_correctly` = `hit@top_k and top_score >= threshold`
+    - 恒等式 `len(recall_miss) == answerable - recall@top_k.hits` 由测试锁住
+    """
     by_id = {item.id: item for item in items}
     answerable = [o for o in outcomes if not by_id[o.id].is_refusal]
     refusals = [o for o in outcomes if by_id[o.id].is_refusal]
@@ -392,13 +442,17 @@ def summarize(
     false_refusal = [
         o.id for o in answerable if o.top_score is not None and o.top_score < threshold
     ]
-    # 召回失败（进了候选但排不进 top5）：**单独一类**，不属于拒答
-    recall_miss = [o.id for o in answerable if not o.hit]
+    # 召回失败（进了候选但排不进 top_k）：**单独一类**，不属于拒答。
+    # **必须按 top_k 判，不能按 not o.hit** —— hit 只表示"在检索窗口里出现过"，
+    # 窗口是 max(KS)=10，用它会把"top10 命中但 top5 没进"的题漏掉。
+    recall_miss = [o.id for o in answerable if o.hit_rank is None or o.hit_rank > top_k]
     false_accept = [o.id for o in refusals if o not in refused_correctly]
 
-    # 端到端"答对了"：检索命中 **且** 没被阈值拒
+    # 端到端"答对了"：检索命中（**在 top_k 内**）**且** 没被阈值拒。
+    # 两处的 top_k 必须同一个，否则分子分母不可比。
+    hit_within_top_k = [o for o in answerable if o.hit_rank is not None and o.hit_rank <= top_k]
     answered_correctly = [
-        o for o in answerable if o.hit and o.top_score is not None and o.top_score >= threshold
+        o for o in hit_within_top_k if o.top_score is not None and o.top_score >= threshold
     ]
 
     total = len(outcomes)
@@ -411,6 +465,7 @@ def summarize(
         "mrr": mrr,
         "by_type": by_type,
         "threshold": threshold,
+        "top_k": top_k,
         "refusal": {
             "refused_correctly": len(refused_correctly),
             "refusal_total": len(refusals),
@@ -423,9 +478,11 @@ def summarize(
             "recall_miss": recall_miss,
             "overall_accuracy": round(correct / total, 4) if total else 0.0,
             "note": (
+                f"三者的口径都对齐到 top_k={top_k}（线上实际使用的检索条数）："
                 "false_refusal 只统计「top1 低于阈值」的条数；"
-                "recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。"
-                "overall_accuracy 把三者混在一起，仅作粗略参考"
+                f"recall_miss 是「top{top_k} 内没命中」的条数，属于召回问题、不是拒答问题；"
+                f"overall_accuracy = (top{top_k} 内命中且分数过阈 + 正确拒答) / 全部题，"
+                "它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
             ),
         },
     }
@@ -485,10 +542,13 @@ def render_markdown(payload: dict[str, Any]) -> str:
     )
     lines.append(f"- 误放（该拒却答）：{len(refusal['false_accept'])} 条 {refusal['false_accept']}")
     lines.append(
-        f"- 召回未命中（进了候选但排不进 top_k）：**{len(refusal['recall_miss'])} 条** "
+        f"- 召回未命中（top{metrics.get('top_k', 5)} 内没命中）：**{len(refusal['recall_miss'])} 条** "
         f"—— 这**不是**拒答问题，由上面的 Recall@k 度量"
     )
-    lines.append(f"- 合成准确率：{refusal['overall_accuracy'] * 100:.1f}%（{refusal['note']}）")
+    lines.append(
+        f"- 端到端答对（top{metrics.get('top_k', 5)} 命中 **且** 分数过阈）："
+        f"{refusal['overall_accuracy'] * 100:.1f}%（{refusal['note']}）"
+    )
     lines.append("")
 
     lines.append("## 逐条")
@@ -536,6 +596,9 @@ def main(argv: list[str] | None = None) -> int:
     overlap = args.overlap if args.overlap is not None else cfg.overlap_chars
     strategy = args.strategy or cfg.strategy
     threshold = args.threshold if args.threshold is not None else cfg.score_threshold
+    # 线上实际用的检索条数。**报告里的 recall_miss / 端到端答对都按它算** ——
+    # 它与 `max(KS)`（检索窗口）是两件事，混用会让 40 条里差出 1 条。
+    top_k = cfg.top_k
 
     items = load_questions(args.questions)
     leak = check_no_leak(items)
@@ -590,7 +653,7 @@ def main(argv: list[str] | None = None) -> int:
         hits = store.search(vector, top_k=max_k)
         outcomes.append(evaluate_query(item=item, hits=hits, k=max_k))
 
-    metrics = summarize(outcomes=outcomes, items=items, ks=KS, threshold=threshold)
+    metrics = summarize(outcomes=outcomes, items=items, ks=KS, threshold=threshold, top_k=top_k)
 
     payload = {
         "meta": {
@@ -604,6 +667,7 @@ def main(argv: list[str] | None = None) -> int:
             "corpus_docs": len(docs_to_chunk),
             "corpus_kind": "merged" if args.merged_corpus else "raw",
             "ks": list(KS),
+            "top_k": top_k,
         },
         "metrics": metrics,
         "per_question": [

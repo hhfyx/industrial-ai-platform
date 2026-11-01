@@ -186,14 +186,14 @@
           "head": "``` query = \"为这个句子生成表示以用于检索相关文章：\" + 原始问题 passage = 原文，不加任何前缀"
         },
         {
+          "score": 0.5204,
+          "source": "w5.md",
+          "head": "| 事 | 原因 | 影响 | | --- | --- | --- | | 答案质量抽检（20 条走完整链路） | 网关"
+        },
+        {
           "score": 0.5145,
           "source": "ab-scaffold.md",
           "head": "> **为什么要写成检查**：任务原话是「绝不从你要汇报的结果里挑」。 > 这条纪律如果不自动化，它会在我第三次跑实验、"
-        },
-        {
-          "score": 0.5105,
-          "source": "chunking-boundaries.md",
-          "head": "## 必答题：`section_path` 进 metadata 有什么用  题目已经把答案的一半写出来了：**检索时按"
         }
       ],
       "candidate": "② 术语/同义词未命中",
@@ -262,7 +262,7 @@
         null
       ],
       "top1_score": 0.5657,
-      "gold_rank_in_top50": 25,
+      "gold_rank_in_top50": 26,
       "gold_chunk_lengths": [
         238
       ],
@@ -299,7 +299,7 @@
       "candidate": "② 术语/同义词未命中",
       "signals": [
         "gold 块是**表格**（1 个，长度 [238]）—— 整块不切是契约",
-        "表格块在 top50 第 25 位 → 排序问题"
+        "表格块在 top50 第 26 位 → 排序问题"
       ],
       "auto_confidence": "medium"
     },
@@ -412,7 +412,7 @@
         null
       ],
       "top1_score": 0.5964,
-      "gold_rank_in_top50": 30,
+      "gold_rank_in_top50": 31,
       "gold_chunk_lengths": [
         316
       ],
@@ -448,7 +448,7 @@
       ],
       "candidate": "② 术语/同义词未命中",
       "signals": [
-        "gold 块在 top50 的第 30 位 → 能定位但排得很后",
+        "gold 块在 top50 的第 31 位 → 能定位但排得很后",
         "分数相近但排位靠后 → 语义区分度不足，不是切分问题"
       ],
       "auto_confidence": "medium"
@@ -462,7 +462,7 @@
         null
       ],
       "top1_score": 0.6372,
-      "gold_rank_in_top50": 35,
+      "gold_rank_in_top50": 36,
       "gold_chunk_lengths": [
         154
       ],
@@ -481,7 +481,7 @@
           "head": "``` 全书塞入：输入 token ∝ 文档长度 × 提问次数 ← 两个方向都线性 RAG ：输入 token = mi"
         },
         {
-          "score": 0.614,
+          "score": 0.6167,
           "source": "embedding.md",
           "head": "bge 实测（全语料平均） | **0.6667 tok/字** | 333 token | > > 总量上接近（差 1"
         },
@@ -499,7 +499,7 @@
       "candidate": "② 术语/同义词未命中",
       "signals": [
         "gold 块是**表格**（1 个，长度 [154]）—— 整块不切是契约",
-        "表格块在 top50 第 35 位 → 排序问题"
+        "表格块在 top50 第 36 位 → 排序问题"
       ],
       "auto_confidence": "medium"
     },
@@ -738,13 +738,13 @@
         },
         {
           "score": 0.5104,
-          "source": "prompt-templates.md",
-          "head": "定器删除\"不确定+引用=矛盾\"这条（它是误判） - 模板「已知失败场景」第 2 条记录了这个反复  > 这是本周第二次\""
+          "source": "w5.md",
+          "head": "| 事 | 原因 | 影响 | | --- | --- | --- | | 答案质量抽检（20 条走完整链路） | 网关"
         },
         {
-          "score": 0.5074,
-          "source": "design-decisions.md",
-          "head": "### 为什么不长上下文硬塞  见第 0 节。一句话：**成本线性、注意力被摊薄、无法溯源与更新**。"
+          "score": 0.5104,
+          "source": "prompt-templates.md",
+          "head": "定器删除\"不确定+引用=矛盾\"这条（它是误判） - 模板「已知失败场景」第 2 条记录了这个反复  > 这是本周第二次\""
         }
       ],
       "candidate": "① 切分断语义",
@@ -787,14 +787,14 @@
           "head": "### 1.4 拒答（不知道时怎么说）  > 「若工单信息不足以判断某个字段，该字段填『无法判断』，不要猜测。」  **"
         },
         {
+          "score": 0.5754,
+          "source": "w5.md",
+          "head": "发现方式是\"同一个阈值 0.575 在两个脚本里误拒 1 条 vs 9 条\"。 **如果只差 1~2 条，会被当成噪声放"
+        },
+        {
           "score": 0.5741,
           "source": "prompt-ab.md",
           "head": "**模型的失败模式是把\"意图\"当成\"现象\"来判。** 而用户写咨询时， 往往先描述现象再提问题 —— 现象在前，意图在后"
-        },
-        {
-          "score": 0.5733,
-          "source": "chroma-store.md",
-          "head": "### 两条\"未命中\"的真实原因（人工判断）  **① \"验收不合格怎么办\"** —— top1 命中\"验收不通过：乙方"
         }
       ],
       "candidate": "① 切分断语义",
@@ -970,7 +970,7 @@
         null
       ],
       "top1_score": 0.5863,
-      "gold_rank_in_top50": 29,
+      "gold_rank_in_top50": 30,
       "gold_chunk_lengths": [
         187,
         331
@@ -1025,7 +1025,7 @@
       "top1_score": 0.6299,
       "gold_rank_in_top50": 6,
       "gold_chunk_lengths": [
-        465,
+        477,
         206
       ],
       "gold_chunk_tails": [
@@ -1039,14 +1039,14 @@
           "head": "### 为什么是 50 重叠  必答题的完整论证在 [rag-query-chain.md §0](rag-query-"
         },
         {
+          "score": 0.5896,
+          "source": "chunking-quality.md",
+          "head": "### 2026-11-18 补充：冗余率与命中率的实测对照  `docs/retrieval-tuning-token"
+        },
+        {
           "score": 0.5888,
           "source": "design-decisions.md",
           "head": "### 代价是什么  1. **索引冗余 9.4%（实测）**：2128 字 → 2328 字。同样的文字存两次、算两次"
-        },
-        {
-          "score": 0.5877,
-          "source": "chunking-quality.md",
-          "head": "### 2026-11-18 补充：冗余率与命中率的实测对照  `docs/retrieval-tuning.md` 用"
         },
         {
           "score": 0.5687,

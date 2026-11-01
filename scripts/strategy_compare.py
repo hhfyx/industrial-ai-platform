@@ -192,7 +192,9 @@ def run_one(
         hits = store.search(vector, top_k=max_k)
         outcomes.append(rre.evaluate_query(item=item, hits=hits, k=max_k))
 
-    metrics = rre.summarize(outcomes=outcomes, items=probe, ks=rre.KS, threshold=threshold)
+    metrics = rre.summarize(
+        outcomes=outcomes, items=probe, ks=rre.KS, threshold=threshold, top_k=FIXED_TOP_K
+    )
 
     # 半句率：切分质量的量化代理（`chunking/quality.py`）。
     # **与检索效果分开记** —— 它们回答不同问题，混在一起会得出

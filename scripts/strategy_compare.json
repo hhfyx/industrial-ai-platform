@@ -1,8 +1,8 @@
 {
   "meta": {
-    "generated_at": "2026-11-01 18:14:33",
+    "generated_at": "2026-11-01 20:38:45",
     "corpus": "loader 原样输出（不合并），因为合并会丢 heading_level",
-    "corpus_docs": 1487,
+    "corpus_docs": 1513,
     "questions": 50,
     "chunk_candidates": [
       300,
@@ -19,16 +19,16 @@
     {
       "strategy": "recursive",
       "chunk_chars": 300,
-      "chunks": 1702,
-      "split_ms": 29.2,
-      "embed_ms": 82.6,
-      "store_ms": 11.1,
-      "index_ms": 122.9,
+      "chunks": 1734,
+      "split_ms": 33.3,
+      "embed_ms": 13658.5,
+      "store_ms": 11.5,
+      "index_ms": 13703.3,
       "recall": {
         "recall@1": {
-          "hits": 6,
+          "hits": 5,
           "total": 40,
-          "rate": 0.15
+          "rate": 0.125
         },
         "recall@3": {
           "hits": 10,
@@ -51,12 +51,12 @@
           "rate": 0.425
         }
       },
-      "mrr": 0.2323,
+      "mrr": 0.2186,
       "by_type": {
         "fact": {
           "total": 30,
           "recall@5": 0.4667,
-          "mrr": 0.2928
+          "mrr": 0.2744
         },
         "multi_hop": {
           "total": 10,
@@ -106,15 +106,17 @@
           "m-01",
           "m-02",
           "m-03",
+          "m-04",
           "m-05",
           "m-06",
           "m-07",
-          "m-08"
+          "m-08",
+          "m-09"
         ],
-        "overall_accuracy": 0.38,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+        "overall_accuracy": 0.34,
+        "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = （top5 内命中且分数过阈）+ 正确拒答）/ 全部题。它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
       },
-      "sentence_rate": 0.1569,
+      "sentence_rate": 0.156,
       "anchors_ok": false,
       "anchor_problems": [
         "1 个锚点解析失败（共 50 条）：",
@@ -237,17 +239,17 @@
         {
           "id": "f-15",
           "type": "fact",
-          "hit_rank": 4,
+          "hit_rank": 5,
           "anchor_ranks": [
-            4
+            5
           ]
         },
         {
           "id": "f-16",
           "type": "fact",
-          "hit_rank": 1,
+          "hit_rank": 2,
           "anchor_ranks": [
-            1
+            2
           ]
         },
         {
@@ -516,11 +518,11 @@
     {
       "strategy": "recursive",
       "chunk_chars": 500,
-      "chunks": 1565,
-      "split_ms": 33.2,
-      "embed_ms": 140.9,
-      "store_ms": 15.6,
-      "index_ms": 189.7,
+      "chunks": 1592,
+      "split_ms": 23.6,
+      "embed_ms": 90.8,
+      "store_ms": 8.2,
+      "index_ms": 122.6,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -603,14 +605,15 @@
           "m-01",
           "m-02",
           "m-03",
+          "m-04",
           "m-05",
           "m-06",
           "m-08"
         ],
-        "overall_accuracy": 0.4,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+        "overall_accuracy": 0.38,
+        "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = （top5 内命中且分数过阈）+ 正确拒答）/ 全部题。它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
       },
-      "sentence_rate": 0.1545,
+      "sentence_rate": 0.1532,
       "anchors_ok": true,
       "anchor_problems": [],
       "per_query": [
@@ -1009,11 +1012,11 @@
     {
       "strategy": "recursive",
       "chunk_chars": 800,
-      "chunks": 1527,
-      "split_ms": 25.9,
-      "embed_ms": 135.0,
-      "store_ms": 23.7,
-      "index_ms": 184.6,
+      "chunks": 1554,
+      "split_ms": 18.0,
+      "embed_ms": 111.3,
+      "store_ms": 9.9,
+      "index_ms": 139.2,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -1097,15 +1100,16 @@
           "m-01",
           "m-02",
           "m-03",
+          "m-04",
           "m-05",
           "m-06",
           "m-07",
           "m-08"
         ],
-        "overall_accuracy": 0.36,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+        "overall_accuracy": 0.34,
+        "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = （top5 内命中且分数过阈）+ 正确拒答）/ 全部题。它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
       },
-      "sentence_rate": 0.1525,
+      "sentence_rate": 0.1512,
       "anchors_ok": true,
       "anchor_problems": [],
       "per_query": [
@@ -1504,16 +1508,16 @@
     {
       "strategy": "heading",
       "chunk_chars": 300,
-      "chunks": 1650,
-      "split_ms": 63.9,
-      "embed_ms": 139.5,
-      "store_ms": 19.2,
-      "index_ms": 222.6,
+      "chunks": 1680,
+      "split_ms": 48.8,
+      "embed_ms": 208.0,
+      "store_ms": 12.5,
+      "index_ms": 269.3,
       "recall": {
         "recall@1": {
-          "hits": 6,
+          "hits": 5,
           "total": 40,
-          "rate": 0.15
+          "rate": 0.125
         },
         "recall@3": {
           "hits": 11,
@@ -1536,12 +1540,12 @@
           "rate": 0.425
         }
       },
-      "mrr": 0.2371,
+      "mrr": 0.2246,
       "by_type": {
         "fact": {
           "total": 30,
           "recall@5": 0.4667,
-          "mrr": 0.2994
+          "mrr": 0.2828
         },
         "multi_hop": {
           "total": 10,
@@ -1591,15 +1595,18 @@
           "m-01",
           "m-02",
           "m-03",
+          "m-04",
           "m-05",
           "m-06",
           "m-07",
-          "m-08"
+          "m-08",
+          "m-09",
+          "m-10"
         ],
-        "overall_accuracy": 0.38,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+        "overall_accuracy": 0.32,
+        "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = （top5 内命中且分数过阈）+ 正确拒答）/ 全部题。它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
       },
-      "sentence_rate": 0.1586,
+      "sentence_rate": 0.1578,
       "anchors_ok": false,
       "anchor_problems": [
         "1 个锚点解析失败（共 50 条）：",
@@ -1730,9 +1737,9 @@
         {
           "id": "f-16",
           "type": "fact",
-          "hit_rank": 1,
+          "hit_rank": 2,
           "anchor_ranks": [
-            1
+            2
           ]
         },
         {
@@ -2001,11 +2008,11 @@
     {
       "strategy": "heading",
       "chunk_chars": 500,
-      "chunks": 1512,
-      "split_ms": 47.4,
-      "embed_ms": 131.8,
-      "store_ms": 17.3,
-      "index_ms": 196.5,
+      "chunks": 1537,
+      "split_ms": 29.6,
+      "embed_ms": 86.4,
+      "store_ms": 9.2,
+      "index_ms": 125.2,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -2080,6 +2087,7 @@
           "f-10",
           "f-16",
           "f-18",
+          "f-19",
           "f-20",
           "f-22",
           "f-25",
@@ -2089,14 +2097,15 @@
           "m-01",
           "m-02",
           "m-03",
+          "m-04",
           "m-05",
           "m-06",
           "m-08"
         ],
-        "overall_accuracy": 0.4,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+        "overall_accuracy": 0.36,
+        "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = （top5 内命中且分数过阈）+ 正确拒答）/ 全部题。它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
       },
-      "sentence_rate": 0.1597,
+      "sentence_rate": 0.1585,
       "anchors_ok": true,
       "anchor_problems": [],
       "per_query": [
@@ -2495,11 +2504,11 @@
     {
       "strategy": "heading",
       "chunk_chars": 800,
-      "chunks": 1471,
-      "split_ms": 38.5,
-      "embed_ms": 144.3,
-      "store_ms": 16.3,
-      "index_ms": 199.1,
+      "chunks": 1496,
+      "split_ms": 24.7,
+      "embed_ms": 91.4,
+      "store_ms": 8.2,
+      "index_ms": 124.3,
       "recall": {
         "recall@1": {
           "hits": 7,
@@ -2573,6 +2582,7 @@
           "f-09",
           "f-10",
           "f-18",
+          "f-19",
           "f-20",
           "f-22",
           "f-25",
@@ -2582,15 +2592,16 @@
           "m-01",
           "m-02",
           "m-03",
+          "m-04",
           "m-05",
           "m-06",
           "m-07",
           "m-08"
         ],
-        "overall_accuracy": 0.38,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+        "overall_accuracy": 0.34,
+        "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = （top5 内命中且分数过阈）+ 正确拒答）/ 全部题。它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
       },
-      "sentence_rate": 0.1585,
+      "sentence_rate": 0.1572,
       "anchors_ok": true,
       "anchor_problems": [],
       "per_query": [
@@ -2989,11 +3000,11 @@
     {
       "strategy": "semantic",
       "chunk_chars": 300,
-      "chunks": 1802,
-      "split_ms": 776.6,
-      "embed_ms": 156.7,
-      "store_ms": 19.3,
-      "index_ms": 952.6,
+      "chunks": 1837,
+      "split_ms": 481.7,
+      "embed_ms": 285.2,
+      "store_ms": 11.1,
+      "index_ms": 778.0,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -3077,14 +3088,16 @@
           "m-01",
           "m-02",
           "m-03",
+          "m-04",
           "m-05",
           "m-06",
+          "m-07",
           "m-08"
         ],
-        "overall_accuracy": 0.38,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+        "overall_accuracy": 0.34,
+        "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = （top5 内命中且分数过阈）+ 正确拒答）/ 全部题。它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
       },
-      "sentence_rate": 0.1479,
+      "sentence_rate": 0.1464,
       "anchors_ok": true,
       "anchor_problems": [],
       "per_query": [
@@ -3342,7 +3355,7 @@
           "type": "multi_hop",
           "hit_rank": null,
           "anchor_ranks": [
-            9,
+            10,
             null
           ]
         },
@@ -3483,11 +3496,11 @@
     {
       "strategy": "semantic",
       "chunk_chars": 500,
-      "chunks": 1717,
-      "split_ms": 732.8,
-      "embed_ms": 149.6,
-      "store_ms": 9.3,
-      "index_ms": 891.7,
+      "chunks": 1749,
+      "split_ms": 481.0,
+      "embed_ms": 203.1,
+      "store_ms": 13.0,
+      "index_ms": 697.1,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -3570,14 +3583,16 @@
           "m-01",
           "m-02",
           "m-03",
+          "m-04",
           "m-05",
           "m-06",
+          "m-07",
           "m-08"
         ],
-        "overall_accuracy": 0.4,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+        "overall_accuracy": 0.36,
+        "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = （top5 内命中且分数过阈）+ 正确拒答）/ 全部题。它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
       },
-      "sentence_rate": 0.1444,
+      "sentence_rate": 0.1428,
       "anchors_ok": true,
       "anchor_problems": [],
       "per_query": [
@@ -3835,7 +3850,7 @@
           "type": "multi_hop",
           "hit_rank": null,
           "anchor_ranks": [
-            9,
+            10,
             null
           ]
         },
@@ -3976,11 +3991,11 @@
     {
       "strategy": "semantic",
       "chunk_chars": 800,
-      "chunks": 1710,
-      "split_ms": 772.4,
-      "embed_ms": 142.8,
-      "store_ms": 21.1,
-      "index_ms": 936.3,
+      "chunks": 1742,
+      "split_ms": 463.9,
+      "embed_ms": 86.3,
+      "store_ms": 13.0,
+      "index_ms": 563.2,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -4063,14 +4078,16 @@
           "m-01",
           "m-02",
           "m-03",
+          "m-04",
           "m-05",
           "m-06",
+          "m-07",
           "m-08"
         ],
-        "overall_accuracy": 0.4,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+        "overall_accuracy": 0.36,
+        "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = （top5 内命中且分数过阈）+ 正确拒答）/ 全部题。它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
       },
-      "sentence_rate": 0.1439,
+      "sentence_rate": 0.1423,
       "anchors_ok": true,
       "anchor_problems": [],
       "per_query": [
@@ -4328,7 +4345,7 @@
           "type": "multi_hop",
           "hit_rank": null,
           "anchor_ranks": [
-            9,
+            10,
             null
           ]
         },
@@ -4470,12 +4487,12 @@
   "best": {
     "recursive": {
       "chunk_chars": 500,
-      "chunks": 1565,
-      "index_ms": 189.7,
+      "chunks": 1592,
+      "index_ms": 122.6,
       "recall_at_5": 0.4,
       "recall_at_10": 0.425,
       "mrr": 0.2402,
-      "sentence_rate": 0.1545,
+      "sentence_rate": 0.1532,
       "refusal": {
         "refused_correctly": 4,
         "refusal_total": 10,
@@ -4518,12 +4535,13 @@
           "m-01",
           "m-02",
           "m-03",
+          "m-04",
           "m-05",
           "m-06",
           "m-08"
         ],
-        "overall_accuracy": 0.4,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+        "overall_accuracy": 0.38,
+        "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = （top5 内命中且分数过阈）+ 正确拒答）/ 全部题。它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
       },
       "by_type": {
         "fact": {
@@ -4567,12 +4585,12 @@
     },
     "heading": {
       "chunk_chars": 800,
-      "chunks": 1471,
-      "index_ms": 199.1,
+      "chunks": 1496,
+      "index_ms": 124.3,
       "recall_at_5": 0.375,
       "recall_at_10": 0.425,
       "mrr": 0.2532,
-      "sentence_rate": 0.1585,
+      "sentence_rate": 0.1572,
       "refusal": {
         "refused_correctly": 4,
         "refusal_total": 10,
@@ -4606,6 +4624,7 @@
           "f-09",
           "f-10",
           "f-18",
+          "f-19",
           "f-20",
           "f-22",
           "f-25",
@@ -4615,13 +4634,14 @@
           "m-01",
           "m-02",
           "m-03",
+          "m-04",
           "m-05",
           "m-06",
           "m-07",
           "m-08"
         ],
-        "overall_accuracy": 0.38,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+        "overall_accuracy": 0.34,
+        "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = （top5 内命中且分数过阈）+ 正确拒答）/ 全部题。它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
       },
       "by_type": {
         "fact": {
@@ -4665,12 +4685,12 @@
     },
     "semantic": {
       "chunk_chars": 800,
-      "chunks": 1710,
-      "index_ms": 936.3,
+      "chunks": 1742,
+      "index_ms": 563.2,
       "recall_at_5": 0.375,
       "recall_at_10": 0.425,
       "mrr": 0.2326,
-      "sentence_rate": 0.1439,
+      "sentence_rate": 0.1423,
       "refusal": {
         "refused_correctly": 4,
         "refusal_total": 10,
@@ -4713,12 +4733,14 @@
           "m-01",
           "m-02",
           "m-03",
+          "m-04",
           "m-05",
           "m-06",
+          "m-07",
           "m-08"
         ],
-        "overall_accuracy": 0.4,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+        "overall_accuracy": 0.36,
+        "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = （top5 内命中且分数过阈）+ 正确拒答）/ 全部题。它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
       },
       "by_type": {
         "fact": {

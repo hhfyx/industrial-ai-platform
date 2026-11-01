@@ -1,11 +1,11 @@
 {
   "meta": {
-    "generated_at": "2026-11-01 18:27:32",
+    "generated_at": "2026-11-01 20:39:32",
     "chunk_chars": 500,
     "overlap": 50,
     "strategy": "recursive",
     "top_k": 5,
-    "chunks": 1651,
+    "chunks": 1592,
     "note": "只追加邻居到候选尾部，不改变 top_k 排序。激进版候选 14.2 块，本质是把 k 从 5 加大 —— 它的收益不算本改动的价值"
   },
   "variants": {
@@ -16,7 +16,7 @@
       "answerable": 40,
       "multi_hop_recall": 0.3,
       "fact_recall": 0.4333,
-      "mean_context_tokens": 701.5,
+      "mean_context_tokens": 699.5,
       "mean_candidates": 5.0
     },
     "克制版 budget=1 cap=8": {
@@ -29,7 +29,7 @@
       "answerable": 40,
       "multi_hop_recall": 0.4,
       "fact_recall": 0.4333,
-      "mean_context_tokens": 1015.5,
+      "mean_context_tokens": 1006.9,
       "mean_candidates": 8.0
     },
     "激进版 budget=2 无上限": {
@@ -42,31 +42,31 @@
       "answerable": 40,
       "multi_hop_recall": 0.5,
       "fact_recall": 0.4667,
-      "mean_context_tokens": 1819.6,
+      "mean_context_tokens": 1800.1,
       "mean_candidates": 14.2
     }
   },
   "ablations": {
     "克制版 budget=1 cap=8": {
       "delta_pp": 2.5,
-      "token_delta_pct": 44.8,
+      "token_delta_pct": 43.9,
       "gained": [
         "m-01"
       ],
       "lost": [],
-      "tokens_per_pp": 125.6,
+      "tokens_per_pp": 123.0,
       "mean_candidates": 8.0
     },
     "激进版 budget=2 无上限": {
       "delta_pp": 7.5,
-      "token_delta_pct": 159.4,
+      "token_delta_pct": 157.3,
       "gained": [
         "f-07",
         "m-01",
         "m-05"
       ],
       "lost": [],
-      "tokens_per_pp": 149.1,
+      "tokens_per_pp": 146.7,
       "mean_candidates": 14.2
     }
   }

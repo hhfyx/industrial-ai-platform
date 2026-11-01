@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generated_at": "2026-11-01 18:38:10",
+    "generated_at": "2026-11-01 20:44:41",
     "questions_file": "eval\\questions-50.jsonl",
     "chunk_chars": 500,
     "overlap": 50,
     "strategy": "recursive",
     "embedder": "bge",
-    "chunks": 1678,
-    "corpus_docs": 1597,
+    "chunks": 1592,
+    "corpus_docs": 1513,
     "corpus_kind": "raw",
     "ks": [
       1,
@@ -15,7 +15,8 @@
       5,
       8,
       10
-    ]
+    ],
+    "top_k": 5
   },
   "metrics": {
     "total_questions": 50,
@@ -62,6 +63,7 @@
       }
     },
     "threshold": 0.575,
+    "top_k": 5,
     "refusal": {
       "refused_correctly": 4,
       "refusal_total": 10,
@@ -104,12 +106,13 @@
         "m-01",
         "m-02",
         "m-03",
+        "m-04",
         "m-05",
         "m-06",
         "m-08"
       ],
-      "overall_accuracy": 0.4,
-      "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+      "overall_accuracy": 0.38,
+      "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = (top5 内命中且分数过阈 + 正确拒答) / 全部题，它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
     }
   },
   "per_question": [
@@ -273,7 +276,7 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.6384
+      "top_score": 0.6372
     },
     {
       "id": "f-19",
@@ -537,7 +540,7 @@
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.5549
+      "top_score": 0.5429
     },
     {
       "id": "r-09",
@@ -551,7 +554,7 @@
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.5549
+      "top_score": 0.5478
     }
   ]
 }

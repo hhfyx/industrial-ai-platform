@@ -122,6 +122,7 @@ ANALYSIS_DOCS: frozenset[str] = frozenset(
     {
         # 本周（W5）新增的分析报告 —— 它们在复述结论，是最强的语义竞争者
         "retrieval-tuning-final.md",
+        "retrieval-tuning-token-grid.md",
         "retrieval-params.md",
         "eval-50.md",
         "strategy-comparison.md",
@@ -133,6 +134,24 @@ ANALYSIS_DOCS: frozenset[str] = frozenset(
 
 它们描述"这个项目做了什么"，而不是"用户要查的知识"。
 混进去的后果见 `full_corpus_sources` 的说明（17% 的 top5 被污染）。
+
+## `retrieval-tuning-token-grid.md` 是 W6 补进来的（漏排了）
+
+W5 周日只排除了 `retrieval-tuning-final.md`，漏了同一性质的
+`retrieval-tuning-token-grid.md`（84 段 / 86 块）。它是**周三的 token 审计 +
+chunk/overlap 网格报告**，和 final 一样在复述结论、复述项目做了什么 ——
+判据（"分析报告"）从来没区分过这两份，只是当时只想到一份。
+
+漏排的后果不是"数字偏大"这么简单，而是**同一份 harness 两次跑出两个库**：
+- 现行 `full_corpus_sources()`（漏排）→ 1597 段 / 1678 块
+- 按判据排干净 → 1513 段 / 1592 块
+
+两个口径下 Recall@5 都是 40.0%（16/40）、MRR 都是 0.2402 —— **主指标不变**，
+变的只是块数/耗时这类元数据列。所以这是一次**零结论风险的纯口径统一**：
+补上它不会推翻任何 W5 结论，只会让"块数"这一列第一次可复现。
+
+历史文件名 `retrieval-tuning.md`（周三版本，后改名为 `-token-grid.md`）
+如果哪天被恢复，同样要排 —— 判据是"是不是分析报告"，不是名单里有没有。
 """
 
 

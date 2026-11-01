@@ -127,7 +127,13 @@ def main(argv: list[str] | None = None) -> int:
             )
             continue
 
-        if outcome.hit:
+        # 可答题的判据必须与 `summarize(recall_miss=...)` 一致：
+        # **top_k 内没命中**才算错例。
+        # 第一版写成 `outcome.hit`，而 `hit` 只表示"检索窗口里出现过" ——
+        # 于是排第 7 的 m-04 在指标里算 miss、在这张表里却被静默跳过，
+        # 表里 34 条、指标说 30 条，两个数对不上且没人看得出为什么。
+        in_top_k = outcome.hit_rank is not None and outcome.hit_rank <= args.top_k
+        if in_top_k:
             continue
         error_rows.append({"item": item, "outcome": outcome, "hits": hits, "kind": "recall_miss"})
 

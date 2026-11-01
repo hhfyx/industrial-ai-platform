@@ -307,6 +307,98 @@ def test_by_type_splits_fact_and_multi_hop() -> None:
     assert metrics["by_type"]["multi_hop"]["recall@5"] == 0.0
 
 
+# ------------------------------------------------- 检索窗口 max(KS) vs 线上 top_k
+
+
+def test_recall_miss_honours_top_k_not_the_search_window() -> None:
+    """**`recall_miss` 必须按 top_k 判，不能按"在检索窗口里出现过"。**
+
+    这是 W6 修的真实 bug：一次运行拉 top10（`max(KS)`）读多档 recall，
+    而 `recall_miss` 写成 `not o.hit`（= 不在 top10 里）。
+    结果 40 条可答里排第 7 的题不算 miss：
+
+        报告写「召回未命中 23 条」，而同一页的 Recall@5 显示未命中 24 条
+
+    差的那条实测是 m-04（排第 7）。它还被 `export_error_cases` 一并跳过，
+    于是"错例表 34 条 / 指标说 30 条"，没人看得出为什么。
+    """
+    items = [
+        rre.GoldItem(id="f-01", type="fact", question="", anchors=[]),  # top1，在 top5 内
+        rre.GoldItem(id="f-02", type="fact", question="", anchors=[]),  # top7，只在 top10 内
+        rre.GoldItem(id="f-03", type="fact", question="", anchors=[]),  # 彻底没进窗口
+    ]
+    outcomes = [
+        _outcome("f-01", "fact", 1),
+        _outcome("f-02", "fact", 7),
+        _outcome("f-03", "fact", None),
+    ]
+    metrics = rre.summarize(outcomes=outcomes, items=items, ks=(5, 10), threshold=0.4, top_k=5)
+    # top7 那条在 top10 里算命中……但 recall_miss 的口径是 top5
+    assert metrics["recall"]["recall@10"]["hits"] == 2
+    assert metrics["recall"]["recall@5"]["hits"] == 1
+    assert metrics["refusal"]["recall_miss"] == ["f-02", "f-03"], (
+        "top7 在 top5 口径下就是没召回 —— 不能因为它在 top10 里就漏掉"
+    )
+
+
+def test_recall_miss_count_matches_recall_at_top_k() -> None:
+    """恒等式：`len(recall_miss) == answerable - recall@top_k.hits`。
+
+    这条是把上面那个 bug 锁死在数字层面 —— 只要两者对不上，
+    报告就自相矛盾，无论措辞怎么写。
+    """
+    items = [
+        rre.GoldItem(id=f"f-{i:02d}", type="fact", question="", anchors=[]) for i in range(1, 6)
+    ]
+    outcomes = [
+        _outcome("f-01", "fact", 1),
+        _outcome("f-02", "fact", 3),
+        _outcome("f-03", "fact", 6),
+        _outcome("f-04", "fact", 11),
+        _outcome("f-05", "fact", None),
+    ]
+    for top_k in (1, 3, 5, 8):
+        metrics = rre.summarize(
+            outcomes=outcomes, items=items, ks=(1, 3, 5, 8, 10), threshold=0.4, top_k=top_k
+        )
+        expected = metrics["answerable"] - metrics["recall"][f"recall@{top_k}"]["hits"]
+        assert len(metrics["refusal"]["recall_miss"]) == expected, (
+            f"top_k={top_k} 时召回未命中条数与 Recall@{top_k} 的缺口对不上"
+        )
+
+
+def test_overall_accuracy_uses_the_same_top_k_as_recall() -> None:
+    """端到端答对的分子必须是 **top_k 内命中**，不能是"窗口内命中"。
+
+    第一版分子用 `o.hit`（top10 命中）配阈值，而分母旁边的 Recall@5 用 top5：
+    分子 top10、分母 top5，两个数根本不可比。
+    """
+    items = [
+        rre.GoldItem(id="f-01", type="fact", question="", anchors=[]),  # top1 高分 → 对
+        rre.GoldItem(id="f-02", type="fact", question="", anchors=[]),  # top7 高分 → 不算对
+    ]
+    outcomes = [
+        _outcome("f-01", "fact", 1, score=0.8),
+        _outcome("f-02", "fact", 7, score=0.8),
+    ]
+    metrics = rre.summarize(outcomes=outcomes, items=items, ks=(5,), threshold=0.4, top_k=5)
+    assert metrics["refusal"]["overall_accuracy"] == pytest.approx(0.5), (
+        "top7 不算端到端答对 —— 它没进 top5"
+    )
+
+
+def test_evaluate_query_truncates_to_the_search_window() -> None:
+    """`k` 必须真的截断候选。第一版传了 k 却完全没读，传 k=5 实际按 10 条判。"""
+    gold = _chunk("gold")
+    item = rre.GoldItem(id="f-01", type="fact", question="", anchors=[], gold_chunk_ids=[gold.id])
+    hits = [_hit(f"noise{i}", index=i + 1) for i in range(9)] + [_hit("gold")]
+
+    narrow = rre.evaluate_query(item=item, hits=hits, k=5)
+    wide = rre.evaluate_query(item=item, hits=hits, k=10)
+    assert narrow.hit_rank is None, "gold 排第 10，k=5 时应判为未进窗口"
+    assert wide.hit_rank == 10
+
+
 # --------------------------------------------------------------------------- 数据校验
 
 
