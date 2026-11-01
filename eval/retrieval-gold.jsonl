@@ -1,0 +1,20 @@
+{"id": "rg-01", "question": "为什么计时不能从收到第一个数据块开始，而要等正文内容真的出现？", "anchor": "TTFT（Time To First Token）= 从发起请求到收到第一个\"非空 content\"的时间。", "source": "docs/sse.md"}
+{"id": "rg-02", "question": "流式输出真能让总耗时变短吗，它实际优化的是哪一项？", "anchor": "用户感知的等待减半，服务器成本完全一样。", "source": "docs/sse.md"}
+{"id": "rg-03", "question": "为什么长文档一次校验失败重试，账单会比短文本贵好几倍？", "anchor": "一次长合同 1,996 token 里 96% 是输入；回灌一轮要把这 1,996 再加一遍。", "source": "docs/cost.md"}
+{"id": "rg-04", "question": "想用便宜模型降本，按请求分流和按字段分流的风险差别在哪？", "anchor": "简单的 3 个字段走小模型，复杂的 1 个字段走大模型。", "source": "docs/cost.md"}
+{"id": "rg-05", "question": "为什么块数和平均长度相同的两套切分，读起来质量会差很远？", "anchor": "100 个 50 字的块和 20 个 250 字的块可以有一模一样的\"平均块长\"，质量却天差地别。", "source": "docs/chunking-quality.md"}
+{"id": "rg-06", "question": "判断一个条款有没有被拦腰切断，为什么机器自己判不了？", "anchor": "而\"这两块是不是一个论述单元\"是语义判断。", "source": "docs/chunking-quality.md"}
+{"id": "rg-07", "question": "相似度比较的方向写反了，会出现什么后果？", "anchor": "搞反阈值逻辑就全错 —— 而且不会报错，只会\"筛出来的是最不像的\"。", "source": "docs/chroma-store.md"}
+{"id": "rg-08", "question": "检索分数为什么要在接口层统一成一种方向，而不是各库各报各的？", "anchor": "上层只认一种口径，写阈值时不需要知道底下是谁。", "source": "docs/chroma-store.md"}
+{"id": "rg-09", "question": "页码为什么必须在切块的那一刻就记下来，事后再补不行吗？", "anchor": "没有页码，引用只能说到\"某份文档里说的\" —— 那和\"模型自己编的\"在用户眼里没有区别。", "source": "docs/design-decisions.md"}
+{"id": "rg-10", "question": "什么情况下把整份文档塞进上下文反而比检索更合适？", "anchor": "塞进去比建索引简单、少一次检索失败的可能、答案还更完整（不受 top_k 限制）。", "source": "docs/design-decisions.md"}
+{"id": "rg-11", "question": "给中文小模型加查询前缀，为什么对关键词重合度高的提问没有帮助？", "anchor": "前缀不改字面匹配能力，它改的是\"语义检索的方向性\"。", "source": "docs/embedding.md"}
+{"id": "rg-12", "question": "引用回查时为什么按正文内容去找，而不是按块在库里的序号？", "anchor": "引用要的是\"这段文字\"，位置会随切分参数指向不同内容。", "source": "docs/rag-architecture.md"}
+{"id": "rg-13", "question": "用户嫌首字慢，砍块数有用吗，应该先动哪些参数？", "anchor": "而真正该优化的是检索的 top_k 与生成段的上下文长度。", "source": "docs/rag-architecture.md"}
+{"id": "rg-14", "question": "相邻块之间留一段重复文字，能补救哪一类被切断的情况？", "anchor": "重叠 50 字让后半块的开头仍然含\"若甲方未按期付款\"。", "source": "docs/rag-query-chain.md"}
+{"id": "rg-15", "question": "分隔符表里的顺序如果排错，块尾会变成什么样子？", "anchor": "`。` 必须排在 `，` 前面 —— 反了就会优先在逗号处断，块尾变成半句话。", "source": "docs/rag-query-chain.md"}
+{"id": "rg-16", "question": "few-shot 里示例的摆放位置为什么会改变模型判断的倾向？", "anchor": "示例区末尾那个例子定义了模型的\"默认锚点\"。", "source": "docs/prompt-patterns.md"}
+{"id": "rg-17", "question": "第一次推送时授权完，密码还会再问一遍吗，到底存在哪里？", "anchor": "在浏览器授权后，凭据会存入 Windows 凭据管理器，后续无需重复输入。", "source": "docs/SETUP.md"}
+{"id": "rg-18", "question": "表格单独抽出来之后，为什么还要把原文里那段文字删掉？", "anchor": "上下文里出现两份\"看起来一样但格式不同\"的资料，模型可能引用错版本。", "source": "docs/document-parsing.md"}
+{"id": "rg-19", "question": "契约里新增一个可选字段，为什么老调用方完全不受影响？", "anchor": "所以按 4 字段解析的老客户端不受任何影响 —— 这是它向后兼容的全部原因。", "source": "docs/api-spec.md"}
+{"id": "rg-20", "question": "摘要任务为什么十几秒才吐出第一个字，是模型太慢还是别的原因？", "anchor": "用户要等 10899 ms 才看到第一个字，而单次调用只有约 2-3 秒。", "source": "README.md"}

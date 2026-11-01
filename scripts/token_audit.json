@@ -1,0 +1,904 @@
+{
+  "meta": {
+    "tokenizer": "BAAI/bge-small-zh-v1.5（AutoTokenizer）",
+    "max_seq_length": 512,
+    "add_special_tokens": true,
+    "corpus_sources": 13,
+    "corpus_docs": 358,
+    "corpus_chars": 121380,
+    "note": "token 数为**未截断**的真实长度；> max_seq_length 的块在 bge 里会被静默截断。"
+  },
+  "primary": {
+    "chunk_chars": 500,
+    "overlap": 50,
+    "over_rate": 0.001898,
+    "over_count": 1,
+    "chunks": 527
+  },
+  "rows": [
+    {
+      "chunk_chars": 500,
+      "overlap": 50,
+      "chunks": 527,
+      "chars_total": 129182,
+      "tokens_total": 86120,
+      "tokens_avg": 163.4,
+      "tokens_max": 606,
+      "tokens_p50": 128,
+      "tokens_p95": 380,
+      "max_tokens": 512,
+      "over_count": 1,
+      "over_rate": 0.001898,
+      "tokens_per_char": 0.6667,
+      "histogram": [
+        {
+          "bucket": "0-32",
+          "low": 0,
+          "high": 32,
+          "count": 122,
+          "share": 0.2315,
+          "bar": "██████████████"
+        },
+        {
+          "bucket": "32-64",
+          "low": 32,
+          "high": 64,
+          "count": 42,
+          "share": 0.0797,
+          "bar": "█████"
+        },
+        {
+          "bucket": "64-128",
+          "low": 64,
+          "high": 128,
+          "count": 98,
+          "share": 0.186,
+          "bar": "███████████"
+        },
+        {
+          "bucket": "128-256",
+          "low": 128,
+          "high": 256,
+          "count": 110,
+          "share": 0.2087,
+          "bar": "█████████████"
+        },
+        {
+          "bucket": "256-384",
+          "low": 256,
+          "high": 384,
+          "count": 131,
+          "share": 0.2486,
+          "bar": "███████████████"
+        },
+        {
+          "bucket": "384-448",
+          "low": 384,
+          "high": 448,
+          "count": 19,
+          "share": 0.0361,
+          "bar": "██"
+        },
+        {
+          "bucket": "448-480",
+          "low": 448,
+          "high": 480,
+          "count": 1,
+          "share": 0.0019,
+          "bar": "█"
+        },
+        {
+          "bucket": "480-512",
+          "low": 480,
+          "high": 512,
+          "count": 3,
+          "share": 0.0057,
+          "bar": "█"
+        },
+        {
+          "bucket": "512-640",
+          "low": 512,
+          "high": 640,
+          "count": 1,
+          "share": 0.0019,
+          "bar": "█"
+        },
+        {
+          "bucket": "640-1024",
+          "low": 640,
+          "high": 1024,
+          "count": 0,
+          "share": 0.0,
+          "bar": ""
+        },
+        {
+          "bucket": "1024+",
+          "low": 1024,
+          "high": null,
+          "count": 0,
+          "share": 0.0,
+          "bar": ""
+        }
+      ],
+      "by_kind": {
+        "text": {
+          "chunks": 162,
+          "over": 0,
+          "examples": [],
+          "tokens_avg": 312.4,
+          "tokens_max": 408,
+          "chars_max": 500,
+          "over_rate": 0.0
+        },
+        "table": {
+          "chunks": 117,
+          "over": 1,
+          "examples": [
+            {
+              "source": "SETUP.md",
+              "index": 353,
+              "chars": 1307,
+              "tokens": 606,
+              "head": "| 现象 | 根因 | 解法 | |---|---|---| | `SetNam"
+            }
+          ],
+          "tokens_avg": 181.9,
+          "tokens_max": 606,
+          "chars_max": 1307,
+          "over_rate": 0.0085
+        },
+        "heading": {
+          "chunks": 113,
+          "over": 0,
+          "examples": [],
+          "tokens_avg": 16.8,
+          "tokens_max": 35,
+          "chars_max": 43,
+          "over_rate": 0.0
+        },
+        "code": {
+          "chunks": 135,
+          "over": 0,
+          "examples": [],
+          "tokens_avg": 91.3,
+          "tokens_max": 385,
+          "chars_max": 703,
+          "over_rate": 0.0
+        }
+      },
+      "kind_counts": {
+        "text": 162,
+        "table": 117,
+        "heading": 113,
+        "code": 135
+      },
+      "over_examples": [
+        {
+          "source": "SETUP.md",
+          "index": 353,
+          "kind": "table",
+          "chars": 1307,
+          "tokens": 606,
+          "head": "| 现象 | 根因 | 解法 | |---|---|---| | `SetNamedSecurityInfoW fail"
+        }
+      ]
+    },
+    {
+      "chunk_chars": 300,
+      "overlap": 50,
+      "chunks": 667,
+      "chars_total": 135699,
+      "tokens_total": 91305,
+      "tokens_avg": 136.9,
+      "tokens_max": 606,
+      "tokens_p50": 147,
+      "tokens_p95": 245,
+      "max_tokens": 512,
+      "over_count": 1,
+      "over_rate": 0.001499,
+      "tokens_per_char": 0.6728,
+      "histogram": [
+        {
+          "bucket": "0-32",
+          "low": 0,
+          "high": 32,
+          "count": 122,
+          "share": 0.1829,
+          "bar": "███████████"
+        },
+        {
+          "bucket": "32-64",
+          "low": 32,
+          "high": 64,
+          "count": 43,
+          "share": 0.0645,
+          "bar": "████"
+        },
+        {
+          "bucket": "64-128",
+          "low": 64,
+          "high": 128,
+          "count": 122,
+          "share": 0.1829,
+          "bar": "███████████"
+        },
+        {
+          "bucket": "128-256",
+          "low": 128,
+          "high": 256,
+          "count": 357,
+          "share": 0.5352,
+          "bar": "████████████████████████████████"
+        },
+        {
+          "bucket": "256-384",
+          "low": 256,
+          "high": 384,
+          "count": 15,
+          "share": 0.0225,
+          "bar": "█"
+        },
+        {
+          "bucket": "384-448",
+          "low": 384,
+          "high": 448,
+          "count": 3,
+          "share": 0.0045,
+          "bar": "█"
+        },
+        {
+          "bucket": "448-480",
+          "low": 448,
+          "high": 480,
+          "count": 1,
+          "share": 0.0015,
+          "bar": "█"
+        },
+        {
+          "bucket": "480-512",
+          "low": 480,
+          "high": 512,
+          "count": 3,
+          "share": 0.0045,
+          "bar": "█"
+        },
+        {
+          "bucket": "512-640",
+          "low": 512,
+          "high": 640,
+          "count": 1,
+          "share": 0.0015,
+          "bar": "█"
+        },
+        {
+          "bucket": "640-1024",
+          "low": 640,
+          "high": 1024,
+          "count": 0,
+          "share": 0.0,
+          "bar": ""
+        },
+        {
+          "bucket": "1024+",
+          "low": 1024,
+          "high": null,
+          "count": 0,
+          "share": 0.0,
+          "bar": ""
+        }
+      ],
+      "by_kind": {
+        "text": {
+          "chunks": 302,
+          "over": 0,
+          "examples": [],
+          "tokens_avg": 184.8,
+          "tokens_max": 261,
+          "chars_max": 300,
+          "over_rate": 0.0
+        },
+        "table": {
+          "chunks": 117,
+          "over": 1,
+          "examples": [
+            {
+              "source": "SETUP.md",
+              "index": 493,
+              "chars": 1307,
+              "tokens": 606,
+              "head": "| 现象 | 根因 | 解法 | |---|---|---| | `SetNam"
+            }
+          ],
+          "tokens_avg": 181.9,
+          "tokens_max": 606,
+          "chars_max": 1307,
+          "over_rate": 0.0085
+        },
+        "heading": {
+          "chunks": 113,
+          "over": 0,
+          "examples": [],
+          "tokens_avg": 16.8,
+          "tokens_max": 35,
+          "chars_max": 43,
+          "over_rate": 0.0
+        },
+        "code": {
+          "chunks": 135,
+          "over": 0,
+          "examples": [],
+          "tokens_avg": 91.3,
+          "tokens_max": 385,
+          "chars_max": 703,
+          "over_rate": 0.0
+        }
+      },
+      "kind_counts": {
+        "text": 302,
+        "table": 117,
+        "heading": 113,
+        "code": 135
+      },
+      "over_examples": [
+        {
+          "source": "SETUP.md",
+          "index": 493,
+          "kind": "table",
+          "chars": 1307,
+          "tokens": 606,
+          "head": "| 现象 | 根因 | 解法 | |---|---|---| | `SetNamedSecurityInfoW fail"
+        }
+      ]
+    },
+    {
+      "chunk_chars": 800,
+      "overlap": 50,
+      "chunks": 461,
+      "chars_total": 126060,
+      "tokens_total": 83519,
+      "tokens_avg": 181.2,
+      "tokens_max": 646,
+      "tokens_p50": 103,
+      "tokens_p95": 584,
+      "max_tokens": 512,
+      "over_count": 56,
+      "over_rate": 0.121475,
+      "tokens_per_char": 0.6625,
+      "histogram": [
+        {
+          "bucket": "0-32",
+          "low": 0,
+          "high": 32,
+          "count": 122,
+          "share": 0.2646,
+          "bar": "████████████████"
+        },
+        {
+          "bucket": "32-64",
+          "low": 32,
+          "high": 64,
+          "count": 42,
+          "share": 0.0911,
+          "bar": "█████"
+        },
+        {
+          "bucket": "64-128",
+          "low": 64,
+          "high": 128,
+          "count": 99,
+          "share": 0.2148,
+          "bar": "█████████████"
+        },
+        {
+          "bucket": "128-256",
+          "low": 128,
+          "high": 256,
+          "count": 87,
+          "share": 0.1887,
+          "bar": "███████████"
+        },
+        {
+          "bucket": "256-384",
+          "low": 256,
+          "high": 384,
+          "count": 20,
+          "share": 0.0434,
+          "bar": "███"
+        },
+        {
+          "bucket": "384-448",
+          "low": 384,
+          "high": 448,
+          "count": 10,
+          "share": 0.0217,
+          "bar": "█"
+        },
+        {
+          "bucket": "448-480",
+          "low": 448,
+          "high": 480,
+          "count": 7,
+          "share": 0.0152,
+          "bar": "█"
+        },
+        {
+          "bucket": "480-512",
+          "low": 480,
+          "high": 512,
+          "count": 18,
+          "share": 0.039,
+          "bar": "██"
+        },
+        {
+          "bucket": "512-640",
+          "low": 512,
+          "high": 640,
+          "count": 54,
+          "share": 0.1171,
+          "bar": "███████"
+        },
+        {
+          "bucket": "640-1024",
+          "low": 640,
+          "high": 1024,
+          "count": 2,
+          "share": 0.0043,
+          "bar": "█"
+        },
+        {
+          "bucket": "1024+",
+          "low": 1024,
+          "high": null,
+          "count": 0,
+          "share": 0.0,
+          "bar": ""
+        }
+      ],
+      "by_kind": {
+        "text": {
+          "chunks": 96,
+          "over": 55,
+          "examples": [
+            {
+              "source": "README.md",
+              "index": 0,
+              "chars": 755,
+              "tokens": 606,
+              "head": "# industrial-ai-platform  **一个从\"调模型\"长到\"能"
+            },
+            {
+              "source": "README.md",
+              "index": 3,
+              "chars": 763,
+              "tokens": 563,
+              "head": "是最便宜的质量提升，且能证明\"知道哪里不好\"。  ---  ## LLM 接入："
+            },
+            {
+              "source": "README.md",
+              "index": 4,
+              "chars": 671,
+              "tokens": 526,
+              "head": "`TOOL_REGISTRY[name](**args)` 是我们自己的 Pyt"
+            },
+            {
+              "source": "README.md",
+              "index": 5,
+              "chars": 776,
+              "tokens": 562,
+              "head": "破坏已有契约 —— 因为契约被**离线**测试锁住了。  ### 这不是\"顺便做"
+            },
+            {
+              "source": "README.md",
+              "index": 6,
+              "chars": 768,
+              "tokens": 562,
+              "head": "灌重试（最多 2 轮）  模型给了不合规输出时，把 **Pydantic 的错误"
+            }
+          ],
+          "tokens_avg": 500.1,
+          "tokens_max": 646,
+          "chars_max": 799,
+          "over_rate": 0.5729
+        },
+        "table": {
+          "chunks": 117,
+          "over": 1,
+          "examples": [
+            {
+              "source": "SETUP.md",
+              "index": 287,
+              "chars": 1307,
+              "tokens": 606,
+              "head": "| 现象 | 根因 | 解法 | |---|---|---| | `SetNam"
+            }
+          ],
+          "tokens_avg": 181.9,
+          "tokens_max": 606,
+          "chars_max": 1307,
+          "over_rate": 0.0085
+        },
+        "heading": {
+          "chunks": 113,
+          "over": 0,
+          "examples": [],
+          "tokens_avg": 16.8,
+          "tokens_max": 35,
+          "chars_max": 43,
+          "over_rate": 0.0
+        },
+        "code": {
+          "chunks": 135,
+          "over": 0,
+          "examples": [],
+          "tokens_avg": 91.3,
+          "tokens_max": 385,
+          "chars_max": 703,
+          "over_rate": 0.0
+        }
+      },
+      "kind_counts": {
+        "text": 96,
+        "table": 117,
+        "heading": 113,
+        "code": 135
+      },
+      "over_examples": [
+        {
+          "source": "README.md",
+          "index": 0,
+          "kind": "text",
+          "chars": 755,
+          "tokens": 606,
+          "head": "# industrial-ai-platform  **一个从\"调模型\"长到\"能查、能引、能拒答\"的文档智能平台。** "
+        },
+        {
+          "source": "README.md",
+          "index": 3,
+          "kind": "text",
+          "chars": 763,
+          "tokens": 563,
+          "head": "是最便宜的质量提升，且能证明\"知道哪里不好\"。  ---  ## LLM 接入：三个可验证的结论  这一块不是\"能调通\""
+        },
+        {
+          "source": "README.md",
+          "index": 4,
+          "kind": "text",
+          "chars": 671,
+          "tokens": 526,
+          "head": "`TOOL_REGISTRY[name](**args)` 是我们自己的 Python 在跑。  这个边界决定了一切安全"
+        },
+        {
+          "source": "README.md",
+          "index": 5,
+          "kind": "text",
+          "chars": 776,
+          "tokens": 562,
+          "head": "破坏已有契约 —— 因为契约被**离线**测试锁住了。  ### 这不是\"顺便做到\"，是踩出来的  **2026-10-"
+        },
+        {
+          "source": "README.md",
+          "index": 6,
+          "kind": "text",
+          "chars": 768,
+          "tokens": 562,
+          "head": "灌重试（最多 2 轮）  模型给了不合规输出时，把 **Pydantic 的错误原样喂回去**：  比\"重试同一个 pr"
+        },
+        {
+          "source": "README.md",
+          "index": 8,
+          "kind": "text",
+          "chars": 776,
+          "tokens": 590,
+          "head": "和页面动作在同一个事件循环里。  ### 首 token 慢，是模型慢还是链路慢？—— 打点回答  用 `scripts"
+        },
+        {
+          "source": "README.md",
+          "index": 13,
+          "kind": "text",
+          "chars": 793,
+          "tokens": 549,
+          "head": "s/rag-architecture.md) —— **RAG 三段全景图**：索引（解析→切分→ 向量化→入库）/ 检"
+        },
+        {
+          "source": "README.md",
+          "index": 14,
+          "kind": "text",
+          "chars": 799,
+          "tokens": 543,
+          "head": "入库 + 10 条已知答案验收，以及一条被测试抓出来的 `index_text` 静默覆盖 bug - [docs/ra"
+        },
+        {
+          "source": "README.md",
+          "index": 15,
+          "kind": "text",
+          "chars": 778,
+          "tokens": 545,
+          "head": "何 500 字 + 50 重叠（**并明写\"这两个数字都没有数据支撑\"，待 W5 用矩阵替换**） ⑤ 为何 `page"
+        },
+        {
+          "source": "sse.md",
+          "index": 17,
+          "kind": "text",
+          "chars": 786,
+          "tokens": 540,
+          "head": "# SSE 与流式调用（W1 周三）  > 实测记录。代码：`app/core/llm/streaming.py`（流式"
+        }
+      ]
+    },
+    {
+      "chunk_chars": 1000,
+      "overlap": 50,
+      "chunks": 441,
+      "chars_total": 125095,
+      "tokens_total": 82718,
+      "tokens_avg": 187.6,
+      "tokens_max": 791,
+      "tokens_p50": 98,
+      "tokens_p95": 693,
+      "max_tokens": 512,
+      "over_count": 63,
+      "over_rate": 0.142857,
+      "tokens_per_char": 0.6612,
+      "histogram": [
+        {
+          "bucket": "0-32",
+          "low": 0,
+          "high": 32,
+          "count": 122,
+          "share": 0.2766,
+          "bar": "█████████████████"
+        },
+        {
+          "bucket": "32-64",
+          "low": 32,
+          "high": 64,
+          "count": 42,
+          "share": 0.0952,
+          "bar": "██████"
+        },
+        {
+          "bucket": "64-128",
+          "low": 64,
+          "high": 128,
+          "count": 98,
+          "share": 0.2222,
+          "bar": "█████████████"
+        },
+        {
+          "bucket": "128-256",
+          "low": 128,
+          "high": 256,
+          "count": 86,
+          "share": 0.195,
+          "bar": "████████████"
+        },
+        {
+          "bucket": "256-384",
+          "low": 256,
+          "high": 384,
+          "count": 15,
+          "share": 0.034,
+          "bar": "██"
+        },
+        {
+          "bucket": "384-448",
+          "low": 384,
+          "high": 448,
+          "count": 5,
+          "share": 0.0113,
+          "bar": "█"
+        },
+        {
+          "bucket": "448-480",
+          "low": 448,
+          "high": 480,
+          "count": 5,
+          "share": 0.0113,
+          "bar": "█"
+        },
+        {
+          "bucket": "480-512",
+          "low": 480,
+          "high": 512,
+          "count": 5,
+          "share": 0.0113,
+          "bar": "█"
+        },
+        {
+          "bucket": "512-640",
+          "low": 512,
+          "high": 640,
+          "count": 16,
+          "share": 0.0363,
+          "bar": "██"
+        },
+        {
+          "bucket": "640-1024",
+          "low": 640,
+          "high": 1024,
+          "count": 47,
+          "share": 0.1066,
+          "bar": "██████"
+        },
+        {
+          "bucket": "1024+",
+          "low": 1024,
+          "high": null,
+          "count": 0,
+          "share": 0.0,
+          "bar": ""
+        }
+      ],
+      "by_kind": {
+        "text": {
+          "chunks": 76,
+          "over": 62,
+          "examples": [
+            {
+              "source": "README.md",
+              "index": 0,
+              "chars": 998,
+              "tokens": 765,
+              "head": "# industrial-ai-platform  **一个从\"调模型\"长到\"能"
+            },
+            {
+              "source": "README.md",
+              "index": 1,
+              "chars": 998,
+              "tokens": 674,
+              "head": "*实现可换，契约冻死。** `docs/api-spec.md` 是唯一不能动的"
+            },
+            {
+              "source": "README.md",
+              "index": 2,
+              "chars": 994,
+              "tokens": 746,
+              "head": "有依据\"。 3. **混合检索**（问题 6）。它是最便宜的质量提升，且能证明\""
+            },
+            {
+              "source": "README.md",
+              "index": 3,
+              "chars": 919,
+              "tokens": 674,
+              "head": "则运算）， 以及并行 `tool_calls` 的按 id 配对回灌、3 轮上限"
+            },
+            {
+              "source": "README.md",
+              "index": 4,
+              "chars": 948,
+              "tokens": 730,
+              "head": "httpx`，那条测试会红，提醒我们可以简化。  ### `FakeLLMCli"
+            }
+          ],
+          "tokens_avg": 621.2,
+          "tokens_max": 791,
+          "chars_max": 998,
+          "over_rate": 0.8158
+        },
+        "table": {
+          "chunks": 117,
+          "over": 1,
+          "examples": [
+            {
+              "source": "SETUP.md",
+              "index": 267,
+              "chars": 1307,
+              "tokens": 606,
+              "head": "| 现象 | 根因 | 解法 | |---|---|---| | `SetNam"
+            }
+          ],
+          "tokens_avg": 181.9,
+          "tokens_max": 606,
+          "chars_max": 1307,
+          "over_rate": 0.0085
+        },
+        "heading": {
+          "chunks": 113,
+          "over": 0,
+          "examples": [],
+          "tokens_avg": 16.8,
+          "tokens_max": 35,
+          "chars_max": 43,
+          "over_rate": 0.0
+        },
+        "code": {
+          "chunks": 135,
+          "over": 0,
+          "examples": [],
+          "tokens_avg": 91.3,
+          "tokens_max": 385,
+          "chars_max": 703,
+          "over_rate": 0.0
+        }
+      },
+      "kind_counts": {
+        "text": 76,
+        "table": 117,
+        "heading": 113,
+        "code": 135
+      },
+      "over_examples": [
+        {
+          "source": "README.md",
+          "index": 0,
+          "kind": "text",
+          "chars": 998,
+          "tokens": 765,
+          "head": "# industrial-ai-platform  **一个从\"调模型\"长到\"能查、能引、能拒答\"的文档智能平台。** "
+        },
+        {
+          "source": "README.md",
+          "index": 1,
+          "kind": "text",
+          "chars": 998,
+          "tokens": 674,
+          "head": "*实现可换，契约冻死。** `docs/api-spec.md` 是唯一不能动的东西。  ---  **跨层规则是硬的*"
+        },
+        {
+          "source": "README.md",
+          "index": 2,
+          "kind": "text",
+          "chars": 994,
+          "tokens": 746,
+          "head": "有依据\"。 3. **混合检索**（问题 6）。它是最便宜的质量提升，且能证明\"知道哪里不好\"。  ---  ## LL"
+        },
+        {
+          "source": "README.md",
+          "index": 3,
+          "kind": "text",
+          "chars": 919,
+          "tokens": 674,
+          "head": "则运算）， 以及并行 `tool_calls` 的按 id 配对回灌、3 轮上限（防无限计费）。  ### 成本  基于"
+        },
+        {
+          "source": "README.md",
+          "index": 4,
+          "kind": "text",
+          "chars": 948,
+          "tokens": 730,
+          "head": "httpx`，那条测试会红，提醒我们可以简化。  ### `FakeLLMClient` 的契约  它不是 mock，是"
+        },
+        {
+          "source": "README.md",
+          "index": 5,
+          "kind": "text",
+          "chars": 918,
+          "tokens": 579,
+          "head": "s/test_api.py`：  W2 做完之后：  ---  ## 流式文档摘要（本周主交付）  上传 PDF / D"
+        },
+        {
+          "source": "README.md",
+          "index": 6,
+          "kind": "text",
+          "chars": 810,
+          "tokens": 595,
+          "head": "`scripts/latency_breakdown.py` 在每一层打点（5 次取 p50）：  **结论：单次请求慢"
+        },
+        {
+          "source": "README.md",
+          "index": 8,
+          "kind": "text",
+          "chars": 987,
+          "tokens": 596,
+          "head": "就失败。**这不是 Dockerfile 的问题** —— 代理起来后即可完成。  容器内的坑：  - **容器里的 `"
+        },
+        {
+          "source": "README.md",
+          "index": 9,
+          "kind": "text",
+          "chars": 984,
+          "tokens": 619,
+          "head": "ompt-patterns.md) —— zero-shot / few-shot / CoT / Self-Consi"
+        },
+        {
+          "source": "README.md",
+          "index": 10,
+          "kind": "text",
+          "chars": 961,
+          "tokens": 658,
+          "head": "*返回 `degraded:true`（`127.0.0.1` 的语义 + 网关鉴权两个独立原因） - [docs/ra"
+        }
+      ]
+    }
+  ]
+}

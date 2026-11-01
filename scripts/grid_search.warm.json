@@ -1,0 +1,1056 @@
+{
+  "meta": {
+    "embedder": "bge",
+    "top_k": 5,
+    "gold": 20,
+    "corpus_prose_docs": 13,
+    "corpus_fixed_docs": 345,
+    "corpus_chars": 121380,
+    "strategy": "recursive"
+  },
+  "coarse": [
+    {
+      "chunk_chars": 300,
+      "overlap": 50,
+      "chunks": 667,
+      "chars_total": 135699,
+      "tokens_total": 91305,
+      "tokens_avg": 136.9,
+      "tokens_max": 606,
+      "tokens_over_512": 1,
+      "split_ms": 25.6,
+      "embed_ms": 35.1,
+      "store_ms": 4.9,
+      "index_ms": 65.6,
+      "query_ms_total": 12454.2,
+      "cache_hits_this_run": 667,
+      "cache_misses_this_run": 0,
+      "cache_hit_rate_this_run": 1.0,
+      "hit_at_5": 0.65,
+      "hits": 13,
+      "mrr": 0.4242,
+      "adjacent_pair_rate": 0.08,
+      "per_query": [
+        {
+          "id": "rg-01",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-02",
+          "hit_rank": 1,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-03",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-04",
+          "hit_rank": 1,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-05",
+          "hit_rank": 2,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-06",
+          "hit_rank": 5,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-07",
+          "hit_rank": 1,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-08",
+          "hit_rank": 5,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-09",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-10",
+          "hit_rank": 2,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-11",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-12",
+          "hit_rank": 3,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-13",
+          "hit_rank": 1,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-14",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-15",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-16",
+          "hit_rank": 4,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-17",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-18",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-19",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-20",
+          "hit_rank": 2,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        }
+      ]
+    },
+    {
+      "chunk_chars": 500,
+      "overlap": 50,
+      "chunks": 527,
+      "chars_total": 129182,
+      "tokens_total": 86120,
+      "tokens_avg": 163.4,
+      "tokens_max": 606,
+      "tokens_over_512": 1,
+      "split_ms": 15.7,
+      "embed_ms": 23.0,
+      "store_ms": 1.9,
+      "index_ms": 40.6,
+      "query_ms_total": 868.1,
+      "cache_hits_this_run": 527,
+      "cache_misses_this_run": 0,
+      "cache_hit_rate_this_run": 1.0,
+      "hit_at_5": 0.6,
+      "hits": 12,
+      "mrr": 0.4292,
+      "adjacent_pair_rate": 0.07,
+      "per_query": [
+        {
+          "id": "rg-01",
+          "hit_rank": null,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-02",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-03",
+          "hit_rank": 1,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-04",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-05",
+          "hit_rank": 2,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-06",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-07",
+          "hit_rank": 2,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-08",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-09",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-10",
+          "hit_rank": 2,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-11",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-12",
+          "hit_rank": 4,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-13",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-14",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-15",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-16",
+          "hit_rank": 2,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-17",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-18",
+          "hit_rank": 3,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-19",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-20",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        }
+      ]
+    },
+    {
+      "chunk_chars": 800,
+      "overlap": 50,
+      "chunks": 461,
+      "chars_total": 126060,
+      "tokens_total": 83519,
+      "tokens_avg": 181.2,
+      "tokens_max": 646,
+      "tokens_over_512": 56,
+      "split_ms": 20.4,
+      "embed_ms": 26.1,
+      "store_ms": 1.5,
+      "index_ms": 47.9,
+      "query_ms_total": 774.1,
+      "cache_hits_this_run": 461,
+      "cache_misses_this_run": 0,
+      "cache_hit_rate_this_run": 1.0,
+      "hit_at_5": 0.55,
+      "hits": 11,
+      "mrr": 0.4167,
+      "adjacent_pair_rate": 0.04,
+      "per_query": [
+        {
+          "id": "rg-01",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-02",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-03",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-04",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-05",
+          "hit_rank": 2,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-06",
+          "hit_rank": 3,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-07",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-08",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-09",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-10",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-11",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-12",
+          "hit_rank": 4,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-13",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-14",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-15",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-16",
+          "hit_rank": 4,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-17",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-18",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-19",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-20",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        }
+      ]
+    },
+    {
+      "chunk_chars": 1000,
+      "overlap": 50,
+      "chunks": 441,
+      "chars_total": 125095,
+      "tokens_total": 82718,
+      "tokens_avg": 187.6,
+      "tokens_max": 791,
+      "tokens_over_512": 63,
+      "split_ms": 17.4,
+      "embed_ms": 23.4,
+      "store_ms": 1.5,
+      "index_ms": 42.3,
+      "query_ms_total": 799.8,
+      "cache_hits_this_run": 441,
+      "cache_misses_this_run": 0,
+      "cache_hit_rate_this_run": 1.0,
+      "hit_at_5": 0.55,
+      "hits": 11,
+      "mrr": 0.4625,
+      "adjacent_pair_rate": 0.025,
+      "per_query": [
+        {
+          "id": "rg-01",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-02",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-03",
+          "hit_rank": 2,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-04",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-05",
+          "hit_rank": 2,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-06",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-07",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-08",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-09",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-10",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-11",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-12",
+          "hit_rank": null,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-13",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-14",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-15",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-16",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-17",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-18",
+          "hit_rank": 4,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-19",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-20",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        }
+      ]
+    }
+  ],
+  "fine": [
+    {
+      "chunk_chars": 300,
+      "overlap": 0,
+      "chunks": 614,
+      "chars_total": 121638,
+      "tokens_total": 80766,
+      "tokens_avg": 131.5,
+      "tokens_max": 606,
+      "tokens_over_512": 1,
+      "split_ms": 20.9,
+      "embed_ms": 38.2,
+      "store_ms": 2.2,
+      "index_ms": 61.3,
+      "query_ms_total": 1033.6,
+      "cache_hits_this_run": 614,
+      "cache_misses_this_run": 0,
+      "cache_hit_rate_this_run": 1.0,
+      "hit_at_5": 0.6,
+      "hits": 12,
+      "mrr": 0.4225,
+      "adjacent_pair_rate": 0.055,
+      "per_query": [
+        {
+          "id": "rg-01",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-02",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-03",
+          "hit_rank": null,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-04",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-05",
+          "hit_rank": 2,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-06",
+          "hit_rank": 2,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-07",
+          "hit_rank": 1,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-08",
+          "hit_rank": 4,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-09",
+          "hit_rank": 5,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-10",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-11",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-12",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-13",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-14",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-15",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-16",
+          "hit_rank": 2,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-17",
+          "hit_rank": 2,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-18",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-19",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-20",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        }
+      ]
+    },
+    {
+      "chunk_chars": 300,
+      "overlap": 50,
+      "chunks": 667,
+      "chars_total": 135699,
+      "tokens_total": 91305,
+      "tokens_avg": 136.9,
+      "tokens_max": 606,
+      "tokens_over_512": 1,
+      "split_ms": 24.6,
+      "embed_ms": 39.4,
+      "store_ms": 2.1,
+      "index_ms": 66.1,
+      "query_ms_total": 1149.1,
+      "cache_hits_this_run": 667,
+      "cache_misses_this_run": 0,
+      "cache_hit_rate_this_run": 1.0,
+      "hit_at_5": 0.65,
+      "hits": 13,
+      "mrr": 0.4242,
+      "adjacent_pair_rate": 0.08,
+      "per_query": [
+        {
+          "id": "rg-01",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-02",
+          "hit_rank": 1,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-03",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-04",
+          "hit_rank": 1,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-05",
+          "hit_rank": 2,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-06",
+          "hit_rank": 5,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-07",
+          "hit_rank": 1,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-08",
+          "hit_rank": 5,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-09",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-10",
+          "hit_rank": 2,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-11",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-12",
+          "hit_rank": 3,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-13",
+          "hit_rank": 1,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-14",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-15",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-16",
+          "hit_rank": 4,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-17",
+          "hit_rank": 1,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-18",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-19",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-20",
+          "hit_rank": 2,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        }
+      ]
+    },
+    {
+      "chunk_chars": 300,
+      "overlap": 100,
+      "chunks": 741,
+      "chars_total": 156551,
+      "tokens_total": 106637,
+      "tokens_avg": 143.9,
+      "tokens_max": 606,
+      "tokens_over_512": 1,
+      "split_ms": 28.6,
+      "embed_ms": 42.8,
+      "store_ms": 4.6,
+      "index_ms": 76.1,
+      "query_ms_total": 1149.1,
+      "cache_hits_this_run": 741,
+      "cache_misses_this_run": 0,
+      "cache_hit_rate_this_run": 1.0,
+      "hit_at_5": 0.65,
+      "hits": 13,
+      "mrr": 0.4683,
+      "adjacent_pair_rate": 0.11,
+      "per_query": [
+        {
+          "id": "rg-01",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-02",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-03",
+          "hit_rank": 2,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-04",
+          "hit_rank": 1,
+          "adjacent_pairs": 3,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-05",
+          "hit_rank": 3,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-06",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-07",
+          "hit_rank": 2,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-08",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-09",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-10",
+          "hit_rank": 1,
+          "adjacent_pairs": 2,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-11",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-12",
+          "hit_rank": 2,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-13",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-14",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-15",
+          "hit_rank": 3,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-16",
+          "hit_rank": null,
+          "adjacent_pairs": 0,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-17",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-18",
+          "hit_rank": 5,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-19",
+          "hit_rank": null,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        },
+        {
+          "id": "rg-20",
+          "hit_rank": 1,
+          "adjacent_pairs": 1,
+          "total_pairs": 10
+        }
+      ]
+    }
+  ],
+  "best_chunk": 300,
+  "cache_bench": {
+    "supported": true,
+    "chunk_chars": 300,
+    "overlap": 50,
+    "chunks": 667,
+    "keys_deleted": 664,
+    "cold_ms": 9498.0,
+    "hot_ms": 40.3,
+    "cold_stats": {
+      "hits": 0,
+      "misses": 667
+    },
+    "hot_stats": {
+      "hits": 667,
+      "misses": 0
+    },
+    "saved_ms": 9457.7,
+    "speedup_ratio": 0.9958,
+    "speedup_percent": 99.6,
+    "reopen_hit": 667,
+    "reopen_miss": 0,
+    "note": "冷/热都排除了模型加载（模型已在内存里），差值只归因于缓存本身"
+  },
+  "cache": {
+    "path": "D:\\git\\网页\\industrial-ai-platform\\data\\embedding-cache\\bge-small-zh.sqlite",
+    "entries": 1575,
+    "bytes": 6549504,
+    "hits": 667,
+    "misses": 0,
+    "hit_rate": 1.0,
+    "encode_ms_total": 9539.0
+  }
+}

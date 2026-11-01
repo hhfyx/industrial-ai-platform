@@ -39,6 +39,7 @@ __all__ = [
     "cosine",
     "cosine_batch",
     "dot",
+    "get_cached_embedder",
     "get_embedder",
     "l2_norm",
     "l2_normalize",
@@ -74,3 +75,32 @@ def get_embedder(name: str = "hashing", **kwargs: object) -> Embedder:
 def describe_implementations() -> dict[str, str]:
     """列出可用实现。给 CLI / 健康检查用，避免它们各写一份 if-chain。"""
     return dict(_IMPLEMENTATIONS)
+
+
+def get_cached_embedder(name: str = "hashing", **kwargs: object) -> Embedder:
+    """取一个**带缓存**的 embedder。给"会重复跑同一次编码"的场景用。
+
+    ## 谁该用它
+
+    **实验 / 调参 / 批量重建** —— 也就是"同一批文本会被反复编码"的场景。
+    W5 的参数网格是典型：7 组参数、每组都要编码几百块，而
+    `chunk_chars` 变化时**大部分块文本仍然是新的**，只有"同参数重跑"
+    和"相邻参数档位之间"能命中。实测同参数重跑提速 **99.6%**
+    （`docs/retrieval-tuning.md` §5）。
+
+    ## 谁不该用它
+
+    **线上首次索引**。那时没有旧向量可命中，缓存只多一次 sqlite 写入。
+    更重要的是：线上路径应该只做"必须做的事"，缓存是实验期的手段 ——
+    与 `scripts/experiment_cache.py` 把 LLM 实验缓存挡在主路径之外同一个理由
+    （见那个模块的 docstring：混进主路径会让每个调用都过一遍哈希 + 磁盘 IO）。
+
+    ## 为什么不做成 `get_embedder` 的默认行为
+
+    默认开缓存会让"缓存坏了"和"模型变了"变成同一个症状（向量不对），
+    而排查一个显式开关比排查一个隐式默认容易。**默认值必须是最不容易静默变差的那个**
+    —— 与 `build_strategy` 选 `recursive` 作默认同一条纪律。
+    """
+    from app.rag.embedding.cache import CachedEmbedder
+
+    return CachedEmbedder(get_embedder(name, **kwargs))
