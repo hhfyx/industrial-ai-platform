@@ -1,0 +1,664 @@
+{
+  "meta": {
+    "chunk_chars": 500,
+    "overlap": 50,
+    "top_k": 5,
+    "strategy": "recursive",
+    "embedder": "bge",
+    "chunks": 532,
+    "gold": 20,
+    "schema": "532 块的可过滤维度：chunk_index(532 值)、content_id(532 值)、page_chars(94 值)、source(13 值)、doc_id(13 值)、code_language(6 值)、block(4 值)、heading_level(3 值)、chunk_strategy(2 值)、splitter(1 值)、page(1 值)、pages(0 值)"
+  },
+  "scenarios": [
+    {
+      "scenario": "单文档",
+      "queries": 20,
+      "hit_before": 13,
+      "hit_after": 18,
+      "hit_rate_before": 0.65,
+      "hit_rate_after": 0.9,
+      "delta_pp": 25.0,
+      "gained": [
+        "rg-06",
+        "rg-08",
+        "rg-14",
+        "rg-15",
+        "rg-19"
+      ],
+      "lost": [],
+      "rows": [
+        {
+          "id": "rg-01",
+          "where": {
+            "source": "sse.md"
+          },
+          "rank_before": null,
+          "rank_after": null,
+          "hit_before": false,
+          "hit_after": false,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-02",
+          "where": {
+            "source": "sse.md"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-03",
+          "where": {
+            "source": "cost.md"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-04",
+          "where": {
+            "source": "cost.md"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-05",
+          "where": {
+            "source": "chunking-quality.md"
+          },
+          "rank_before": 2,
+          "rank_after": 2,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-06",
+          "where": {
+            "source": "chunking-quality.md"
+          },
+          "rank_before": null,
+          "rank_after": 4,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-07",
+          "where": {
+            "source": "chroma-store.md"
+          },
+          "rank_before": 2,
+          "rank_after": 2,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-08",
+          "where": {
+            "source": "chroma-store.md"
+          },
+          "rank_before": null,
+          "rank_after": 1,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-09",
+          "where": {
+            "source": "design-decisions.md"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-10",
+          "where": {
+            "source": "design-decisions.md"
+          },
+          "rank_before": 2,
+          "rank_after": 2,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-11",
+          "where": {
+            "source": "embedding.md"
+          },
+          "rank_before": null,
+          "rank_after": null,
+          "hit_before": false,
+          "hit_after": false,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-12",
+          "where": {
+            "source": "rag-architecture.md"
+          },
+          "rank_before": 4,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-13",
+          "where": {
+            "source": "rag-architecture.md"
+          },
+          "rank_before": 5,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-14",
+          "where": {
+            "source": "rag-query-chain.md"
+          },
+          "rank_before": null,
+          "rank_after": 3,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-15",
+          "where": {
+            "source": "rag-query-chain.md"
+          },
+          "rank_before": null,
+          "rank_after": 5,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-16",
+          "where": {
+            "source": "prompt-patterns.md"
+          },
+          "rank_before": 2,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-17",
+          "where": {
+            "source": "SETUP.md"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-18",
+          "where": {
+            "source": "document-parsing.md"
+          },
+          "rank_before": 3,
+          "rank_after": 3,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-19",
+          "where": {
+            "source": "api-spec.md"
+          },
+          "rank_before": null,
+          "rank_after": 3,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-20",
+          "where": {
+            "source": "README.md"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        }
+      ]
+    },
+    {
+      "scenario": "仅表格",
+      "queries": 5,
+      "hit_before": 4,
+      "hit_after": 5,
+      "hit_rate_before": 0.8,
+      "hit_rate_after": 1.0,
+      "delta_pp": 20.0,
+      "gained": [
+        "tb-02"
+      ],
+      "lost": [],
+      "rows": [
+        {
+          "id": "tb-01",
+          "where": {
+            "block": "table"
+          },
+          "rank_before": 2,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "tb-02",
+          "where": {
+            "block": "table"
+          },
+          "rank_before": null,
+          "rank_after": 3,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "tb-03",
+          "where": {
+            "block": "table"
+          },
+          "rank_before": 3,
+          "rank_after": 2,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "tb-04",
+          "where": {
+            "block": "table"
+          },
+          "rank_before": 2,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "tb-05",
+          "where": {
+            "block": "table"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        }
+      ]
+    },
+    {
+      "scenario": "按章节",
+      "queries": 20,
+      "hit_before": 11,
+      "hit_after": 19,
+      "hit_rate_before": 0.55,
+      "hit_rate_after": 0.95,
+      "delta_pp": 40.0,
+      "gained": [
+        "rg-08",
+        "rg-11",
+        "rg-12",
+        "rg-13",
+        "rg-14",
+        "rg-15",
+        "rg-18",
+        "rg-19"
+      ],
+      "lost": [],
+      "rows": [
+        {
+          "id": "rg-01",
+          "where": {
+            "section_path": "SSE 与流式调用（W1 周三）"
+          },
+          "rank_before": null,
+          "rank_after": null,
+          "hit_before": false,
+          "hit_after": false,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-02",
+          "where": {
+            "section_path": "SSE 与流式调用（W1 周三）"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-03",
+          "where": {
+            "section_path": "成本模型：规则版 vs LLM 版，以及重试的真实代价"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-04",
+          "where": {
+            "section_path": "成本模型：规则版 vs LLM 版，以及重试的真实代价"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-05",
+          "where": {
+            "section_path": "切分质量的人工判据"
+          },
+          "rank_before": 3,
+          "rank_after": 2,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-06",
+          "where": {
+            "section_path": "切分质量的人工判据"
+          },
+          "rank_before": 4,
+          "rank_after": 3,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-07",
+          "where": {
+            "section_path": "ChromaDB 持久化向量库"
+          },
+          "rank_before": 2,
+          "rank_after": 2,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-08",
+          "where": {
+            "section_path": "ChromaDB 持久化向量库"
+          },
+          "rank_before": null,
+          "rank_after": 1,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-09",
+          "where": {
+            "section_path": "ChromaDB 持久化向量库"
+          },
+          "rank_before": 2,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-10",
+          "where": {
+            "section_path": "ChromaDB 持久化向量库"
+          },
+          "rank_before": 2,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-11",
+          "where": {
+            "section_path": "Embedding：原理、选型、以及\"忘了归一化\"这个坑"
+          },
+          "rank_before": null,
+          "rank_after": 3,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-12",
+          "where": {
+            "section_path": "RAG 三段式架构（W4 骨架版）"
+          },
+          "rank_before": null,
+          "rank_after": 1,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-13",
+          "where": {
+            "section_path": "RAG 三段式架构（W4 骨架版）"
+          },
+          "rank_before": null,
+          "rank_after": 1,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-14",
+          "where": {
+            "section_path": "RAG 问答链路：切分、引用、拒答"
+          },
+          "rank_before": null,
+          "rank_after": 2,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-15",
+          "where": {
+            "section_path": "RAG 问答链路：切分、引用、拒答"
+          },
+          "rank_before": null,
+          "rank_after": 2,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-16",
+          "where": {
+            "section_path": "Prompt 四范式的实测记录"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-17",
+          "where": {
+            "section_path": "环境搭建与开发流程"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-18",
+          "where": {
+            "section_path": "环境搭建与开发流程"
+          },
+          "rank_before": null,
+          "rank_after": 2,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-19",
+          "where": {
+            "section_path": "环境搭建与开发流程"
+          },
+          "rank_before": null,
+          "rank_after": 3,
+          "hit_before": false,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        },
+        {
+          "id": "rg-20",
+          "where": {
+            "section_path": "industrial-ai-platform"
+          },
+          "rank_before": 1,
+          "rank_after": 1,
+          "hit_before": true,
+          "hit_after": true,
+          "hits_before": 5,
+          "hits_after": 5
+        }
+      ],
+      "skipped": 0,
+      "note": "跳过的是 anchor 跨节或不在任何节的 gold；基线也是 heading 索引，所以 Δ 只反映过滤的影响"
+    }
+  ],
+  "misconfiguration_probe": [
+    {
+      "case": "键名拼错",
+      "where": {
+        "blockk": "table"
+      },
+      "raw_count": 0,
+      "guarded_outcome": "raise",
+      "guarded_error": "UnknownFilterKey",
+      "guarded_count": null
+    },
+    {
+      "case": "文档名拼错",
+      "where": {
+        "source": "不存在的文档.md"
+      },
+      "raw_count": 0,
+      "guarded_outcome": "raise",
+      "guarded_error": "UnknownFilterValue",
+      "guarded_count": null
+    },
+    {
+      "case": "文档名带目录",
+      "where": {
+        "source": "docs/sse.md"
+      },
+      "raw_count": 0,
+      "guarded_outcome": "raise",
+      "guarded_error": "UnknownFilterValue",
+      "guarded_count": null
+    },
+    {
+      "case": "recursive 下用 section_path",
+      "where": {
+        "section_path": "架构"
+      },
+      "raw_count": 0,
+      "guarded_outcome": "raise",
+      "guarded_error": "UnknownFilterKey",
+      "guarded_count": null
+    },
+    {
+      "case": "合法条件（对照）",
+      "where": {
+        "source": "sse.md"
+      },
+      "raw_count": 5,
+      "guarded_outcome": "pass",
+      "guarded_error": "",
+      "guarded_count": 5
+    }
+  ]
+}

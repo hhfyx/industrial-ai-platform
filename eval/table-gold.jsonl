@@ -1,0 +1,5 @@
+{"id": "tb-01", "question": "流式和非流式的首字延迟差多少倍", "anchor": "**TTFT** | **3209 ms** | **1567 ms** | **体感提升约 2.0×**", "source": "docs/sse.md", "block": "table"}
+{"id": "tb-02", "question": "各种调用方式里规则版单次要花多少钱", "anchor": "**规则版**（兜底，纯 CP", "source": "docs/cost.md", "block": "table"}
+{"id": "tb-03", "question": "长文档回灌一轮的总 token 和单次成本是多少", "anchor": "| 场景 | 尝试 | 回灌 | 总 token | 单次成本 | 每 1,000 次 |", "source": "docs/cost.md", "block": "table"}
+{"id": "tb-04", "question": "哪一层测试手段专门用来校验回灌和降级", "anchor": "**单测** | `tests/fake_llm.py` 的 `FakeLLMClient` | 校验回灌、降级、键序、编造拦截", "source": "README.md", "block": "table"}
+{"id": "tb-05", "question": "防止模型输出非 JSON 的几层拦截分别拦什么", "anchor": "① prompt | 明确要求只输出 JSON 对象", "source": "README.md", "block": "table"}
