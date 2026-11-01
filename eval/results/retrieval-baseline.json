@@ -1,0 +1,552 @@
+{
+  "meta": {
+    "generated_at": "2026-11-01 16:50:59",
+    "questions_file": "eval\\questions-50.jsonl",
+    "chunk_chars": 500,
+    "overlap": 50,
+    "strategy": "recursive",
+    "embedder": "bge",
+    "chunks": 532,
+    "corpus_docs": 359,
+    "ks": [
+      1,
+      3,
+      5,
+      8,
+      10
+    ]
+  },
+  "metrics": {
+    "total_questions": 50,
+    "answerable": 40,
+    "refusals": 10,
+    "recall": {
+      "recall@1": {
+        "hits": 5,
+        "total": 40,
+        "rate": 0.125
+      },
+      "recall@3": {
+        "hits": 9,
+        "total": 40,
+        "rate": 0.225
+      },
+      "recall@5": {
+        "hits": 13,
+        "total": 40,
+        "rate": 0.325
+      },
+      "recall@8": {
+        "hits": 17,
+        "total": 40,
+        "rate": 0.425
+      },
+      "recall@10": {
+        "hits": 17,
+        "total": 40,
+        "rate": 0.425
+      }
+    },
+    "mrr": 0.2096,
+    "by_type": {
+      "fact": {
+        "total": 30,
+        "recall@5": 0.3667,
+        "mrr": 0.2581
+      },
+      "multi_hop": {
+        "total": 10,
+        "recall@5": 0.2,
+        "mrr": 0.0643
+      }
+    },
+    "threshold": 0.4,
+    "refusal": {
+      "refused_correctly": 0,
+      "refusal_total": 10,
+      "refusal_accuracy": 0.0,
+      "false_refusal": [],
+      "false_accept": [
+        "r-01",
+        "r-02",
+        "r-03",
+        "r-04",
+        "r-05",
+        "r-06",
+        "r-07",
+        "r-08",
+        "r-09",
+        "r-10"
+      ],
+      "recall_miss": [
+        "f-01",
+        "f-02",
+        "f-03",
+        "f-04",
+        "f-05",
+        "f-08",
+        "f-09",
+        "f-17",
+        "f-18",
+        "f-19",
+        "f-20",
+        "f-21",
+        "f-22",
+        "f-26",
+        "f-27",
+        "f-30",
+        "m-02",
+        "m-03",
+        "m-05",
+        "m-06",
+        "m-07",
+        "m-08",
+        "m-10"
+      ],
+      "overall_accuracy": 0.34,
+      "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+    }
+  },
+  "per_question": [
+    {
+      "id": "f-01",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5379
+    },
+    {
+      "id": "f-02",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.6191
+    },
+    {
+      "id": "f-03",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.4883
+    },
+    {
+      "id": "f-04",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5234
+    },
+    {
+      "id": "f-05",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.565
+    },
+    {
+      "id": "f-06",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.6212
+    },
+    {
+      "id": "f-07",
+      "type": "fact",
+      "hit_rank": 8,
+      "anchor_ranks": [
+        8
+      ],
+      "top_score": 0.5348
+    },
+    {
+      "id": "f-08",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.6016
+    },
+    {
+      "id": "f-09",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5138
+    },
+    {
+      "id": "f-10",
+      "type": "fact",
+      "hit_rank": 5,
+      "anchor_ranks": [
+        5
+      ],
+      "top_score": 0.541
+    },
+    {
+      "id": "f-11",
+      "type": "fact",
+      "hit_rank": 3,
+      "anchor_ranks": [
+        3
+      ],
+      "top_score": 0.5959
+    },
+    {
+      "id": "f-12",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.6185
+    },
+    {
+      "id": "f-13",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.6754
+    },
+    {
+      "id": "f-14",
+      "type": "fact",
+      "hit_rank": 2,
+      "anchor_ranks": [
+        2
+      ],
+      "top_score": 0.67
+    },
+    {
+      "id": "f-15",
+      "type": "fact",
+      "hit_rank": 4,
+      "anchor_ranks": [
+        4
+      ],
+      "top_score": 0.4937
+    },
+    {
+      "id": "f-16",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.5692
+    },
+    {
+      "id": "f-17",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.6405
+    },
+    {
+      "id": "f-18",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.637
+    },
+    {
+      "id": "f-19",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.603
+    },
+    {
+      "id": "f-20",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.6263
+    },
+    {
+      "id": "f-21",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.6487
+    },
+    {
+      "id": "f-22",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5716
+    },
+    {
+      "id": "f-23",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.6
+    },
+    {
+      "id": "f-24",
+      "type": "fact",
+      "hit_rank": 2,
+      "anchor_ranks": [
+        2
+      ],
+      "top_score": 0.48
+    },
+    {
+      "id": "f-25",
+      "type": "fact",
+      "hit_rank": 6,
+      "anchor_ranks": [
+        6
+      ],
+      "top_score": 0.6282
+    },
+    {
+      "id": "f-26",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5157
+    },
+    {
+      "id": "f-27",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5825
+    },
+    {
+      "id": "f-28",
+      "type": "fact",
+      "hit_rank": 2,
+      "anchor_ranks": [
+        2
+      ],
+      "top_score": 0.7207
+    },
+    {
+      "id": "f-29",
+      "type": "fact",
+      "hit_rank": 6,
+      "anchor_ranks": [
+        6
+      ],
+      "top_score": 0.5511
+    },
+    {
+      "id": "f-30",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5892
+    },
+    {
+      "id": "m-01",
+      "type": "multi_hop",
+      "hit_rank": 7,
+      "anchor_ranks": [
+        2,
+        7
+      ],
+      "top_score": 0.6805
+    },
+    {
+      "id": "m-02",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top_score": 0.6243
+    },
+    {
+      "id": "m-03",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top_score": 0.5361
+    },
+    {
+      "id": "m-04",
+      "type": "multi_hop",
+      "hit_rank": 4,
+      "anchor_ranks": [
+        2,
+        4
+      ],
+      "top_score": 0.5746
+    },
+    {
+      "id": "m-05",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top_score": 0.6104
+    },
+    {
+      "id": "m-06",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top_score": 0.6453
+    },
+    {
+      "id": "m-07",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        4
+      ],
+      "top_score": 0.6073
+    },
+    {
+      "id": "m-08",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top_score": 0.5699
+    },
+    {
+      "id": "m-09",
+      "type": "multi_hop",
+      "hit_rank": 4,
+      "anchor_ranks": [
+        1,
+        4
+      ],
+      "top_score": 0.6558
+    },
+    {
+      "id": "m-10",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        2,
+        null
+      ],
+      "top_score": 0.694
+    },
+    {
+      "id": "r-01",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.6288
+    },
+    {
+      "id": "r-02",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5636
+    },
+    {
+      "id": "r-03",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5608
+    },
+    {
+      "id": "r-04",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5687
+    },
+    {
+      "id": "r-05",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5516
+    },
+    {
+      "id": "r-06",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5271
+    },
+    {
+      "id": "r-07",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5321
+    },
+    {
+      "id": "r-08",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5827
+    },
+    {
+      "id": "r-09",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5192
+    },
+    {
+      "id": "r-10",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5169
+    }
+  ]
+}
