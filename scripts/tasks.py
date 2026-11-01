@@ -100,6 +100,19 @@ TASKS: dict[str, tuple[str, list[str]]] = {
         "答案质量抽检（20 条走完整链路，**会花 LLM 钱**）",
         ["scripts/answer_quality.py"],
     ),
+    # ---- W6 周一：BM25 + 中文分词 ----
+    "build-bm25": (
+        "重建 BM25 索引并落盘（记录块数/token/耗时/体积）",
+        ["scripts/build_bm25.py"],
+    ),
+    "bm25-audit": (
+        "BM25 管线体检：词典自检 + 语料覆盖 + 索引与查询分词器一致性",
+        ["scripts/bm25_compare.py", "--audit"],
+    ),
+    "bm25-compare": (
+        "术语型 query 对照：BM25 vs 纯向量（10 条，各自 top5）",
+        ["scripts/bm25_compare.py"],
+    ),
 }
 
 

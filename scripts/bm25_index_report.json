@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "generated_at": "2026-11-01 21:30:04",
+    "corpus_docs": 1513,
+    "chunks": 1592,
+    "chunk_chars": 500,
+    "overlap": 50,
+    "strategy": "recursive",
+    "corpus_ms": 58
+  },
+  "report": {
+    "path": "index.pkl",
+    "chunks": 1592,
+    "tokens": 46994,
+    "build_ms": 794,
+    "size_bytes": 455510,
+    "size_kb": 444.8,
+    "tokenizer": {
+      "tokenizer": "jieba",
+      "dict_path": "domain_dict.txt",
+      "dict_words": 31,
+      "stopwords": 68
+    },
+    "reused": false
+  },
+  "stats": {
+    "chunks": 1592,
+    "tokens": 46994,
+    "avgdl": 29.52,
+    "avg_tokens_per_chunk": 29.52,
+    "params": {
+      "k1": 1.5,
+      "b": 0.75
+    },
+    "tokenizer": {
+      "tokenizer": "jieba",
+      "dict_path": "domain_dict.txt",
+      "dict_words": 31,
+      "stopwords": 68
+    },
+    "build_ms": 788,
+    "built_at": "2026-11-01 21:30:04",
+    "version": 1
+  },
+  "tokenizer": {
+    "tokenizer": "jieba",
+    "dict_path": "domain_dict.txt",
+    "dict_words": 31,
+    "stopwords": 68
+  }
+}

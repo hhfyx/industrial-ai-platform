@@ -98,6 +98,8 @@ POST /api/v1/extract
 │       embedding/ bge-small-zh 512 维（或 hashing 降级）              │
 │                  vector.py 归一化 + 余弦（全链路唯一相似度入口）      │
 │       stores/    Chroma 持久化 / 内存（同 Protocol）                 │
+│       bm25/      字面检索（jieba 分词 + 领域词典 + IDF 加权）        │
+│                   **与向量并列的另一条路**，不替换它（见 docs/bm25.md）│
 │                                                                     │
 │   ② 检索段（每次）   query→向量→cosine→TopK → 阈值闸门                │
 │   ③ 生成段（每次）   拼上下文[1][2]… → 流式调模型 → 解析[n] → 引用    │
@@ -123,7 +125,7 @@ POST /api/v1/extract
    questions-50.jsonl  50 条（30 事实 + 10 多跳 + 10 拒答）
    run_retrieval_eval  一次出 Recall@k / MRR / 拒答准确率
    tasks.py            一条命令：python -X utf8 scripts/tasks.py
-                        eval-retrieval   │
+                        eval-retrieval │ build-bm25 │ bm25-compare   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 

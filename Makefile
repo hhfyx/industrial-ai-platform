@@ -71,3 +71,13 @@ diagnose-semantic:  ## 诊断语义切分
 
 answer-quality:  ## 答案质量抽检（会花 LLM 钱）
 	@$(PY) $(UTF8) scripts/tasks.py answer-quality
+
+# ------------------------------------------------------------------ W6 周一：BM25
+build-bm25:  ## 重建 BM25 索引并落盘（记录耗时/体积）
+	@$(PY) $(UTF8) scripts/tasks.py build-bm25
+
+bm25-audit:  ## BM25 管线体检（词典/语料/索引一致性）
+	@$(PY) $(UTF8) scripts/tasks.py bm25-audit
+
+bm25-compare:  ## 术语型 query：BM25 vs 纯向量对照
+	@$(PY) $(UTF8) scripts/tasks.py bm25-compare

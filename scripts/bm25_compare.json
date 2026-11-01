@@ -1,0 +1,5467 @@
+{
+  "meta": {
+    "generated_at": "2026-11-01 21:36:58",
+    "corpus_docs": 1513,
+    "chunks": 1592,
+    "chunk_chars": 500,
+    "overlap": 50,
+    "strategy": "recursive",
+    "embedder": "bge",
+    "top_k": 5,
+    "bm25_report": {
+      "path": "index.pkl",
+      "chunks": 1592,
+      "tokens": 46994,
+      "build_ms": 0,
+      "size_bytes": 455510,
+      "size_kb": 444.8,
+      "tokenizer": {
+        "tokenizer": "jieba",
+        "dict_path": "domain_dict.txt",
+        "dict_words": 31,
+        "stopwords": 68
+      },
+      "reused": true
+    },
+    "bm25_ready_ms": 418,
+    "bm25_stats": {
+      "chunks": 1592,
+      "tokens": 46994,
+      "avgdl": 29.52,
+      "avg_tokens_per_chunk": 29.52,
+      "params": {
+        "k1": 1.5,
+        "b": 0.75
+      },
+      "tokenizer": {
+        "tokenizer": "jieba",
+        "dict_path": "domain_dict.txt",
+        "dict_words": 31,
+        "stopwords": 68
+      },
+      "build_ms": 788,
+      "built_at": "2026-11-01 21:30:04",
+      "version": 1
+    },
+    "tokenizer": {
+      "tokenizer": "jieba",
+      "dict_path": "domain_dict.txt",
+      "dict_words": 31,
+      "stopwords": 68
+    },
+    "cases": [
+      "f-30",
+      "f-18",
+      "f-20",
+      "f-05",
+      "f-07",
+      "f-25",
+      "f-19",
+      "f-22",
+      "f-08",
+      "f-10"
+    ],
+    "answerable": 40
+  },
+  "full": {
+    "total": 40,
+    "vector_hits": 16,
+    "bm25_hits": 14,
+    "both": [
+      "f-11",
+      "f-13",
+      "f-14",
+      "f-15",
+      "f-21",
+      "f-23",
+      "f-24",
+      "f-28",
+      "m-07",
+      "m-10"
+    ],
+    "bm25_only": [
+      "f-09",
+      "f-18",
+      "f-20",
+      "f-27"
+    ],
+    "vector_only": [
+      "f-06",
+      "f-12",
+      "f-16",
+      "f-17",
+      "f-29",
+      "m-09"
+    ],
+    "neither": [
+      "f-01",
+      "f-02",
+      "f-03",
+      "f-04",
+      "f-05",
+      "f-07",
+      "f-08",
+      "f-10",
+      "f-19",
+      "f-22",
+      "f-25",
+      "f-26",
+      "f-30",
+      "m-01",
+      "m-02",
+      "m-03",
+      "m-04",
+      "m-05",
+      "m-06",
+      "m-08"
+    ],
+    "neither_count": 20,
+    "diff_cases": [
+      "f-06",
+      "f-09",
+      "f-12",
+      "f-16",
+      "f-17",
+      "f-18",
+      "f-20",
+      "f-27",
+      "f-29",
+      "m-09"
+    ]
+  },
+  "subset": {
+    "total": 10,
+    "vector_hits": 0,
+    "bm25_hits": 2,
+    "both": [],
+    "bm25_only": [
+      "f-18",
+      "f-20"
+    ],
+    "vector_only": [],
+    "neither": [
+      "f-30",
+      "f-05",
+      "f-07",
+      "f-25",
+      "f-19",
+      "f-22",
+      "f-08",
+      "f-10"
+    ],
+    "neither_count": 8,
+    "diff_cases": [
+      "f-18",
+      "f-20"
+    ]
+  },
+  "by_verdict": {
+    "both_weak": [
+      "f-30",
+      "f-18",
+      "f-20",
+      "f-05",
+      "f-07",
+      "f-19",
+      "f-08",
+      "f-10"
+    ],
+    "vector_should_win": [
+      "f-25",
+      "f-22"
+    ]
+  },
+  "cases": [
+    {
+      "id": "f-30",
+      "question": "正文超过长度上限时返回什么错误码？",
+      "gold_answer": "422 INVALID_INPUT，不是 413",
+      "query_tokens": [
+        "正文",
+        "超过",
+        "长度",
+        "上限",
+        "返回",
+        "什么",
+        "错误码"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "400",
+          "422",
+          "界线",
+          "不能",
+          "解析",
+          "json",
+          "解析",
+          "不了",
+          "400",
+          "连字",
+          "看不到",
+          "解析",
+          "合规",
+          "422",
+          "指出",
+          "具体",
+          "顶层",
+          "数组",
+          "字符串",
+          "解析",
+          "不是",
+          "对象",
+          "422",
+          "details",
+          "0",
+          "field",
+          "model",
+          "没有",
+          "413",
+          "正文",
+          "超长",
+          "属于",
+          "校验",
+          "失败",
+          "422",
+          "field",
+          "text",
+          "不是",
+          "协议",
+          "实体",
+          "过大",
+          "网关",
+          "自己",
+          "413",
+          "契约"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "正文"
+        ]
+      ],
+      "vector_top5": [
+        {
+          "rank": 1,
+          "score": 0.5849,
+          "source": "prompt-ab.md",
+          "chunk_id": "63c15b1af108b2fe",
+          "head": "### 但抬到 8192 之后，失败类型从\"截断\"变成了\"超时\"  这是第二次失败暴露的新问题：**思维链变长 → 单条耗时 18–25 秒 → 撞 `time"
+        },
+        {
+          "rank": 2,
+          "score": 0.5822,
+          "source": "structured-output.md",
+          "chunk_id": "2c4be3ec938ccf57",
+          "head": "## 3. 修复重试：为什么回灌报错原文有效  「你错了，请重试」是废话 —— 模型不知道错在哪，下一轮大概率重复同一个错误。 Pydantic 的 `erro"
+        },
+        {
+          "rank": 3,
+          "score": 0.578,
+          "source": "design-decisions.md",
+          "chunk_id": "1ec8cb4dda656d24",
+          "head": "``` 错误链路：全篇抽成一坨文本 → 按字数切 → 事后把块\"对回\"页码 ↑ 只能猜 ```"
+        },
+        {
+          "rank": 4,
+          "score": 0.5742,
+          "source": "SETUP.md",
+          "chunk_id": "258ebeecf2a108dc",
+          "head": "**fine-grained 最常见的两个错误**：  1. `Repository access` 选了 `Public repositories` —— 这"
+        },
+        {
+          "rank": 5,
+          "score": 0.5739,
+          "source": "chroma-store.md",
+          "chunk_id": "1c09230338f3d2ee",
+          "head": "old 不在语料里直接退出。 **测试数据本身出错，是最贵的错**：它不报错，只让所有结论失真。  **教训三：只判\"内容对不对\"会放过\"文档错\"。**  所以"
+        }
+      ],
+      "bm25_top5": [
+        {
+          "rank": 1,
+          "score": 25.8645,
+          "source": "api-spec.md",
+          "chunk_id": "467a7a5c1cec062e",
+          "head": "```json {\"code\": \"INVALID_INPUT\", \"message\": \"正文长度超过上限 20000\", \"request_id\": \"…\""
+        },
+        {
+          "rank": 2,
+          "score": 11.0045,
+          "source": "deploy-notes.md",
+          "chunk_id": "ba73c1e14bad5bd1",
+          "head": "``` ⚠️ 当前运行在低内存托管环境，向量化已降级为 hashing （只有字面相似，没有语义检索）。用 bge 需 ~561MB，超过免费层 1GB 上限。"
+        },
+        {
+          "rank": 3,
+          "score": 10.976,
+          "source": "prompt-templates.md",
+          "chunk_id": "bfbd4c535d2f6389",
+          "head": "| 样本 | must_keep 全中 | 凭空数字 | 长度 | 字数自报 | | --- | --- | --- | --- | --- | | 短文本（9"
+        },
+        {
+          "rank": 4,
+          "score": 9.2228,
+          "source": "api-spec.md",
+          "chunk_id": "7b21b3083fe20b6e",
+          "head": "### 3.1 错误码表"
+        },
+        {
+          "rank": 5,
+          "score": 8.8126,
+          "source": "chunking-quality.md",
+          "chunk_id": "c973e20bdbd51c66",
+          "head": "## 判据三：标题与内容是否分离  **看什么**：块首的标题**有没有带着它的正文**。"
+        }
+      ],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-18",
+      "question": "bge 的输入长度上限是多少 token？",
+      "gold_answer": "512 token（与向量维度 512 是两件事）",
+      "query_tokens": [
+        "bge",
+        "输入",
+        "长度",
+        "上限",
+        "多少",
+        "token"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        5
+      ],
+      "gold_tokens": [
+        [
+          "含义",
+          "怎样",
+          "维度",
+          "512",
+          "每条",
+          "向量",
+          "512",
+          "个数",
+          "存储",
+          "成本",
+          "维度",
+          "全量",
+          "重建",
+          "索引",
+          "max_seq_length",
+          "512",
+          "token",
+          "输入",
+          "token",
+          "上限",
+          "静默",
+          "截断",
+          "报错"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "输入",
+          "上限",
+          "token"
+        ]
+      ],
+      "vector_top5": [
+        {
+          "rank": 1,
+          "score": 0.6372,
+          "source": "system-prompt.md",
+          "chunk_id": "d0851f5dcf8b6cb4",
+          "head": "### 4.1 B 版真正的代价，有两个  **① Token 翻倍**：204 → 423 token / 次（+219）。按周一实测的中文 token 密度"
+        },
+        {
+          "rank": 2,
+          "score": 0.637,
+          "source": "design-decisions.md",
+          "chunk_id": "41f438bac75ac3ac",
+          "head": "``` 全书塞入：输入 token ∝ 文档长度 × 提问次数 ← 两个方向都线性 RAG ：输入 token = min(上下文预算, 文档长度) ← 在上下"
+        },
+        {
+          "rank": 3,
+          "score": 0.6167,
+          "source": "embedding.md",
+          "chunk_id": "1a0658ea8325912b",
+          "head": "bge 实测（全语料平均） | **0.6667 tok/字** | 333 token | > > 总量上接近（差 1.4%），**所以这次的结论没变**：`"
+        },
+        {
+          "rank": 4,
+          "score": 0.6097,
+          "source": "design-decisions.md",
+          "chunk_id": "31eef63714878a13",
+          "head": "| | 输入 token | 单次成本（2 元/M 输入） | 每 1000 次 | | --- | ---: | ---: | ---: | | 全书塞入 |"
+        },
+        {
+          "rank": 5,
+          "score": 0.6093,
+          "source": "streamlit-ui.md",
+          "chunk_id": "0277de8a0fa0a06b",
+          "head": "## 0. 必答题：1.5 秒里检索占多少  **检索约 9~11 ms，占首 token 的 0.36%~0.80% —— 不到 1%。**  实测（`scr"
+        }
+      ],
+      "bm25_top5": [
+        {
+          "rank": 1,
+          "score": 15.2395,
+          "source": "design-decisions.md",
+          "chunk_id": "41f438bac75ac3ac",
+          "head": "``` 全书塞入：输入 token ∝ 文档长度 × 提问次数 ← 两个方向都线性 RAG ：输入 token = min(上下文预算, 文档长度) ← 在上下"
+        },
+        {
+          "rank": 2,
+          "score": 13.9239,
+          "source": "cost.md",
+          "chunk_id": "aaffc50c1a3922dc",
+          "head": "## 单次成本表  > 输入 **2.0** 元 / 百万 token，输出 **8.0** 元 / 百万 token > 校验回灌每轮额外按 160 输入 t"
+        },
+        {
+          "rank": 3,
+          "score": 13.1502,
+          "source": "api-spec.md",
+          "chunk_id": "467a7a5c1cec062e",
+          "head": "```json {\"code\": \"INVALID_INPUT\", \"message\": \"正文长度超过上限 20000\", \"request_id\": \"…\""
+        },
+        {
+          "rank": 4,
+          "score": 12.9825,
+          "source": "w3.md",
+          "chunk_id": "4dce5059700962b5",
+          "head": "| 主题 | 要读的 | | --- | --- | | ChromaDB | 它的 collection / embedding function / 持久化"
+        },
+        {
+          "rank": 5,
+          "score": 12.2271,
+          "source": "embedding.md",
+          "chunk_id": "303e4a93a9c6e640",
+          "head": "| | 含义 | 超了会怎样 | | --- | --- | --- | | **维度 512** | 每条向量 512 个数 → 存储成本 | 换维度 = *"
+        }
+      ],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-20",
+      "question": "块的确定性 id 里为什么不放块序号？",
+      "gold_answer": "否则调切分参数会让整库 id 失效、幂等性被打穿",
+      "query_tokens": [
+        "确定性",
+        "id",
+        "为什么",
+        "不放块",
+        "序号"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        5
+      ],
+      "gold_tokens": [
+        [
+          "index",
+          "参与",
+          "id",
+          "计算",
+          "否则",
+          "一次",
+          "chunk_chars",
+          "整库",
+          "id",
+          "全部",
+          "失效",
+          "只调",
+          "参数",
+          "表现",
+          "索引",
+          "需要",
+          "重建",
+          "幂等性",
+          "参数",
+          "调优"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "id"
+        ]
+      ],
+      "vector_top5": [
+        {
+          "rank": 1,
+          "score": 0.647,
+          "source": "chunking-boundaries.md",
+          "chunk_id": "fc51f15ae23190be",
+          "head": "| 块尾 | 判定 | 为什么 | | --- | --- | --- | | `。！？；` | 安全 | 句末 | | `\\n` | 安全 | 段落/表格行结"
+        },
+        {
+          "rank": 2,
+          "score": 0.6311,
+          "source": "chunking-boundaries.md",
+          "chunk_id": "fa19030901f69a8e",
+          "head": "| 块首 | 判定 | 为什么 | | --- | --- | --- | | 句末标点开头 | 可疑 | 标点属于上一句，出现在块首说明上一块被切在标点之前 "
+        },
+        {
+          "rank": 3,
+          "score": 0.6302,
+          "source": "chroma-store.md",
+          "chunk_id": "10b2c3a2ddb55194",
+          "head": "因为每段文本都是该 source 的\"第 0 块\"，`store_id` 都是 `xxx_-1_0` —— 后一次静默覆盖前一次。而**每次 `IndexRep"
+        },
+        {
+          "rank": 4,
+          "score": 0.625,
+          "source": "prompt-templates.md",
+          "chunk_id": "1004d51b156c4110",
+          "head": "| 设计 | 为什么 | | --- | --- | | 编号由**调用方**决定（`ctx.id`） | 模板不重排、不重编号。重编号会让\"引用 2\"和原文第"
+        },
+        {
+          "rank": 5,
+          "score": 0.6205,
+          "source": "rag-architecture.md",
+          "chunk_id": "e027c00a6754b175",
+          "head": "私有路径 —— 刷新页面、翻历史消息、拿 CLI 的 `--json` 复核这三处都拿不到块对象。 按 `content_id`（内容派生）查、不按 `stor"
+        }
+      ],
+      "bm25_top5": [
+        {
+          "rank": 1,
+          "score": 8.0212,
+          "source": "SETUP.md",
+          "chunk_id": "e92eb211ba6e9a18",
+          "head": "```yaml repos: - repo: https://github.com/astral-sh/ruff-pre-commit rev: v0.17.1"
+        },
+        {
+          "rank": 2,
+          "score": 7.6261,
+          "source": "chroma-store.md",
+          "chunk_id": "e19ec07563107100",
+          "head": "| 字段 | 类型 | 例子 | 用途 | | --- | --- | --- | --- | | `source` | str | `合同A.pdf` | 按"
+        },
+        {
+          "rank": 3,
+          "score": 7.1178,
+          "source": "README.md",
+          "chunk_id": "372ef053874758b6",
+          "head": "| 情况 | 处理 | 为什么 | | --- | --- | --- | | 模型给 `128000`（数字）而不是 `\"128000\"` | **本地转字符"
+        },
+        {
+          "rank": 4,
+          "score": 7.0487,
+          "source": "sse.md",
+          "chunk_id": "6fd7e27b93687ff0",
+          "head": "``` data: {\"id\":\"chatcmpl-...\",\"choices\":[{\"delta\":{\"content\":\"# \"},\"finish_reas"
+        },
+        {
+          "rank": 5,
+          "score": 6.3277,
+          "source": "rag-architecture.md",
+          "chunk_id": "9efe3511bcf4ffff",
+          "head": "**`index` 不参与 `id` 计算**：否则改一次 `chunk_chars` 会让整库 id 全部失效 —— \"只调了个参数\"表现成\"索引需要重建\"，"
+        }
+      ],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-05",
+      "question": "首字延迟这个指标的口径是怎么定的？",
+      "gold_answer": "从发起请求到第一个非空 content 的时间",
+      "query_tokens": [
+        "首字延迟",
+        "这个",
+        "指标",
+        "口径",
+        "怎么"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "1.1",
+          "ttft",
+          "口径",
+          "必须",
+          "ttft",
+          "time",
+          "first",
+          "token",
+          "发起",
+          "请求",
+          "收到",
+          "第一个",
+          "非空",
+          "content",
+          "时间",
+          "首块",
+          "通常",
+          "先到",
+          "常常",
+          "只带",
+          "role",
+          "或空",
+          "delta",
+          "计入",
+          "ttft",
+          "得到",
+          "一个",
+          "偏小",
+          "没用",
+          "数字",
+          "必须",
+          "等到",
+          "第一个",
+          "delta.content",
+          "非空",
+          "实测",
+          "今天",
+          "早些时候",
+          "网关",
+          "正常"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "口径"
+        ]
+      ],
+      "vector_top5": [
+        {
+          "rank": 1,
+          "score": 0.6025,
+          "source": "rag-architecture.md",
+          "chunk_id": "33e2492347e23a6a",
+          "head": "**这张表最重要的一列是最后一列**。索引慢不等于 RAG 慢： 把索引耗时算进\"问答延迟\"，就会为\"首字快\"去砍块数， 而真正该优化的是检索的 top_k 与"
+        },
+        {
+          "rank": 2,
+          "score": 0.5826,
+          "source": "embedding.md",
+          "chunk_id": "d869e679a98dcaa9",
+          "head": "所以上表里 API 的\"单条延迟 / 批量吞吐\"两格写的是**未能实测**，不是\"大概多少\"。 **编一个\"约 100ms\"填上去，比留白糟得多** —— 那个"
+        },
+        {
+          "rank": 3,
+          "score": 0.5813,
+          "source": "w2.md",
+          "chunk_id": "a38dc8c8c7318493",
+          "head": "**单次请求慢在模型**（我方只占 162 ms / 12%）。 **但长文档的\"首字慢\"是链路问题**：50 页 → 9 段**串行** map， 用户等 1"
+        },
+        {
+          "rank": 4,
+          "score": 0.5706,
+          "source": "w4.md",
+          "chunk_id": "e3ceca17beb5bac8",
+          "head": "### 最后那条怎样改变了我的判断  我原以为\"检索应该是延迟的一大块\"。实测把它压到 1% 以下，意味着：  - ❌ W8 **不该**做\"换更快向量库 / "
+        },
+        {
+          "rank": 5,
+          "score": 0.565,
+          "source": "chunking-quality.md",
+          "chunk_id": "4fb73ac0c4897210",
+          "head": "| 现象 | 判定 | | --- | --- | | 块首是一个完整的句子开头（或标题、或续接标记） | ✅ | | 块首是半句（开头就是从主语中间断出来的，"
+        }
+      ],
+      "bm25_top5": [
+        {
+          "rank": 1,
+          "score": 6.7218,
+          "source": "prompt-templates.md",
+          "chunk_id": "09c9097df56b4aef",
+          "head": "### 4.3 新版本怎么加  新增 `v2.jinja2`（可选 `v2_schema.py`），**不改 v1**。  v1 是线上正在用的，改它等于让历史"
+        },
+        {
+          "rank": 2,
+          "score": 6.6909,
+          "source": "w3.md",
+          "chunk_id": "9f0631c58a9e9f44",
+          "head": "#### 可推广的两条规则  > **① 任何\"总量\"指标，只要分母与\"成功样本数\"有关，就必须按成功样本归一。** > 成本、token、延迟都属此类。 > "
+        },
+        {
+          "rank": 3,
+          "score": 6.155,
+          "source": "chunking-quality.md",
+          "chunk_id": "933d631881362c68",
+          "head": "## 怎么用这三条"
+        },
+        {
+          "rank": 4,
+          "score": 6.053,
+          "source": "chunking-boundaries.md",
+          "chunk_id": "217980c6cf4d4a5d",
+          "head": "## 半句率：量化代理指标"
+        },
+        {
+          "rank": 5,
+          "score": 5.8468,
+          "source": "prompt-ab.md",
+          "chunk_id": "92a56052552011ce",
+          "head": "### 一个重要口径修正  初版汇总只把**成功条目**纳入统计，于是\"一半请求超时\"的版本会显示得分 1.0。 修正后**同时给两个口径**：  - `mea"
+        }
+      ],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-07",
+      "question": "六轮基准里流式把首字等待改善了多少倍？",
+      "gold_answer": "3209 ms → 1567 ms，约 2.0 倍",
+      "query_tokens": [
+        "六轮",
+        "基准",
+        "流式",
+        "首字",
+        "等待",
+        "改善",
+        "多少倍"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "指标",
+          "流式",
+          "流式",
+          "说明",
+          "ttft",
+          "3209",
+          "ms",
+          "1567",
+          "ms",
+          "体感",
+          "提升",
+          "2.0",
+          "耗时",
+          "3209",
+          "ms",
+          "3159",
+          "ms",
+          "50",
+          "ms",
+          "时间",
+          "分块",
+          "1",
+          "27",
+          "67",
+          "平均",
+          "间隔",
+          "35.7",
+          "88.5",
+          "ms",
+          "首块",
+          "样例",
+          "字符",
+          "打字机",
+          "效果"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "流式"
+        ]
+      ],
+      "vector_top5": [
+        {
+          "rank": 1,
+          "score": 0.5657,
+          "source": "sse.md",
+          "chunk_id": "c43c2d5e0e090f28",
+          "head": "### 一个诚实的保留：样本量  首轮 3 次时方差极大（第 1 轮非流式 7638ms，第 2 轮 2223ms）， 结论一度是\"1.4×\"。扩到 6 轮后收"
+        },
+        {
+          "rank": 2,
+          "score": 0.5385,
+          "source": "ab-scaffold.md",
+          "chunk_id": "9ab46edee78d2382",
+          "head": "**Δ = +0.6186（远超阈值 0.2）→ B 更好。**  **v2 不但更准，还更便宜、更快** —— 因为 v1 的槽位对不上，模型在硬凑， 耗掉 "
+        },
+        {
+          "rank": 3,
+          "score": 0.5379,
+          "source": "sse.md",
+          "chunk_id": "a01bb76bfc95d080",
+          "head": "**两个数字必须一起看**：  1. **流式不缩短总耗时**（3209 vs 3159ms，差异在噪声内）。 它做的是**把等待摊平**：从\"白屏 3.2 秒"
+        },
+        {
+          "rank": 4,
+          "score": 0.5278,
+          "source": "prompt-ab.md",
+          "chunk_id": "0d97f09118048b2a",
+          "head": "现，复盘时才查出来。 原因是被迫在修复轮里来回试 —— 它知道信息在，\"时间\"填不对，就一直改。  > **归因结论：+63pp 的差距绝大部分来自\"v2 支持"
+        },
+        {
+          "rank": 5,
+          "score": 0.5183,
+          "source": "structured-output.md",
+          "chunk_id": "a0eccf9d468fc869",
+          "head": "### 为什么是 2 轮  每轮都是真实计费 + 秒级延迟。W4 的 RAG、W7 的 judge 都在线上链路， 用户等不起 5 轮。2 轮与 `llm_ex"
+        }
+      ],
+      "bm25_top5": [
+        {
+          "rank": 1,
+          "score": 12.2901,
+          "source": "sse.md",
+          "chunk_id": "a01bb76bfc95d080",
+          "head": "**两个数字必须一起看**：  1. **流式不缩短总耗时**（3209 vs 3159ms，差异在噪声内）。 它做的是**把等待摊平**：从\"白屏 3.2 秒"
+        },
+        {
+          "rank": 2,
+          "score": 11.2009,
+          "source": "sse.md",
+          "chunk_id": "0f2ae6c11eb87b1a",
+          "head": "| 指标 | 值 | 来源 | | --- | --- | --- | | TTFT（流式单次） | **1457ms** | `stream_chat` 实测"
+        },
+        {
+          "rank": 3,
+          "score": 8.7577,
+          "source": "streamlit-ui.md",
+          "chunk_id": "5c89bd663e5f53be",
+          "head": "``` 🔍 检索 9ms（编码 6 + 相似度 3） ｜ ⏱ 首字 1210ms ｜ 检索占首字 0.74% ｜ ⏳ 总计 1308ms ```"
+        },
+        {
+          "rank": 4,
+          "score": 8.2292,
+          "source": "embedding.md",
+          "chunk_id": "3326623229cca12f",
+          "head": "| 查询 | 不加 | 加 | 变化 | | --- | ---: | ---: | --- | | 钱什么时候能到账 | 2 | **1** | ✅ 改善 |"
+        },
+        {
+          "rank": 5,
+          "score": 7.8575,
+          "source": "sse.md",
+          "chunk_id": "d6a5ab571c48ed4c",
+          "head": "TTFT 和 total 是**两个不同的数，别混**： - TTFT = 体感（用户看到第一行的等待） - total = 成本/吞吐（生成完的时间）"
+        }
+      ],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-25",
+      "question": "在自带思维链的模型上再叠加 CoT 提示，收益与代价如何？",
+      "gold_answer": "输出 token 涨到 42 倍，准确率反而下降",
+      "query_tokens": [
+        "自带",
+        "思维",
+        "模型",
+        "叠加",
+        "cot",
+        "提示",
+        "收益",
+        "代价",
+        "如何"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "42",
+          "输出",
+          "token",
+          "换来",
+          "准确率",
+          "下降",
+          "关键",
+          "哪个",
+          "三个",
+          "段级",
+          "错误",
+          "分布"
+        ]
+      ],
+      "shared_tokens": [
+        []
+      ],
+      "vector_top5": [
+        {
+          "rank": 1,
+          "score": 0.6463,
+          "source": "w2.md",
+          "chunk_id": "ab0c850259ddb541",
+          "head": "**三条结论，每条都有数据：**  1. **CoT 提示零收益、负代价**：12/20 → 12/20，但 token +114%、延迟 +104%。 2. "
+        },
+        {
+          "rank": 2,
+          "score": 0.6303,
+          "source": "prompt-patterns.md",
+          "chunk_id": "d15707a02374841a",
+          "head": "机制（有 token 数据）：思维链从 539 字符涨到 1224 字符，但**准确率降了**。 多出来的部分是模型把自己的推理**用中文重讲一遍**，属于自我"
+        },
+        {
+          "rank": 3,
+          "score": 0.6282,
+          "source": "prompt-patterns.md",
+          "chunk_id": "15f15d02406810ef",
+          "head": "| 问的是什么 | 对照 | 结果 | | --- | --- | --- | | **Prompt 里要求「先写理由」有没有用** | E vs A | 全线"
+        },
+        {
+          "rank": 4,
+          "score": 0.596,
+          "source": "w3.md",
+          "chunk_id": "7b6f540de96dbd39",
+          "head": "| 做法 | 结果 | 结论 | | --- | --- | --- | | 给推理模型加 CoT 提示 | 12/20 → 12/20，token 5 倍 |"
+        },
+        {
+          "rank": 5,
+          "score": 0.5958,
+          "source": "prompt-patterns.md",
+          "chunk_id": "259b0b328bd4b30f",
+          "head": "### 为什么变差（三条，都有数据支撑）  **1. 这是推理模型，思维链本来就在跑；再加 CoT 提示是让同一个动作做两遍。**  本次用的 `deepsee"
+        }
+      ],
+      "bm25_top5": [
+        {
+          "rank": 1,
+          "score": 24.5151,
+          "source": "prompt-patterns.md",
+          "chunk_id": "3c06f1d56036c295",
+          "head": "| 臂 | 问题类型 错 | 紧急程度 错 | | --- | ---: | ---: | | A zero-shot | 1 | 7 | | E CoT 提示"
+        },
+        {
+          "rank": 2,
+          "score": 23.291,
+          "source": "prompt-patterns.md",
+          "chunk_id": "61213475237cb25c",
+          "head": "| 臂 | 平均 completion token | 相对 A | | --- | ---: | ---: | | A zero-shot | 21 | 1×"
+        },
+        {
+          "rank": 3,
+          "score": 19.0239,
+          "source": "prompt-patterns.md",
+          "chunk_id": "87f7288e9db68c97",
+          "head": "| 对照 | 结果 | 解释 | | --- | --- | --- | | F vs A（开思维链 vs 关） | +1 条（12→13） | 微弱有效，但*"
+        },
+        {
+          "rank": 4,
+          "score": 17.662,
+          "source": "prompt-patterns.md",
+          "chunk_id": "8de74f75dddc6202",
+          "head": "## 必答题：CoT 让准确率变好了还是变差了？  **在这个任务上，CoT 提示让准确率变差了 ——（几乎是）零收益、负代价。**  而且要分成两件事说清楚，"
+        },
+        {
+          "rank": 5,
+          "score": 16.2188,
+          "source": "prompt-patterns.md",
+          "chunk_id": "51610dd08a5b0ab4",
+          "head": "### 3.4 推理模型的「自带 CoT」—— 微弱正向，且**不能再叠 CoT 提示**  这是本题最值得记的一条，因为它和主流教程的说法相反。"
+        }
+      ],
+      "verdict": "vector_should_win"
+    },
+    {
+      "id": "f-19",
+      "question": "多进程部署时，本地模型该怎么避免每个进程各加载一份？",
+      "gold_answer": "启动时 warmup 一次，多 worker 用独立 embedding 服务",
+      "query_tokens": [
+        "进程",
+        "部署",
+        "本地",
+        "模型",
+        "怎么",
+        "避免",
+        "每个",
+        "进程",
+        "加载",
+        "一份"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "①",
+          "内存",
+          "400",
+          "mb",
+          "常驻",
+          "torch",
+          "模型",
+          "权重",
+          "工作",
+          "内存",
+          "一个",
+          "本来",
+          "60",
+          "mb",
+          "fastapi",
+          "服务",
+          "这是",
+          "6",
+          "内存",
+          "增长",
+          "换来",
+          "什么",
+          "离线",
+          "可用",
+          "调用",
+          "成本",
+          "权重",
+          "复现",
+          "代价",
+          "什么",
+          "时候",
+          "变贵",
+          "副本",
+          "每个",
+          "worker",
+          "一份",
+          "400",
+          "mb",
+          "内存",
+          "容器",
+          "512",
+          "mb",
+          "pod",
+          "装不下",
+          "缓解",
+          "warmup",
+          "启动",
+          "加载",
+          "一次",
+          "worker",
+          "场景",
+          "考虑",
+          "独立",
+          "embedding",
+          "服务"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "模型",
+          "每个",
+          "加载",
+          "一份"
+        ]
+      ],
+      "vector_top5": [
+        {
+          "rank": 1,
+          "score": 0.6257,
+          "source": "embedding.md",
+          "chunk_id": "adbac69450ad573a",
+          "head": "只写在模型 README 里，**代码层不强制**。忘了加不会有任何报错。  所以本项目把它做成**接口级**的事："
+        },
+        {
+          "rank": 2,
+          "score": 0.6194,
+          "source": "w3.md",
+          "chunk_id": "2891f3fe4b8f2055",
+          "head": "**秒答版**：  > 模型负责\"拟提议\"，我们负责\"真执行\"。所以工具层的每一行代码都是安全边界 —— > 参数校验、异常兜底、调用次数上限，都不能指望模型自"
+        },
+        {
+          "rank": 3,
+          "score": 0.6024,
+          "source": "design-decisions.md",
+          "chunk_id": "47fd9ffd826b747a",
+          "head": "四个模型名全部 404）。**如果当初选了 API，今天的整条 RAG 链路一行都跑不起来。**  **③ 重新索引不该被外部限额决定节奏**。5000 页 ≈"
+        },
+        {
+          "rank": 4,
+          "score": 0.5875,
+          "source": "prompt-patterns.md",
+          "chunk_id": "0007d09f722bda3e",
+          "head": "## 五、复用到别的任务时，先验什么  这套结论**只在\"值域封闭的单步分类\"上成立**。换任务时按这个顺序验：  1. **先测 zero-shot**，拿它"
+        },
+        {
+          "rank": 5,
+          "score": 0.5821,
+          "source": "streamlit-ui.md",
+          "chunk_id": "eb76b1a245ce4d64",
+          "head": "**领域层不 import streamlit**。`on_stage=None` 时 CLI 照常工作， 测试传一个假回调 —— 三者都不用改领域代码。  两"
+        }
+      ],
+      "bm25_top5": [
+        {
+          "rank": 1,
+          "score": 16.3741,
+          "source": "w4.md",
+          "chunk_id": "b73604fea2b6427e",
+          "head": "``` Popen.pid = 44520 ← launcher，一直 5.6 MB 子进程自报 os.getpid() = 31272 ← 真正加载了 tor"
+        },
+        {
+          "rank": 2,
+          "score": 14.8602,
+          "source": "deploy-notes.md",
+          "chunk_id": "636e2bbf33e83044",
+          "head": "```python p = subprocess.Popen([sys.executable, \"-c\", \"...\"]) # p.pid = 44520 ← "
+        },
+        {
+          "rank": 3,
+          "score": 12.5184,
+          "source": "design-decisions.md",
+          "chunk_id": "b2836607ae064019",
+          "head": "### 代价是什么（本地模型的四项代价）  **① 占内存：约 400 MB 常驻。** torch + 权重 + 工作内存。对一个本来 60 MB 的 Fas"
+        },
+        {
+          "rank": 4,
+          "score": 12.2361,
+          "source": "container-networking.md",
+          "chunk_id": "736fc70752c31568",
+          "head": "**本机网关（端口 8326）是 DeepSeek Harness 进程内起的**， 它的鉴权跟着宿主进程的登录态走。容器是另一个进程、另一种身份， 即使网络可"
+        },
+        {
+          "rank": 5,
+          "score": 11.3603,
+          "source": "deploy-notes.md",
+          "chunk_id": "454364c660ea839e",
+          "head": "## 坑 2：`.venv\\Scripts\\python.exe` 是 launcher，`Popen.pid` 不是被测进程"
+        }
+      ],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-22",
+      "question": "同一份中文合同上，另一套切分器的块尾停在什么位置？",
+      "gold_answer": "5 块里 4 块停在半个词上，如\"程\"\"准\"",
+      "query_tokens": [
+        "一份",
+        "中文",
+        "合同",
+        "一套",
+        "切分",
+        "什么",
+        "位置"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "块数",
+          "每块",
+          "结尾",
+          "字符",
+          "全落",
+          "句末",
+          "标点",
+          "冗余",
+          "langchain",
+          "5",
+          "4",
+          "5",
+          "半个",
+          "7.9",
+          "项目",
+          "5",
+          "5",
+          "5",
+          "9.4"
+        ]
+      ],
+      "shared_tokens": [
+        []
+      ],
+      "vector_top5": [
+        {
+          "rank": 1,
+          "score": 0.5764,
+          "source": "w4.md",
+          "chunk_id": "aac74ee6213b602d",
+          "head": "| 尝试 | 结果 | 为什么保留在文档里 | | --- | --- | --- | | 用 LangChain `RecursiveCharacterTex"
+        },
+        {
+          "rank": 2,
+          "score": 0.5727,
+          "source": "design-decisions.md",
+          "chunk_id": "d08e66ca812f9347",
+          "head": "### 为什么是 500  **① 让\"一个条款\"整块落在一个 chunk 里。** 一份 A4 中文合同的一个条款段通常 **200–600 字**（`tes"
+        },
+        {
+          "rank": 3,
+          "score": 0.5716,
+          "source": "chunking-quality.md",
+          "chunk_id": "4fb73ac0c4897210",
+          "head": "| 现象 | 判定 | | --- | --- | | 块首是一个完整的句子开头（或标题、或续接标记） | ✅ | | 块首是半句（开头就是从主语中间断出来的，"
+        },
+        {
+          "rank": 4,
+          "score": 0.5667,
+          "source": "rag-query-chain.md",
+          "chunk_id": "89067fc01a3a9868",
+          "head": "## 1. 中文切分：为什么不用 LangChain 的 `RecursiveCharacterTextSplitter`  任务点名了它，所以我把两者在**同"
+        },
+        {
+          "rank": 5,
+          "score": 0.5548,
+          "source": "chunking-boundaries.md",
+          "chunk_id": "e1e72ea23cf8ede2",
+          "head": "### `boundaries.py`：数字与单位不许切开  \"0.05mm 不能拆\"这条同时约束**三处**代码："
+        }
+      ],
+      "bm25_top5": [
+        {
+          "rank": 1,
+          "score": 16.5361,
+          "source": "rag-query-chain.md",
+          "chunk_id": "89067fc01a3a9868",
+          "head": "## 1. 中文切分：为什么不用 LangChain 的 `RecursiveCharacterTextSplitter`  任务点名了它，所以我把两者在**同"
+        },
+        {
+          "rank": 2,
+          "score": 11.9465,
+          "source": "chroma-store.md",
+          "chunk_id": "daa977317b78de81",
+          "head": "| 问题 | top1 | 命中位置 | 文档对 | | --- | --- | --- | :---: | | 违约了要赔多少钱 | 合同B_p1 | top"
+        },
+        {
+          "rank": 3,
+          "score": 9.8841,
+          "source": "rag-architecture.md",
+          "chunk_id": "e027c00a6754b175",
+          "head": "私有路径 —— 刷新页面、翻历史消息、拿 CLI 的 `--json` 复核这三处都拿不到块对象。 按 `content_id`（内容派生）查、不按 `stor"
+        },
+        {
+          "rank": 4,
+          "score": 9.2914,
+          "source": "rag-query-chain.md",
+          "chunk_id": "558ed895760c088b",
+          "head": "### 实测：LangChain 切出「半个词」  2128 字中文合同，`chunk_size=500, chunk_overlap=50`， `separa"
+        },
+        {
+          "rank": 5,
+          "score": 8.3844,
+          "source": "document-parsing.md",
+          "chunk_id": "14e7c06ae3cdf67e",
+          "head": "行列关系彻底丢失。而\"这张表的第三列是什么\"是合同问答里最常见的问题。"
+        }
+      ],
+      "verdict": "vector_should_win"
+    },
+    {
+      "id": "f-08",
+      "question": "为什么反复把整篇文档塞回上下文最费钱？",
+      "gold_answer": "输入占 96%，回灌要把 1996 token 再加一遍，达 4.2 倍",
+      "query_tokens": [
+        "为什么",
+        "反复",
+        "整篇",
+        "文档",
+        "塞回",
+        "上下文",
+        "费钱"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "三条",
+          "数字",
+          "读出来",
+          "结论",
+          "①",
+          "回灌",
+          "重试",
+          "不是",
+          "多一点",
+          "时间",
+          "多几倍",
+          "标准",
+          "合同",
+          "一次",
+          "成功",
+          "0.001166",
+          "2",
+          "轮回",
+          "灌后",
+          "0.004138",
+          "3.5",
+          "所以",
+          "提高",
+          "首次",
+          "成功率",
+          "加大",
+          "重试",
+          "划算",
+          "为什么",
+          "实现",
+          "标量",
+          "归一",
+          "数字",
+          "字符串",
+          "本地",
+          "浪费",
+          "一轮",
+          "以及",
+          "response_format",
+          "约束",
+          "②",
+          "文档",
+          "回灌",
+          "代价",
+          "最大",
+          "4.2",
+          "因为",
+          "输入",
+          "本来",
+          "一次",
+          "合同",
+          "1",
+          "996",
+          "token",
+          "96%",
+          "输入",
+          "回灌",
+          "一轮",
+          "1",
+          "996",
+          "一遍",
+          "文档",
+          "应该",
+          "规则",
+          "兜底",
+          "规则",
+          "结构化",
+          "标签",
+          "表现",
+          "不错",
+          "llm",
+          "处理",
+          "规则",
+          "不到",
+          "部分",
+          "③",
+          "规则",
+          "成本",
+          "0",
+          "质量",
+          "不是",
+          "免费",
+          "降级",
+          "省下",
+          "全部",
+          "api",
+          "费用",
+          "代价",
+          "复杂",
+          "准确率",
+          "下降",
+          "所以",
+          "degraded",
+          "true",
+          "必须",
+          "暴露",
+          "调用",
+          "省钱",
+          "代价",
+          "可见",
+          "不是",
+          "悄悄",
+          "低质量",
+          "结果"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "为什么",
+          "文档"
+        ]
+      ],
+      "vector_top5": [
+        {
+          "rank": 1,
+          "score": 0.5983,
+          "source": "design-decisions.md",
+          "chunk_id": "ae744a2c598a45dc",
+          "head": "### 理由二：lost in the middle —— 塞得越满，中间越容易被跳过  这是**质量**问题，不是成本问题。已被反复验证的现象：把目标信息放在"
+        },
+        {
+          "rank": 2,
+          "score": 0.5895,
+          "source": "design-decisions.md",
+          "chunk_id": "55878501eedcf521",
+          "head": "### 反过来：什么时候\"整本塞进去\"确实更好  不写这一节，上面的论证就成了单方面宣传。三种情况下确实该直接塞：  1. **语料小于 2 万 token 且"
+        },
+        {
+          "rank": 3,
+          "score": 0.5885,
+          "source": "design-decisions.md",
+          "chunk_id": "f88cd88d8fb816a1",
+          "head": "### 为什么不长上下文硬塞  见第 0 节。一句话：**成本线性、注意力被摊薄、无法溯源与更新**。"
+        },
+        {
+          "rank": 4,
+          "score": 0.5869,
+          "source": "design-decisions.md",
+          "chunk_id": "3ed60feed3b845e9",
+          "head": "| | 全书塞入 | RAG | | --- | --- | --- | | **文档改了一页** | 每次提问都要重新塞入**新版本全文**；如果做缓存，缓存"
+        },
+        {
+          "rank": 5,
+          "score": 0.579,
+          "source": "chroma-store.md",
+          "chunk_id": "1c09230338f3d2ee",
+          "head": "old 不在语料里直接退出。 **测试数据本身出错，是最贵的错**：它不报错，只让所有结论失真。  **教训三：只判\"内容对不对\"会放过\"文档错\"。**  所以"
+        }
+      ],
+      "bm25_top5": [
+        {
+          "rank": 1,
+          "score": 9.7915,
+          "source": "design-decisions.md",
+          "chunk_id": "41f438bac75ac3ac",
+          "head": "``` 全书塞入：输入 token ∝ 文档长度 × 提问次数 ← 两个方向都线性 RAG ：输入 token = min(上下文预算, 文档长度) ← 在上下"
+        },
+        {
+          "rank": 2,
+          "score": 8.9184,
+          "source": "design-decisions.md",
+          "chunk_id": "310b7c5610637811",
+          "head": "## 1. 决策一：为什么用 RAG，而不是微调 / 长上下文硬塞"
+        },
+        {
+          "rank": 3,
+          "score": 8.35,
+          "source": "design-decisions.md",
+          "chunk_id": "f88cd88d8fb816a1",
+          "head": "### 为什么不长上下文硬塞  见第 0 节。一句话：**成本线性、注意力被摊薄、无法溯源与更新**。"
+        },
+        {
+          "rank": 4,
+          "score": 7.5032,
+          "source": "design-decisions.md",
+          "chunk_id": "ae744a2c598a45dc",
+          "head": "### 理由二：lost in the middle —— 塞得越满，中间越容易被跳过  这是**质量**问题，不是成本问题。已被反复验证的现象：把目标信息放在"
+        },
+        {
+          "rank": 5,
+          "score": 6.442,
+          "source": "design-decisions.md",
+          "chunk_id": "c6f7670fb86b6d3a",
+          "head": "## 0. 必答题：长上下文能替代 RAG 吗？  **不能。三个理由，前两个可量化，第三个是结构性的。**  先给量级。文档按真实 A4 密度算（每页 120"
+        }
+      ],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-10",
+      "question": "三条人工判据里哪一条可以自动化到九成？",
+      "gold_answer": "判据一（块首块尾是否完整），能自动判定 90%",
+      "query_tokens": [
+        "三条",
+        "人工",
+        "判据",
+        "哪一条",
+        "可以",
+        "自动化",
+        "九成"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "为什么",
+          "这条",
+          "唯一",
+          "一条",
+          "自动",
+          "判定",
+          "90%",
+          "判据",
+          "是否",
+          "句末",
+          "标点",
+          "结束",
+          "正则",
+          "可以",
+          "块首",
+          "是否",
+          "半句",
+          "需要",
+          "结合",
+          "一块",
+          "自动检测",
+          "边界",
+          "必须",
+          "清楚",
+          "表格",
+          "代码",
+          "标题",
+          "句末",
+          "标点",
+          "结尾",
+          "正常",
+          "它们",
+          "不是",
+          "句子",
+          "列表",
+          "xxx",
+          "1",
+          "xxx",
+          "本身",
+          "可能",
+          "不带",
+          "标点",
+          "所以",
+          "自动",
+          "判定",
+          "结果",
+          "人工",
+          "复核",
+          "可疑",
+          "不能",
+          "直接",
+          "结论",
+          "实测",
+          "参照",
+          "w4",
+          "delimitersplitter",
+          "这条",
+          "全绿",
+          "5",
+          "5",
+          "尾落",
+          "langchain",
+          "1",
+          "5",
+          "4",
+          "半个",
+          "词上",
+          "delimiter.py",
+          "实测"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "人工",
+          "判据",
+          "可以"
+        ]
+      ],
+      "vector_top5": [
+        {
+          "rank": 1,
+          "score": 0.5964,
+          "source": "chroma-store.md",
+          "chunk_id": "c26e3d3f9ffc0ada",
+          "head": "## 4. 检索验证：10 条已知答案  **本周不做量化**，所以判断是人工的：看 top3 里有没有对应原文。"
+        },
+        {
+          "rank": 2,
+          "score": 0.5871,
+          "source": "chunking-predictions.md",
+          "chunk_id": "b0cfde1c89cdcbe4",
+          "head": "## 附带一个更小的预判（关于\"评分维度\"本身）  我预判三个维度里，**\"标题与内容是否分离\"会自动分高下**（能从块首字符直接判定，几乎零成本）， 而 **"
+        },
+        {
+          "rank": 3,
+          "score": 0.5774,
+          "source": "chunking-quality.md",
+          "chunk_id": "3f50215bacc264f8",
+          "head": "**这条最需要人工**：机器只能近似（\"块首是否以半个句子开头\"）， 而\"这两块是不是一个论述单元\"是语义判断。**这就是为什么必须有人读样本。**  **为什"
+        },
+        {
+          "rank": 4,
+          "score": 0.5639,
+          "source": "embedding.md",
+          "chunk_id": "512f73af51a1b84c",
+          "head": "> 第三条看起来多余（两个实现都归一化了），但它是**保险**： > 第三个 embedder 未必。除一次模长成本 O(d)，bug 成本是几天。  ---"
+        },
+        {
+          "rank": 5,
+          "score": 0.5634,
+          "source": "system-prompt.md",
+          "chunk_id": "b861f9583dd859d8",
+          "head": "| | A | B | | --- | ---: | ---: | | 正常工单里出现「无法判断」的条数 | **3 / 20** | **3 / 20** |"
+        }
+      ],
+      "bm25_top5": [
+        {
+          "rank": 1,
+          "score": 11.7557,
+          "source": "chunking-quality.md",
+          "chunk_id": "17bc5995aef4dc97",
+          "head": "# 切分质量的人工判据  > 这份文档定的是**人怎么读样本、怎么打勾**。 > 样本产物在 `data/samples/chunking/`（脚本 `scri"
+        },
+        {
+          "rank": 2,
+          "score": 10.918,
+          "source": "chunking-boundaries.md",
+          "chunk_id": "1e1e0c11c9d7a729",
+          "head": "# 切分边界与层级：`section_path` 为什么是标题切分唯一不可替代的东西  > W5 周二（2026-11-17）。本文档回答任务里的必答题，并记录"
+        },
+        {
+          "rank": 3,
+          "score": 10.4553,
+          "source": "chunking-quality.md",
+          "chunk_id": "9772f63aa33ba69e",
+          "head": "### 打分表怎么填  每个样本一行，三条判据各给一个 0~1 的分数："
+        },
+        {
+          "rank": 4,
+          "score": 10.0493,
+          "source": "chunking-quality.md",
+          "chunk_id": "73772756a873b861",
+          "head": "## 待补（周六之前不做）  - [ ] 把判据二写成可执行的检查表（当前完全靠人读，**这是三条里最贵的**） - [x] 判据一/三部分自动化：半句率（`q"
+        },
+        {
+          "rank": 5,
+          "score": 8.6196,
+          "source": "chunking-quality.md",
+          "chunk_id": "56017b744664d768",
+          "head": "> **半句率**（W5 周二新增，`app/rag/chunking/quality.py`）是这三条判据里 > **唯一已经自动化**的那条 —— 它大致对"
+        }
+      ],
+      "verdict": "both_weak"
+    }
+  ],
+  "all_cases": [
+    {
+      "id": "f-01",
+      "question": "对外暴露的四组 HTTP 入口分别是什么？",
+      "gold_answer": "抽取、抽取流式、对话流式、摘要流式四个端点",
+      "query_tokens": [
+        "对外",
+        "暴露",
+        "四组",
+        "http",
+        "入口",
+        "分别",
+        "什么"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "项目",
+          "端点",
+          "extract",
+          "extract",
+          "stream",
+          "chat",
+          "stream",
+          "summarize",
+          "stream",
+          "web",
+          "ui",
+          "streamlit",
+          "8501",
+          "免费",
+          "自动",
+          "降级",
+          "字面检索",
+          "deploy-notes",
+          "docs",
+          "deploy-notes.md",
+          "核心",
+          "契约",
+          "post",
+          "api",
+          "v1",
+          "extract",
+          "v1.1",
+          "冻结",
+          "新增",
+          "选字",
+          "degraded",
+          "测试",
+          "567",
+          "离线",
+          "网线",
+          "全绿",
+          "覆盖率",
+          "80%",
+          "检索",
+          "bge-small-zh",
+          "512",
+          "cpu",
+          "单条",
+          "10",
+          "ms",
+          "chromadb",
+          "持久",
+          "cosine",
+          "运行",
+          "python",
+          "3.11",
+          "uvicorn",
+          "streamlit",
+          "root",
+          "uid",
+          "10001"
+        ]
+      ],
+      "shared_tokens": [
+        []
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "vector_should_win"
+    },
+    {
+      "id": "f-02",
+      "question": "知识库回答里的编号引用怎么和原文对上？",
+      "gold_answer": "答案带 [n] 引用，可点开看原文高亮",
+      "query_tokens": [
+        "知识库",
+        "回答",
+        "编号",
+        "引用",
+        "怎么",
+        "原文"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "能力",
+          "入口",
+          "一句",
+          "知识库",
+          "问答",
+          "交付",
+          "app",
+          "ui",
+          "streamlit_app.py",
+          "上传",
+          "文档",
+          "检索",
+          "答案",
+          "n",
+          "引用",
+          "点开",
+          "原文",
+          "高亮",
+          "结构化",
+          "抽取",
+          "post",
+          "api",
+          "v1",
+          "extract",
+          "不到",
+          "就是",
+          "null",
+          "永不",
+          "编造",
+          "原文",
+          "回指",
+          "校验",
+          "超长",
+          "文档",
+          "摘要",
+          "post",
+          "api",
+          "v1",
+          "summarize",
+          "stream",
+          "map-reduce",
+          "流式",
+          "50",
+          "1",
+          "索引",
+          "流式",
+          "对话",
+          "post",
+          "api",
+          "v1",
+          "chat",
+          "stream",
+          "sse",
+          "逐字",
+          "ttft",
+          "口径"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "知识库",
+          "引用",
+          "原文"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-03",
+      "question": "容器里的运行时栈和运行身份是什么？",
+      "gold_answer": "非 root（uid 10001），Python 3.11 运行时",
+      "query_tokens": [
+        "容器",
+        "运行",
+        "时栈",
+        "运行",
+        "身份",
+        "什么"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "项目",
+          "端点",
+          "extract",
+          "extract",
+          "stream",
+          "chat",
+          "stream",
+          "summarize",
+          "stream",
+          "web",
+          "ui",
+          "streamlit",
+          "8501",
+          "免费",
+          "自动",
+          "降级",
+          "字面检索",
+          "deploy-notes",
+          "docs",
+          "deploy-notes.md",
+          "核心",
+          "契约",
+          "post",
+          "api",
+          "v1",
+          "extract",
+          "v1.1",
+          "冻结",
+          "新增",
+          "选字",
+          "degraded",
+          "测试",
+          "567",
+          "离线",
+          "网线",
+          "全绿",
+          "覆盖率",
+          "80%",
+          "检索",
+          "bge-small-zh",
+          "512",
+          "cpu",
+          "单条",
+          "10",
+          "ms",
+          "chromadb",
+          "持久",
+          "cosine",
+          "运行",
+          "python",
+          "3.11",
+          "uvicorn",
+          "streamlit",
+          "root",
+          "uid",
+          "10001"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "运行",
+          "运行"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-04",
+      "question": "免费部署环境下问答的检索方式会怎么变？",
+      "gold_answer": "自动降级为字面检索",
+      "query_tokens": [
+        "免费",
+        "部署",
+        "环境",
+        "问答",
+        "检索",
+        "方式",
+        "怎么"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "项目",
+          "端点",
+          "extract",
+          "extract",
+          "stream",
+          "chat",
+          "stream",
+          "summarize",
+          "stream",
+          "web",
+          "ui",
+          "streamlit",
+          "8501",
+          "免费",
+          "自动",
+          "降级",
+          "字面检索",
+          "deploy-notes",
+          "docs",
+          "deploy-notes.md",
+          "核心",
+          "契约",
+          "post",
+          "api",
+          "v1",
+          "extract",
+          "v1.1",
+          "冻结",
+          "新增",
+          "选字",
+          "degraded",
+          "测试",
+          "567",
+          "离线",
+          "网线",
+          "全绿",
+          "覆盖率",
+          "80%",
+          "检索",
+          "bge-small-zh",
+          "512",
+          "cpu",
+          "单条",
+          "10",
+          "ms",
+          "chromadb",
+          "持久",
+          "cosine",
+          "运行",
+          "python",
+          "3.11",
+          "uvicorn",
+          "streamlit",
+          "root",
+          "uid",
+          "10001"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "免费",
+          "检索"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-05",
+      "question": "首字延迟这个指标的口径是怎么定的？",
+      "gold_answer": "从发起请求到第一个非空 content 的时间",
+      "query_tokens": [
+        "首字延迟",
+        "这个",
+        "指标",
+        "口径",
+        "怎么"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "1.1",
+          "ttft",
+          "口径",
+          "必须",
+          "ttft",
+          "time",
+          "first",
+          "token",
+          "发起",
+          "请求",
+          "收到",
+          "第一个",
+          "非空",
+          "content",
+          "时间",
+          "首块",
+          "通常",
+          "先到",
+          "常常",
+          "只带",
+          "role",
+          "或空",
+          "delta",
+          "计入",
+          "ttft",
+          "得到",
+          "一个",
+          "偏小",
+          "没用",
+          "数字",
+          "必须",
+          "等到",
+          "第一个",
+          "delta.content",
+          "非空",
+          "实测",
+          "今天",
+          "早些时候",
+          "网关",
+          "正常"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "口径"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-06",
+      "question": "流式请求漏掉 include_usage 会怎样？",
+      "gold_answer": "usage 不返回，成本算不出来",
+      "query_tokens": [
+        "流式",
+        "请求",
+        "漏掉",
+        "include_usage",
+        "怎样"
+      ],
+      "vector_ranks": [
+        2
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "这个",
+          "参数",
+          "usage",
+          "永远",
+          "不会",
+          "成本",
+          "就算",
+          "出来",
+          "这是",
+          "流式",
+          "主要",
+          "静默",
+          "token",
+          "一样",
+          "只是",
+          "不到",
+          "数字",
+          "usage",
+          "那块",
+          "choices",
+          "数组"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "流式"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-07",
+      "question": "六轮基准里流式把首字等待改善了多少倍？",
+      "gold_answer": "3209 ms → 1567 ms，约 2.0 倍",
+      "query_tokens": [
+        "六轮",
+        "基准",
+        "流式",
+        "首字",
+        "等待",
+        "改善",
+        "多少倍"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "指标",
+          "流式",
+          "流式",
+          "说明",
+          "ttft",
+          "3209",
+          "ms",
+          "1567",
+          "ms",
+          "体感",
+          "提升",
+          "2.0",
+          "耗时",
+          "3209",
+          "ms",
+          "3159",
+          "ms",
+          "50",
+          "ms",
+          "时间",
+          "分块",
+          "1",
+          "27",
+          "67",
+          "平均",
+          "间隔",
+          "35.7",
+          "88.5",
+          "ms",
+          "首块",
+          "样例",
+          "字符",
+          "打字机",
+          "效果"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "流式"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-08",
+      "question": "为什么反复把整篇文档塞回上下文最费钱？",
+      "gold_answer": "输入占 96%，回灌要把 1996 token 再加一遍，达 4.2 倍",
+      "query_tokens": [
+        "为什么",
+        "反复",
+        "整篇",
+        "文档",
+        "塞回",
+        "上下文",
+        "费钱"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "三条",
+          "数字",
+          "读出来",
+          "结论",
+          "①",
+          "回灌",
+          "重试",
+          "不是",
+          "多一点",
+          "时间",
+          "多几倍",
+          "标准",
+          "合同",
+          "一次",
+          "成功",
+          "0.001166",
+          "2",
+          "轮回",
+          "灌后",
+          "0.004138",
+          "3.5",
+          "所以",
+          "提高",
+          "首次",
+          "成功率",
+          "加大",
+          "重试",
+          "划算",
+          "为什么",
+          "实现",
+          "标量",
+          "归一",
+          "数字",
+          "字符串",
+          "本地",
+          "浪费",
+          "一轮",
+          "以及",
+          "response_format",
+          "约束",
+          "②",
+          "文档",
+          "回灌",
+          "代价",
+          "最大",
+          "4.2",
+          "因为",
+          "输入",
+          "本来",
+          "一次",
+          "合同",
+          "1",
+          "996",
+          "token",
+          "96%",
+          "输入",
+          "回灌",
+          "一轮",
+          "1",
+          "996",
+          "一遍",
+          "文档",
+          "应该",
+          "规则",
+          "兜底",
+          "规则",
+          "结构化",
+          "标签",
+          "表现",
+          "不错",
+          "llm",
+          "处理",
+          "规则",
+          "不到",
+          "部分",
+          "③",
+          "规则",
+          "成本",
+          "0",
+          "质量",
+          "不是",
+          "免费",
+          "降级",
+          "省下",
+          "全部",
+          "api",
+          "费用",
+          "代价",
+          "复杂",
+          "准确率",
+          "下降",
+          "所以",
+          "degraded",
+          "true",
+          "必须",
+          "暴露",
+          "调用",
+          "省钱",
+          "代价",
+          "可见",
+          "不是",
+          "悄悄",
+          "低质量",
+          "结果"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "为什么",
+          "文档"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-09",
+      "question": "把六成请求分给小模型能省多少，风险是什么？",
+      "gold_answer": "省 45.0%，但复杂字段准确率会掉",
+      "query_tokens": [
+        "六成",
+        "请求",
+        "分给",
+        "模型",
+        "能省",
+        "多少",
+        "风险",
+        "什么"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        4
+      ],
+      "gold_tokens": [
+        [
+          "手段",
+          "单次",
+          "成本",
+          "10",
+          "000",
+          "节省",
+          "代价",
+          "备注",
+          "基线",
+          "0.001166",
+          "11.66",
+          "当前",
+          "实测",
+          "prompt",
+          "精简",
+          "30%",
+          "0.001028",
+          "10.28",
+          "11.8",
+          "只减",
+          "输入",
+          "输入",
+          "总价",
+          "39%",
+          "所以",
+          "30%",
+          "精简",
+          "带来",
+          "11.8",
+          "节省",
+          "结果",
+          "缓存",
+          "命中",
+          "50%",
+          "0.000583",
+          "5.83",
+          "50.0",
+          "收益",
+          "线性",
+          "质量",
+          "风险",
+          "模型",
+          "分流",
+          "60%",
+          "0.000641",
+          "6.41",
+          "45.0",
+          "质量",
+          "风险",
+          "模型",
+          "复杂",
+          "字段",
+          "准确率",
+          "缓存",
+          "50%",
+          "精简",
+          "30%",
+          "0.000514",
+          "5.14",
+          "55.9",
+          "两者",
+          "独立",
+          "收益",
+          "近似",
+          "相乘"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "模型",
+          "风险"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-10",
+      "question": "三条人工判据里哪一条可以自动化到九成？",
+      "gold_answer": "判据一（块首块尾是否完整），能自动判定 90%",
+      "query_tokens": [
+        "三条",
+        "人工",
+        "判据",
+        "哪一条",
+        "可以",
+        "自动化",
+        "九成"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "为什么",
+          "这条",
+          "唯一",
+          "一条",
+          "自动",
+          "判定",
+          "90%",
+          "判据",
+          "是否",
+          "句末",
+          "标点",
+          "结束",
+          "正则",
+          "可以",
+          "块首",
+          "是否",
+          "半句",
+          "需要",
+          "结合",
+          "一块",
+          "自动检测",
+          "边界",
+          "必须",
+          "清楚",
+          "表格",
+          "代码",
+          "标题",
+          "句末",
+          "标点",
+          "结尾",
+          "正常",
+          "它们",
+          "不是",
+          "句子",
+          "列表",
+          "xxx",
+          "1",
+          "xxx",
+          "本身",
+          "可能",
+          "不带",
+          "标点",
+          "所以",
+          "自动",
+          "判定",
+          "结果",
+          "人工",
+          "复核",
+          "可疑",
+          "不能",
+          "直接",
+          "结论",
+          "实测",
+          "参照",
+          "w4",
+          "delimitersplitter",
+          "这条",
+          "全绿",
+          "5",
+          "5",
+          "尾落",
+          "langchain",
+          "1",
+          "5",
+          "4",
+          "半个",
+          "词上",
+          "delimiter.py",
+          "实测"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "人工",
+          "判据",
+          "可以"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-11",
+      "question": "w4-checklist 上标题策略被抓到过什么问题？",
+      "gold_answer": "产出 27 字纯标题块，正文 518 字落到下一块",
+      "query_tokens": [
+        "w4-checklist",
+        "标题",
+        "策略",
+        "什么",
+        "问题"
+      ],
+      "vector_ranks": [
+        1
+      ],
+      "bm25_ranks": [
+        2
+      ],
+      "gold_tokens": [
+        [
+          "这条",
+          "容易",
+          "自动",
+          "判定",
+          "heading.py",
+          "is_heading_only",
+          "去掉",
+          "标题",
+          "行后",
+          "正文",
+          "为空",
+          "就是",
+          "标题",
+          "孤儿",
+          "实测",
+          "docs",
+          "w4-checklist.md",
+          "第一版",
+          "heading",
+          "策略",
+          "产出",
+          "p0-2",
+          "27",
+          "字纯",
+          "标题",
+          "正文",
+          "518",
+          "一块",
+          "判据",
+          "当场",
+          "这条",
+          "验证",
+          "chunking-predictions.md",
+          "末尾",
+          "那个",
+          "附带",
+          "预判",
+          "标题",
+          "内容",
+          "是否",
+          "分离",
+          "自动",
+          "判定",
+          "确实",
+          "如此"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "标题",
+          "策略"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-12",
+      "question": "Chroma 返回的 distance 和相似度是什么关系？",
+      "gold_answer": "distance = 1 − 余弦相似度，越小越像",
+      "query_tokens": [
+        "chroma",
+        "返回",
+        "distance",
+        "相似",
+        "什么",
+        "关系"
+      ],
+      "vector_ranks": [
+        1
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "0",
+          "必答题",
+          "distances",
+          "cosine",
+          "空间",
+          "什么",
+          "含义",
+          "cosine",
+          "距离",
+          "1",
+          "余弦相似度",
+          "越小越",
+          "方向",
+          "相似",
+          "相反",
+          "搞反",
+          "阈值",
+          "逻辑",
+          "全错",
+          "而且",
+          "不会",
+          "报错",
+          "只会",
+          "出来"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "相似",
+          "什么"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-13",
+      "question": "Chroma 的数据目录默认落在哪，而不是用户缓存目录？",
+      "gold_answer": "项目内的 data/chroma，不是 ~/.cache/chroma",
+      "query_tokens": [
+        "chroma",
+        "数据",
+        "目录",
+        "默认",
+        "不是",
+        "用户",
+        "缓存",
+        "目录"
+      ],
+      "vector_ranks": [
+        1
+      ],
+      "bm25_ranks": [
+        1
+      ],
+      "gold_tokens": [
+        [
+          "决定",
+          "理由",
+          "相对",
+          "项目",
+          "data",
+          "chroma",
+          "不是",
+          "cache",
+          "chroma",
+          "备份",
+          "脚本",
+          "带上",
+          "机器",
+          "cp",
+          "r",
+          "就够",
+          "chroma",
+          "默认",
+          "用户",
+          "目录",
+          "换台",
+          "机器",
+          "数据",
+          "典型",
+          "来源",
+          "path",
+          "file__",
+          "parents",
+          "3",
+          "不是",
+          "path.cwd",
+          "cwd",
+          "取决于",
+          "启动",
+          "uvicorn",
+          "项目",
+          "tests",
+          "docker",
+          "app",
+          "cwd",
+          "相对路径",
+          "数据",
+          "哪个",
+          "目录",
+          "启动",
+          "方式",
+          "变化"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "chroma",
+          "数据",
+          "目录",
+          "默认",
+          "不是",
+          "用户",
+          "目录"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "bm25_should_win"
+    },
+    {
+      "id": "f-14",
+      "question": "同样一次提问，整本塞入相对 RAG 的输入与成本差多少？",
+      "gold_answer": "输入差 10.0x、成本差 9.26x，每千次差 159.76 元",
+      "query_tokens": [
+        "同样",
+        "一次",
+        "提问",
+        "整本",
+        "塞入",
+        "相对",
+        "rag",
+        "输入",
+        "成本",
+        "多少"
+      ],
+      "vector_ranks": [
+        3
+      ],
+      "bm25_ranks": [
+        3
+      ],
+      "gold_tokens": [
+        [
+          "输入",
+          "token",
+          "单次",
+          "成本",
+          "2",
+          "m",
+          "输入",
+          "1000",
+          "全书",
+          "塞入",
+          "88",
+          "758",
+          "0.179116",
+          "179.12",
+          "rag",
+          "4",
+          "6000",
+          "8",
+          "876",
+          "0.019352",
+          "19.35",
+          "10.0",
+          "x",
+          "9.26",
+          "x",
+          "159.76"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "塞入",
+          "rag",
+          "输入",
+          "成本"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-15",
+      "question": "长上下文里目标信息放在哪一段最容易被忽略？",
+      "gold_answer": "放在中间时召回最低，呈 U 形曲线",
+      "query_tokens": [
+        "上下文",
+        "目标",
+        "信息",
+        "放在",
+        "一段",
+        "容易",
+        "忽略"
+      ],
+      "vector_ranks": [
+        3
+      ],
+      "bm25_ranks": [
+        1
+      ],
+      "gold_tokens": [
+        [
+          "理由",
+          "lost",
+          "middle",
+          "塞得",
+          "越满",
+          "中间",
+          "容易",
+          "这是",
+          "质量",
+          "问题",
+          "不是",
+          "成本",
+          "问题",
+          "反复",
+          "验证",
+          "现象",
+          "目标",
+          "信息",
+          "放在",
+          "上下文",
+          "中间",
+          "模型",
+          "召回",
+          "显著",
+          "低于",
+          "放在",
+          "开头",
+          "结尾",
+          "u",
+          "曲线",
+          "项目",
+          "意义",
+          "50",
+          "文档",
+          "塞满",
+          "128",
+          "k",
+          "窗口",
+          "69%",
+          "意味着",
+          "中间",
+          "一半",
+          "内容",
+          "处在",
+          "容易",
+          "忽略",
+          "位置",
+          "rag",
+          "只放",
+          "4",
+          "窗口",
+          "3%",
+          "一块",
+          "注意力",
+          "量化",
+          "代理",
+          "指标",
+          "scripts",
+          "rag_cost_compare.py",
+          "attention_budget",
+          "刻意",
+          "简化",
+          "不是",
+          "注意力",
+          "机制",
+          "真实",
+          "复杂度"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "上下文",
+          "目标",
+          "信息",
+          "放在",
+          "容易",
+          "忽略"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-16",
+      "question": "多出来的三个元数据字段大概带来多少体积？",
+      "gold_answer": "约 450 KB，可忽略",
+      "query_tokens": [
+        "出来",
+        "三个",
+        "数据字",
+        "大概",
+        "带来",
+        "多少",
+        "体积"
+      ],
+      "vector_ranks": [
+        1
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "1",
+          "数据",
+          "体积",
+          "每个",
+          "chunk",
+          "3",
+          "page",
+          "pages",
+          "chunk_index",
+          "15000",
+          "30",
+          "字节",
+          "450",
+          "kb",
+          "忽略",
+          "2",
+          "跨页",
+          "段落",
+          "必须",
+          "pages",
+          "元组",
+          "不能",
+          "只记",
+          "起始页",
+          "只记",
+          "page",
+          "6",
+          "半个",
+          "真话",
+          "用户",
+          "点进",
+          "p6",
+          "不到",
+          "半截",
+          "点进",
+          "p7",
+          "不到",
+          "半截",
+          "正是",
+          "demo",
+          "现场",
+          "容易",
+          "地方",
+          "代价",
+          "一个",
+          "多一点",
+          "扁平化",
+          "复杂度",
+          "3",
+          "非分",
+          "格式",
+          "编码",
+          "none",
+          "1",
+          "编解码",
+          "允许",
+          "出现",
+          "一次",
+          "to_payload",
+          "restore_location",
+          "否则",
+          "两边",
+          "各自",
+          "漂移",
+          "tests",
+          "test_rag_skeleton.py",
+          "test_metadata_roundtrip_through_store_encoding",
+          "4",
+          "docx",
+          "markdown",
+          "page",
+          "none",
+          "不是",
+          "遗漏",
+          "word",
+          "渲染",
+          "结果",
+          "文件",
+          "没存",
+          "硬编",
+          "page",
+          "1",
+          "3",
+          "变成",
+          "谎言"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "体积"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-17",
+      "question": "归一化之后点积与余弦的实测差是多少？",
+      "gold_answer": "1.7e-17，属纯浮点噪声",
+      "query_tokens": [
+        "归一化",
+        "之后",
+        "点积",
+        "余弦",
+        "实测",
+        "差是",
+        "多少"
+      ],
+      "vector_ranks": [
+        5
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "实测",
+          "tests",
+          "test_embedding.py",
+          "test_normalized_dot_equals_cosine",
+          "两者",
+          "绝对值",
+          "1.7",
+          "e-17",
+          "浮点",
+          "噪声",
+          "所以",
+          "生产",
+          "代码",
+          "可以",
+          "dot",
+          "矩阵",
+          "乘法",
+          "一条",
+          "指令",
+          "替代",
+          "手写",
+          "循环",
+          "前提",
+          "归一化"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "归一化",
+          "实测"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-18",
+      "question": "bge 的输入长度上限是多少 token？",
+      "gold_answer": "512 token（与向量维度 512 是两件事）",
+      "query_tokens": [
+        "bge",
+        "输入",
+        "长度",
+        "上限",
+        "多少",
+        "token"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        5
+      ],
+      "gold_tokens": [
+        [
+          "含义",
+          "怎样",
+          "维度",
+          "512",
+          "每条",
+          "向量",
+          "512",
+          "个数",
+          "存储",
+          "成本",
+          "维度",
+          "全量",
+          "重建",
+          "索引",
+          "max_seq_length",
+          "512",
+          "token",
+          "输入",
+          "token",
+          "上限",
+          "静默",
+          "截断",
+          "报错"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "输入",
+          "上限",
+          "token"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-19",
+      "question": "多进程部署时，本地模型该怎么避免每个进程各加载一份？",
+      "gold_answer": "启动时 warmup 一次，多 worker 用独立 embedding 服务",
+      "query_tokens": [
+        "进程",
+        "部署",
+        "本地",
+        "模型",
+        "怎么",
+        "避免",
+        "每个",
+        "进程",
+        "加载",
+        "一份"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "①",
+          "内存",
+          "400",
+          "mb",
+          "常驻",
+          "torch",
+          "模型",
+          "权重",
+          "工作",
+          "内存",
+          "一个",
+          "本来",
+          "60",
+          "mb",
+          "fastapi",
+          "服务",
+          "这是",
+          "6",
+          "内存",
+          "增长",
+          "换来",
+          "什么",
+          "离线",
+          "可用",
+          "调用",
+          "成本",
+          "权重",
+          "复现",
+          "代价",
+          "什么",
+          "时候",
+          "变贵",
+          "副本",
+          "每个",
+          "worker",
+          "一份",
+          "400",
+          "mb",
+          "内存",
+          "容器",
+          "512",
+          "mb",
+          "pod",
+          "装不下",
+          "缓解",
+          "warmup",
+          "启动",
+          "加载",
+          "一次",
+          "worker",
+          "场景",
+          "考虑",
+          "独立",
+          "embedding",
+          "服务"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "模型",
+          "每个",
+          "加载",
+          "一份"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-20",
+      "question": "块的确定性 id 里为什么不放块序号？",
+      "gold_answer": "否则调切分参数会让整库 id 失效、幂等性被打穿",
+      "query_tokens": [
+        "确定性",
+        "id",
+        "为什么",
+        "不放块",
+        "序号"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        5
+      ],
+      "gold_tokens": [
+        [
+          "index",
+          "参与",
+          "id",
+          "计算",
+          "否则",
+          "一次",
+          "chunk_chars",
+          "整库",
+          "id",
+          "全部",
+          "失效",
+          "只调",
+          "参数",
+          "表现",
+          "索引",
+          "需要",
+          "重建",
+          "幂等性",
+          "参数",
+          "调优"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "id"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-21",
+      "question": "Embedder 为什么只提供批量接口？",
+      "gold_answer": "单条接口会诱发逐条调用，批处理收益归零",
+      "query_tokens": [
+        "embedder",
+        "为什么",
+        "提供",
+        "批量",
+        "接口"
+      ],
+      "vector_ranks": [
+        2
+      ],
+      "bm25_ranks": [
+        2
+      ],
+      "gold_tokens": [
+        [
+          "接口",
+          "只有",
+          "批量",
+          "没有",
+          "embed_one",
+          "单条",
+          "调用",
+          "一旦",
+          "存在",
+          "调用",
+          "方就会",
+          "一条",
+          "一条",
+          "本地",
+          "模型",
+          "批处理",
+          "收益",
+          "直接",
+          "归零",
+          "不是",
+          "async",
+          "本地",
+          "embedder",
+          "cpu",
+          "计算",
+          "一层",
+          "协程",
+          "只会",
+          "掩盖",
+          "真正",
+          "性能",
+          "位置",
+          "当前",
+          "装配",
+          "hashingembedder",
+          "字符",
+          "n-gram",
+          "哈希",
+          "l2",
+          "归一化",
+          "占位",
+          "实现"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "embedder",
+          "批量",
+          "接口"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "bm25_should_win"
+    },
+    {
+      "id": "f-22",
+      "question": "同一份中文合同上，另一套切分器的块尾停在什么位置？",
+      "gold_answer": "5 块里 4 块停在半个词上，如\"程\"\"准\"",
+      "query_tokens": [
+        "一份",
+        "中文",
+        "合同",
+        "一套",
+        "切分",
+        "什么",
+        "位置"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "块数",
+          "每块",
+          "结尾",
+          "字符",
+          "全落",
+          "句末",
+          "标点",
+          "冗余",
+          "langchain",
+          "5",
+          "4",
+          "5",
+          "半个",
+          "7.9",
+          "项目",
+          "5",
+          "5",
+          "5",
+          "9.4"
+        ]
+      ],
+      "shared_tokens": [
+        []
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "vector_should_win"
+    },
+    {
+      "id": "f-23",
+      "question": "周四验收里，被判没命中的样本分数反而怎样？",
+      "gold_answer": "0.5087 / 0.6514，高于命中者最低分 0.466",
+      "query_tokens": [
+        "周四",
+        "验收",
+        "被判",
+        "命中",
+        "样本",
+        "分数",
+        "反而",
+        "怎样"
+      ],
+      "vector_ranks": [
+        2
+      ],
+      "bm25_ranks": [
+        1
+      ],
+      "gold_tokens": [
+        [
+          "阈值",
+          "负责",
+          "提高",
+          "准确率",
+          "周四",
+          "10",
+          "验收",
+          "命中",
+          "最低",
+          "0.466",
+          "命中",
+          "两条",
+          "最高分",
+          "0.5087",
+          "0.6514",
+          "命中",
+          "分比",
+          "命中",
+          "最低",
+          "分数",
+          "不能",
+          "区分",
+          "命中",
+          "命中",
+          "所以",
+          "阈值",
+          "只有",
+          "一个",
+          "作用",
+          "挡住",
+          "库里",
+          "完全",
+          "无关",
+          "情况",
+          "随机",
+          "方向",
+          "期望",
+          "0",
+          "质量",
+          "旋钮",
+          "越调",
+          "越糟",
+          "0.5",
+          "开始",
+          "误拒",
+          "答案",
+          "而坏",
+          "答案",
+          "照样",
+          "进来"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "周四",
+          "验收",
+          "命中",
+          "分数"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-24",
+      "question": "四类提示范式里哪个胜出，成绩多少？",
+      "gold_answer": "Few-shot（示例逆序），整条 80%、字段级 93.3%",
+      "query_tokens": [
+        "四类",
+        "提示",
+        "范式",
+        "哪个",
+        "胜出",
+        "成绩",
+        "多少"
+      ],
+      "vector_ranks": [
+        1
+      ],
+      "bm25_ranks": [
+        1
+      ],
+      "gold_tokens": [
+        [
+          "哪个",
+          "范式",
+          "多少",
+          "winner",
+          "few-shot",
+          "示例",
+          "x",
+          "逆序",
+          "16",
+          "20",
+          "80%",
+          "段级",
+          "93.3"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "范式",
+          "哪个",
+          "多少"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-25",
+      "question": "在自带思维链的模型上再叠加 CoT 提示，收益与代价如何？",
+      "gold_answer": "输出 token 涨到 42 倍，准确率反而下降",
+      "query_tokens": [
+        "自带",
+        "思维",
+        "模型",
+        "叠加",
+        "cot",
+        "提示",
+        "收益",
+        "代价",
+        "如何"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "42",
+          "输出",
+          "token",
+          "换来",
+          "准确率",
+          "下降",
+          "关键",
+          "哪个",
+          "三个",
+          "段级",
+          "错误",
+          "分布"
+        ]
+      ],
+      "shared_tokens": [
+        []
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "vector_should_win"
+    },
+    {
+      "id": "f-26",
+      "question": "不把解释器版本钉死会有什么后果？",
+      "gold_answer": "可能被系统里的旧版 Python 接管",
+      "query_tokens": [
+        "解释器",
+        "版本",
+        "钉死",
+        "什么",
+        "后果"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "d",
+          "python",
+          "uv",
+          "uv",
+          "python",
+          "pin",
+          "不可",
+          "省略",
+          "否则",
+          "可能",
+          "系统",
+          "旧版",
+          "python",
+          "接管",
+          "uvicorn",
+          "standard",
+          "方括号",
+          "需要",
+          "引号",
+          "venv",
+          "绝不",
+          "提交",
+          "uv.lock",
+          "必须",
+          "提交",
+          "保证",
+          "依赖",
+          "复现"
+        ]
+      ],
+      "shared_tokens": [
+        []
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "vector_should_win"
+    },
+    {
+      "id": "f-27",
+      "question": "外部命令报退出码 1 时凭什么判断成败？",
+      "gold_answer": "看产物，不看退出码",
+      "query_tokens": [
+        "外部命令",
+        "退出",
+        "1",
+        "什么",
+        "判断",
+        "成败"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        2
+      ],
+      "gold_tokens": [
+        [
+          "f",
+          "powershell",
+          "5.1",
+          "特性",
+          "外部命令",
+          "写入",
+          "stderr",
+          "内容",
+          "包装",
+          "nativecommanderror",
+          "附带",
+          "误导性",
+          "exit",
+          "code",
+          "1",
+          "命令",
+          "可能",
+          "已经",
+          "成功",
+          "判断",
+          "依据",
+          "产物",
+          "不看",
+          "退出",
+          "内联",
+          "json",
+          "解析器",
+          "破坏",
+          "引号",
+          "改用",
+          "data-binary",
+          "file",
+          "set-content",
+          "默认",
+          "使用",
+          "ansi",
+          "编码",
+          "json",
+          "api",
+          "时用",
+          "encoding",
+          "ascii",
+          "中文",
+          "文本",
+          "注意",
+          "bom",
+          "问题"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "外部命令",
+          "退出",
+          "1",
+          "判断"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-28",
+      "question": "事后按平均每页字数折算页码，为什么一定出错？",
+      "gold_answer": "页密度不均匀：封面 3 字、密集表格页 2000 字",
+      "query_tokens": [
+        "事后",
+        "平均",
+        "每页",
+        "字数",
+        "折算",
+        "页码",
+        "为什么",
+        "一定",
+        "出错"
+      ],
+      "vector_ranks": [
+        2
+      ],
+      "bm25_ranks": [
+        4
+      ],
+      "gold_tokens": [
+        [
+          "猜法",
+          "为什么",
+          "平均",
+          "每页",
+          "多少",
+          "折算",
+          "密度",
+          "根本",
+          "均匀",
+          "1",
+          "封面",
+          "3",
+          "7",
+          "密集",
+          "表格",
+          "2000",
+          "平均",
+          "1200",
+          "假设",
+          "进来",
+          "顺序",
+          "累加",
+          "1",
+          "2",
+          "1",
+          "只要",
+          "任何",
+          "一页",
+          "字符",
+          "整除",
+          "块长",
+          "误差",
+          "累积",
+          "50",
+          "之后",
+          "可以",
+          "偏出",
+          "好几页"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "平均",
+          "每页",
+          "折算",
+          "为什么"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-29",
+      "question": "跨页段落只记起始页，为什么反而更危险？",
+      "gold_answer": "两页都只能看到半句，且比没页码更易被点穿",
+      "query_tokens": [
+        "跨页",
+        "段落",
+        "只记",
+        "起始页",
+        "为什么",
+        "反而",
+        "危险"
+      ],
+      "vector_ranks": [
+        1
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "为什么",
+          "跨页",
+          "那段",
+          "pages",
+          "1",
+          "2",
+          "只是",
+          "page",
+          "1",
+          "用户",
+          "点进",
+          "p1",
+          "不到",
+          "那句",
+          "半截",
+          "点进",
+          "p2",
+          "不到",
+          "半截",
+          "起始页",
+          "半个",
+          "真话",
+          "半个",
+          "真话",
+          "demo",
+          "现场",
+          "完全",
+          "页码",
+          "容易",
+          "认知",
+          "延伸",
+          "page",
+          "之所以",
+          "w4",
+          "周一",
+          "schema.py",
+          "就是",
+          "为了",
+          "今天",
+          "结构",
+          "没有",
+          "位置",
+          "页码",
+          "解析器",
+          "再准",
+          "下来"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "跨页",
+          "起始页",
+          "为什么"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "f-30",
+      "question": "正文超过长度上限时返回什么错误码？",
+      "gold_answer": "422 INVALID_INPUT，不是 413",
+      "query_tokens": [
+        "正文",
+        "超过",
+        "长度",
+        "上限",
+        "返回",
+        "什么",
+        "错误码"
+      ],
+      "vector_ranks": [
+        null
+      ],
+      "bm25_ranks": [
+        null
+      ],
+      "gold_tokens": [
+        [
+          "400",
+          "422",
+          "界线",
+          "不能",
+          "解析",
+          "json",
+          "解析",
+          "不了",
+          "400",
+          "连字",
+          "看不到",
+          "解析",
+          "合规",
+          "422",
+          "指出",
+          "具体",
+          "顶层",
+          "数组",
+          "字符串",
+          "解析",
+          "不是",
+          "对象",
+          "422",
+          "details",
+          "0",
+          "field",
+          "model",
+          "没有",
+          "413",
+          "正文",
+          "超长",
+          "属于",
+          "校验",
+          "失败",
+          "422",
+          "field",
+          "text",
+          "不是",
+          "协议",
+          "实体",
+          "过大",
+          "网关",
+          "自己",
+          "413",
+          "契约"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "正文"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "m-01",
+      "question": "一次标准合同抽取（含两次回灌）比一次 RAG 提问便宜还是贵，差几倍？",
+      "gold_answer": "RAG 单次 0.019352 元 vs 0.004138 元，约 4.7 倍",
+      "query_tokens": [
+        "一次",
+        "标准",
+        "合同",
+        "抽取",
+        "两次",
+        "回灌",
+        "一次",
+        "rag",
+        "提问",
+        "便宜",
+        "还是",
+        "几倍"
+      ],
+      "vector_ranks": [
+        1,
+        null
+      ],
+      "bm25_ranks": [
+        5,
+        null
+      ],
+      "gold_tokens": [
+        [
+          "三条",
+          "数字",
+          "读出来",
+          "结论",
+          "①",
+          "回灌",
+          "重试",
+          "不是",
+          "多一点",
+          "时间",
+          "多几倍",
+          "标准",
+          "合同",
+          "一次",
+          "成功",
+          "0.001166",
+          "2",
+          "轮回",
+          "灌后",
+          "0.004138",
+          "3.5",
+          "所以",
+          "提高",
+          "首次",
+          "成功率",
+          "加大",
+          "重试",
+          "划算",
+          "为什么",
+          "实现",
+          "标量",
+          "归一",
+          "数字",
+          "字符串",
+          "本地",
+          "浪费",
+          "一轮",
+          "以及",
+          "response_format",
+          "约束",
+          "②",
+          "文档",
+          "回灌",
+          "代价",
+          "最大",
+          "4.2",
+          "因为",
+          "输入",
+          "本来",
+          "一次",
+          "合同",
+          "1",
+          "996",
+          "token",
+          "96%",
+          "输入",
+          "回灌",
+          "一轮",
+          "1",
+          "996",
+          "一遍",
+          "文档",
+          "应该",
+          "规则",
+          "兜底",
+          "规则",
+          "结构化",
+          "标签",
+          "表现",
+          "不错",
+          "llm",
+          "处理",
+          "规则",
+          "不到",
+          "部分",
+          "③",
+          "规则",
+          "成本",
+          "0",
+          "质量",
+          "不是",
+          "免费",
+          "降级",
+          "省下",
+          "全部",
+          "api",
+          "费用",
+          "代价",
+          "复杂",
+          "准确率",
+          "下降",
+          "所以",
+          "degraded",
+          "true",
+          "必须",
+          "暴露",
+          "调用",
+          "省钱",
+          "代价",
+          "可见",
+          "不是",
+          "悄悄",
+          "低质量",
+          "结果"
+        ],
+        [
+          "输入",
+          "token",
+          "单次",
+          "成本",
+          "2",
+          "m",
+          "输入",
+          "1000",
+          "全书",
+          "塞入",
+          "88",
+          "758",
+          "0.179116",
+          "179.12",
+          "rag",
+          "4",
+          "6000",
+          "8",
+          "876",
+          "0.019352",
+          "19.35",
+          "10.0",
+          "x",
+          "9.26",
+          "x",
+          "159.76"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "一次",
+          "标准",
+          "合同",
+          "回灌",
+          "一次"
+        ],
+        [
+          "rag"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "m-02",
+      "question": "bge 的 0.40 阈值换到 Chroma 后端为什么不用手动换算？",
+      "gold_answer": "score 已统一为余弦相似度，两 store 分数与顺序一致",
+      "query_tokens": [
+        "bge",
+        "0.40",
+        "阈值",
+        "chroma",
+        "为什么",
+        "不用",
+        "手动",
+        "换算"
+      ],
+      "vector_ranks": [
+        null,
+        null
+      ],
+      "bm25_ranks": [
+        null,
+        null
+      ],
+      "gold_tokens": [
+        [
+          "上层",
+          "只认",
+          "一种",
+          "口径",
+          "阈值",
+          "需要",
+          "知道",
+          "底下",
+          "test_both_stores_agree_on_score_direction",
+          "断言",
+          "两个",
+          "实现",
+          "返回",
+          "一组",
+          "分数",
+          "同一个",
+          "顺序",
+          "这条防",
+          "正是",
+          "换库",
+          "那天",
+          "阈值",
+          "逻辑",
+          "突然",
+          "全错",
+          "周三",
+          "searchhit.score",
+          "注释",
+          "语义",
+          "具体",
+          "store",
+          "决定",
+          "周四",
+          "改成",
+          "钉死",
+          "余弦相似度",
+          "理由",
+          "就是",
+          "这道",
+          "必答题",
+          "两种",
+          "口径",
+          "混在",
+          "同一个",
+          "类型",
+          "调用",
+          "必然",
+          "一半",
+          "概率",
+          "搞反"
+        ],
+        [
+          "embedder",
+          "理由",
+          "bge-small-zh",
+          "0.40",
+          "空隙",
+          "0.472",
+          "往下取",
+          "宁可",
+          "少拒",
+          "不误",
+          "hashing",
+          "0.0",
+          "分布",
+          "无可",
+          "分界线",
+          "诚实",
+          "关掉",
+          "闸门"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "阈值"
+        ],
+        [
+          "0.40"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "bm25_should_win"
+    },
+    {
+      "id": "m-03",
+      "question": "要再压缩首字等待，先优化检索有用吗？",
+      "gold_answer": "没用：检索只占首 token 的 0.36%~0.80%",
+      "query_tokens": [
+        "再压缩",
+        "首字",
+        "等待",
+        "优化",
+        "检索",
+        "有用吗"
+      ],
+      "vector_ranks": [
+        null,
+        null
+      ],
+      "bm25_ranks": [
+        null,
+        4
+      ],
+      "gold_tokens": [
+        [
+          "两个",
+          "数字",
+          "必须",
+          "一起",
+          "1",
+          "流式",
+          "缩短",
+          "耗时",
+          "3209",
+          "vs",
+          "3159",
+          "ms",
+          "差异",
+          "噪声",
+          "等待",
+          "摊平",
+          "白屏",
+          "3.2",
+          "然后",
+          "一次",
+          "出现",
+          "全部",
+          "变成",
+          "1.6",
+          "开始",
+          "逐字",
+          "出现",
+          "用户",
+          "感知",
+          "等待",
+          "减半",
+          "服务器",
+          "成本",
+          "完全",
+          "一样",
+          "2",
+          "ttft",
+          "流式",
+          "唯一",
+          "kpi",
+          "如果",
+          "有人",
+          "流式",
+          "有没有",
+          "耗时",
+          "回答",
+          "得出",
+          "没用",
+          "错误",
+          "结论"
+        ],
+        [
+          "重点",
+          "调通",
+          "几个",
+          "接口",
+          "四件",
+          "证据",
+          "说话",
+          "接口",
+          "不变",
+          "实现",
+          "可换",
+          "一份",
+          "v1",
+          "契约",
+          "底下",
+          "正则",
+          "换成",
+          "真实",
+          "模型",
+          "换成",
+          "json",
+          "schema",
+          "约束",
+          "校验",
+          "回灌",
+          "tests",
+          "test_api.py",
+          "一行",
+          "未改",
+          "测试",
+          "离线",
+          "567",
+          "测试",
+          "拔掉",
+          "网线",
+          "全绿",
+          "这是",
+          "实现",
+          "真的",
+          "替换",
+          "无法",
+          "伪造",
+          "证据",
+          "延迟",
+          "拆开",
+          "打点",
+          "一次",
+          "问答",
+          "拆成",
+          "检索",
+          "编码",
+          "上下文",
+          "token",
+          "四段",
+          "实测",
+          "检索",
+          "占首",
+          "token",
+          "0.36",
+          "0.80",
+          "优化",
+          "检索",
+          "首字",
+          "毫无",
+          "帮助",
+          "知道",
+          "哪里",
+          "不好",
+          "v1",
+          "已知",
+          "问题",
+          "v1",
+          "已知",
+          "问题",
+          "一节",
+          "效果",
+          "数字",
+          "重要"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "等待"
+        ],
+        [
+          "首字",
+          "优化",
+          "检索"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "m-04",
+      "question": "50 字重叠的存储代价与检索重复代价各是多少？",
+      "gold_answer": "存储冗余 9.4%；重复内容率 5.5%→8.0%",
+      "query_tokens": [
+        "50",
+        "重叠",
+        "存储",
+        "代价",
+        "检索",
+        "重复",
+        "代价",
+        "各是",
+        "多少"
+      ],
+      "vector_ranks": [
+        null,
+        null
+      ],
+      "bm25_ranks": [
+        2,
+        null
+      ],
+      "gold_tokens": [
+        [
+          "三条",
+          "一起",
+          "收益",
+          "出来",
+          "0",
+          "50",
+          "净差",
+          "1",
+          "20",
+          "样本",
+          "1",
+          "5",
+          "pp",
+          "而且",
+          "双向",
+          "各有",
+          "翻转",
+          "p",
+          "1.0",
+          "代价",
+          "单调",
+          "重复",
+          "内容",
+          "5.5",
+          "8.0",
+          "11.0",
+          "每档",
+          "2.5",
+          "3",
+          "pp",
+          "这个",
+          "top_k",
+          "来自",
+          "相邻",
+          "chunk",
+          "比例",
+          "本文",
+          "冗余",
+          "下游",
+          "版本",
+          "冗余",
+          "率量",
+          "多存",
+          "多少",
+          "重复",
+          "内容",
+          "率量",
+          "检索",
+          "结果",
+          "多少",
+          "重复",
+          "后者",
+          "直接",
+          "对应",
+          "上下文",
+          "窗口",
+          "浪费",
+          "overlap",
+          "100",
+          "收益",
+          "命中",
+          "条数",
+          "完全",
+          "不变",
+          "块数",
+          "11%",
+          "重复",
+          "3",
+          "pp",
+          "所以",
+          "本文",
+          "136",
+          "那句",
+          "冗余",
+          "是否",
+          "换来",
+          "更好",
+          "边界",
+          "现在",
+          "答案",
+          "一半",
+          "20",
+          "样本",
+          "50",
+          "相对",
+          "0",
+          "收益",
+          "看不出来",
+          "100",
+          "相对",
+          "50",
+          "确定",
+          "收益",
+          "维持",
+          "50",
+          "理由",
+          "不是",
+          "数据",
+          "证明",
+          "最好",
+          "没有",
+          "证据",
+          "重建",
+          "索引",
+          "完整",
+          "推理",
+          "retrieval-tuning-final.md",
+          "retrieval-tuning-final.md",
+          "4.3"
+        ],
+        [
+          "代价",
+          "表现",
+          "实测",
+          "索引",
+          "冗余",
+          "同样",
+          "文字",
+          "被存",
+          "两次",
+          "两次",
+          "向量",
+          "冗余",
+          "9.4",
+          "2128",
+          "2328",
+          "chunk",
+          "数变",
+          "同样",
+          "文档",
+          "切出",
+          "多块",
+          "冗余",
+          "比例",
+          "容易",
+          "命中",
+          "重复",
+          "内容",
+          "相邻",
+          "共享",
+          "一段",
+          "文字",
+          "top_k",
+          "可能",
+          "同时",
+          "出现",
+          "尾巴",
+          "分数",
+          "接近",
+          "时才",
+          "发生"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "50",
+          "代价",
+          "检索",
+          "重复",
+          "代价",
+          "多少"
+        ],
+        [
+          "代价",
+          "重复",
+          "代价"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "m-05",
+      "question": "跨页段落的页码信息为什么必须在解析阶段就记下来？",
+      "gold_answer": "解析时记 span→pages(1,2)；页码只在切分那一刻存在",
+      "query_tokens": [
+        "跨页",
+        "段落",
+        "页码",
+        "信息",
+        "为什么",
+        "必须",
+        "解析",
+        "阶段",
+        "记下来"
+      ],
+      "vector_ranks": [
+        null,
+        1
+      ],
+      "bm25_ranks": [
+        null,
+        null
+      ],
+      "gold_tokens": [
+        [
+          "位置",
+          "测试",
+          "loaders",
+          "pdf.py",
+          "逐页",
+          "调用",
+          "page.extract_text",
+          "page",
+          "1",
+          "开始",
+          "document",
+          "test_pdf_page_numbers_are_sequential_and_correct",
+          "loaders",
+          "pdf.py",
+          "⑤",
+          "跨页",
+          "拼接",
+          "span_of",
+          "index",
+          "两页",
+          "test_pdf_crosspage_paragraph_remembers_both_pages",
+          "splitters",
+          "recursive.py",
+          "inherited_pages",
+          "doc.pages",
+          "doc.page",
+          "任何",
+          "推断",
+          "test_chunk_page_is_carried_through_splitting"
+        ],
+        [
+          "溯源",
+          "一条",
+          "页码",
+          "信息",
+          "存在",
+          "切分",
+          "那一刻",
+          "事后",
+          "想补",
+          "只能",
+          "全量",
+          "重新",
+          "解析",
+          "重新",
+          "切分",
+          "重新",
+          "量化",
+          "就是",
+          "骨架",
+          "page",
+          "放进",
+          "document",
+          "chunk",
+          "原因",
+          "rag-architecture.md",
+          "3",
+          "rag-architecture.md"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "跨页"
+        ],
+        [
+          "页码",
+          "信息",
+          "解析"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "m-06",
+      "question": "换 embedding 模型导致维度变化要付什么代价，库侧支持到哪？",
+      "gold_answer": "需全量重建索引；迁移未做，只能 clear 重建",
+      "query_tokens": [
+        "embedding",
+        "模型",
+        "导致",
+        "维度",
+        "变化",
+        "什么",
+        "代价",
+        "库侧",
+        "支持"
+      ],
+      "vector_ranks": [
+        null,
+        null
+      ],
+      "bm25_ranks": [
+        null,
+        null
+      ],
+      "gold_tokens": [
+        [
+          "含义",
+          "怎样",
+          "维度",
+          "512",
+          "每条",
+          "向量",
+          "512",
+          "个数",
+          "存储",
+          "成本",
+          "维度",
+          "全量",
+          "重建",
+          "索引",
+          "max_seq_length",
+          "512",
+          "token",
+          "输入",
+          "token",
+          "上限",
+          "静默",
+          "截断",
+          "报错"
+        ],
+        [
+          "状态",
+          "说明",
+          "进程",
+          "worker",
+          "写入",
+          "验证",
+          "chroma",
+          "sqlite",
+          "后端",
+          "并发",
+          "worker",
+          "同时",
+          "写会锁",
+          "这是",
+          "milvus",
+          "第一个",
+          "信号",
+          "阈值",
+          "相似",
+          "下限",
+          "多少",
+          "未定",
+          "需要",
+          "评测",
+          "才能",
+          "现在",
+          "top_k",
+          "唯一",
+          "截断",
+          "手段",
+          "混合检索",
+          "向量",
+          "bm25",
+          "设备",
+          "送到",
+          "什么",
+          "地址",
+          "关键词",
+          "语义",
+          "查询",
+          "向量",
+          "失败",
+          "2",
+          "条未",
+          "命中",
+          "就是",
+          "证据",
+          "数据",
+          "过滤",
+          "性能",
+          "未测",
+          "where",
+          "是否",
+          "索引",
+          "10",
+          "万条",
+          "时会",
+          "不会",
+          "退化",
+          "成全",
+          "索引",
+          "重建",
+          "耗时",
+          "未测",
+          "15",
+          "000",
+          "条要",
+          "多久",
+          "期间",
+          "检索",
+          "可用性",
+          "collection",
+          "迁移",
+          "版本",
+          "embedder",
+          "后旧",
+          "collection",
+          "怎么",
+          "处理",
+          "目前",
+          "只能",
+          "clear",
+          "重建",
+          "真实",
+          "业务",
+          "文档",
+          "验证",
+          "100",
+          "语料",
+          "合成",
+          "合同条款",
+          "密度",
+          "真实",
+          "文档",
+          "不同"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "维度"
+        ],
+        [
+          "什么"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "m-07",
+      "question": "抽取降级到规则版时为什么仍返回 200，质量代价是什么？",
+      "gold_answer": "用户要结果不要错误码，degraded 标注来源；代价是准确率降",
+      "query_tokens": [
+        "抽取",
+        "降级",
+        "规则",
+        "版时",
+        "为什么",
+        "返回",
+        "200",
+        "质量",
+        "代价",
+        "什么"
+      ],
+      "vector_ranks": [
+        1,
+        5
+      ],
+      "bm25_ranks": [
+        1,
+        3
+      ],
+      "gold_tokens": [
+        [
+          "2.5",
+          "degraded",
+          "v1.1",
+          "新增",
+          "兼容",
+          "为什么",
+          "需要",
+          "llm",
+          "实现",
+          "两种",
+          "情况",
+          "下会",
+          "退回",
+          "规则",
+          "模型",
+          "网络",
+          "失败",
+          "结构化",
+          "输出",
+          "连续",
+          "两轮",
+          "校验",
+          "通过",
+          "两种",
+          "情况",
+          "仍然",
+          "返回",
+          "200",
+          "完整",
+          "结果",
+          "这是",
+          "刻意",
+          "用户",
+          "抽取",
+          "结果",
+          "不是",
+          "错误码",
+          "调用",
+          "方有权",
+          "知道",
+          "这个",
+          "结果",
+          "不是",
+          "模型",
+          "规则",
+          "严格遵守",
+          "不会",
+          "破坏",
+          "调用"
+        ],
+        [
+          "三条",
+          "数字",
+          "读出来",
+          "结论",
+          "①",
+          "回灌",
+          "重试",
+          "不是",
+          "多一点",
+          "时间",
+          "多几倍",
+          "标准",
+          "合同",
+          "一次",
+          "成功",
+          "0.001166",
+          "2",
+          "轮回",
+          "灌后",
+          "0.004138",
+          "3.5",
+          "所以",
+          "提高",
+          "首次",
+          "成功率",
+          "加大",
+          "重试",
+          "划算",
+          "为什么",
+          "实现",
+          "标量",
+          "归一",
+          "数字",
+          "字符串",
+          "本地",
+          "浪费",
+          "一轮",
+          "以及",
+          "response_format",
+          "约束",
+          "②",
+          "文档",
+          "回灌",
+          "代价",
+          "最大",
+          "4.2",
+          "因为",
+          "输入",
+          "本来",
+          "一次",
+          "合同",
+          "1",
+          "996",
+          "token",
+          "96%",
+          "输入",
+          "回灌",
+          "一轮",
+          "1",
+          "996",
+          "一遍",
+          "文档",
+          "应该",
+          "规则",
+          "兜底",
+          "规则",
+          "结构化",
+          "标签",
+          "表现",
+          "不错",
+          "llm",
+          "处理",
+          "规则",
+          "不到",
+          "部分",
+          "③",
+          "规则",
+          "成本",
+          "0",
+          "质量",
+          "不是",
+          "免费",
+          "降级",
+          "省下",
+          "全部",
+          "api",
+          "费用",
+          "代价",
+          "复杂",
+          "准确率",
+          "下降",
+          "所以",
+          "degraded",
+          "true",
+          "必须",
+          "暴露",
+          "调用",
+          "省钱",
+          "代价",
+          "可见",
+          "不是",
+          "悄悄",
+          "低质量",
+          "结果"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "抽取",
+          "规则",
+          "为什么",
+          "返回",
+          "200"
+        ],
+        [
+          "降级",
+          "规则",
+          "为什么",
+          "质量",
+          "代价"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "m-08",
+      "question": "用什么证据说明契约冻结、实现可换？",
+      "gold_answer": "两版实现跑同一套 test_api.py，567 个测试离线全绿",
+      "query_tokens": [
+        "什么",
+        "证据",
+        "说明",
+        "契约冻结",
+        "实现",
+        "可换"
+      ],
+      "vector_ranks": [
+        null,
+        null
+      ],
+      "bm25_ranks": [
+        null,
+        null
+      ],
+      "gold_tokens": [
+        [
+          "项目",
+          "端点",
+          "extract",
+          "extract",
+          "stream",
+          "chat",
+          "stream",
+          "summarize",
+          "stream",
+          "web",
+          "ui",
+          "streamlit",
+          "8501",
+          "免费",
+          "自动",
+          "降级",
+          "字面检索",
+          "deploy-notes",
+          "docs",
+          "deploy-notes.md",
+          "核心",
+          "契约",
+          "post",
+          "api",
+          "v1",
+          "extract",
+          "v1.1",
+          "冻结",
+          "新增",
+          "选字",
+          "degraded",
+          "测试",
+          "567",
+          "离线",
+          "网线",
+          "全绿",
+          "覆盖率",
+          "80%",
+          "检索",
+          "bge-small-zh",
+          "512",
+          "cpu",
+          "单条",
+          "10",
+          "ms",
+          "chromadb",
+          "持久",
+          "cosine",
+          "运行",
+          "python",
+          "3.11",
+          "uvicorn",
+          "streamlit",
+          "root",
+          "uid",
+          "10001"
+        ],
+        [
+          "规则",
+          "w2",
+          "怎么",
+          "1",
+          "路径",
+          "方法",
+          "请求",
+          "2",
+          "约束",
+          "不变",
+          "不改",
+          "2",
+          "响应",
+          "体恒为",
+          "4",
+          "必选",
+          "新增",
+          "只能",
+          "改本",
+          "文件",
+          "degraded",
+          "规则",
+          "加入",
+          "v1.1",
+          "3",
+          "错误",
+          "形状",
+          "恒为",
+          "4",
+          "code",
+          "语义",
+          "不变",
+          "不改",
+          "模型",
+          "超时",
+          "映射",
+          "500",
+          "internal_error",
+          "4",
+          "confidence",
+          "语义",
+          "不变",
+          "0",
+          "1",
+          "越高越",
+          "可信",
+          "采用",
+          "模型",
+          "分数",
+          "归一化",
+          "5",
+          "不到",
+          "null",
+          "永不",
+          "编造",
+          "prompt",
+          "强制",
+          "依据",
+          "输出",
+          "null",
+          "6",
+          "规则",
+          "llm",
+          "一套",
+          "tests",
+          "test_api.py",
+          "测试",
+          "契约",
+          "执行",
+          "形态",
+          "7",
+          "服务",
+          "入口",
+          "签名",
+          "不变",
+          "async",
+          "extract",
+          "text",
+          "fields",
+          "统一",
+          "结果",
+          "对象",
+          "规则",
+          "llm",
+          "共用",
+          "签名",
+          "路由",
+          "依赖",
+          "签名"
+        ]
+      ],
+      "shared_tokens": [
+        [],
+        []
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "vector_should_win"
+    },
+    {
+      "id": "m-09",
+      "question": "CoT 提示臂的输出 token 放大多少，两臂叠加后延迟放大多少？",
+      "gold_answer": "E 臂 token 5.1 倍；G 臂延迟 8.6 倍（6209ms）",
+      "query_tokens": [
+        "cot",
+        "提示",
+        "输出",
+        "token",
+        "放大",
+        "多少",
+        "两臂",
+        "叠加",
+        "延迟",
+        "放大",
+        "多少"
+      ],
+      "vector_ranks": [
+        3,
+        5
+      ],
+      "bm25_ranks": [
+        3,
+        null
+      ],
+      "gold_tokens": [
+        [
+          "平均",
+          "completion",
+          "token",
+          "相对",
+          "zero-shot",
+          "21",
+          "1",
+          "e",
+          "cot",
+          "提示",
+          "关闭",
+          "推理",
+          "108",
+          "5.1",
+          "f",
+          "自带",
+          "思维",
+          "172",
+          "8.2",
+          "g",
+          "两者",
+          "叠加",
+          "888",
+          "42"
+        ],
+        [
+          "平均",
+          "延迟",
+          "相对",
+          "724",
+          "ms",
+          "1",
+          "e",
+          "1476",
+          "ms",
+          "2.0",
+          "f",
+          "1681",
+          "ms",
+          "2.3",
+          "g",
+          "6209",
+          "ms",
+          "8.6"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "cot",
+          "提示",
+          "token",
+          "叠加"
+        ],
+        [
+          "延迟"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    },
+    {
+      "id": "m-10",
+      "question": "500 字块长与 50 字重叠这两个默认值，各自的依据是什么？",
+      "gold_answer": "500 有条款长度依据；50 只是直觉，无数据支撑",
+      "query_tokens": [
+        "500",
+        "字块",
+        "50",
+        "重叠",
+        "两个",
+        "默认值",
+        "各自",
+        "依据",
+        "什么"
+      ],
+      "vector_ranks": [
+        3,
+        5
+      ],
+      "bm25_ranks": [
+        3,
+        5
+      ],
+      "gold_tokens": [
+        [
+          "规则",
+          "取值",
+          "为什么",
+          "块长",
+          "500",
+          "字符",
+          "一段",
+          "完整",
+          "论述",
+          "中文",
+          "350",
+          "token",
+          "a4",
+          "合同",
+          "一个",
+          "条款",
+          "通常",
+          "200",
+          "600",
+          "500",
+          "大多数",
+          "条款",
+          "整块",
+          "一个",
+          "重叠",
+          "50",
+          "字符",
+          "10%",
+          "跨块",
+          "断句",
+          "只能靠",
+          "重叠",
+          "缓解",
+          "存储",
+          "10%",
+          "必须",
+          "边界",
+          "优先级",
+          "段落",
+          "换行",
+          "句末",
+          "标点",
+          "空格",
+          "硬切",
+          "越靠",
+          "语义",
+          "完整",
+          "硬切",
+          "整段",
+          "没有",
+          "标点",
+          "发生",
+          "id",
+          "sha256",
+          "source",
+          "page",
+          "text",
+          "16",
+          "幂等",
+          "入库",
+          "进程",
+          "复现"
+        ],
+        [
+          "第三条",
+          "隐蔽",
+          "报错",
+          "只是",
+          "上下文",
+          "窗口",
+          "重复",
+          "内容",
+          "50",
+          "该不该",
+          "现在",
+          "没有",
+          "数据",
+          "支持",
+          "任何",
+          "一个",
+          "取值",
+          "50",
+          "只是",
+          "半句话",
+          "量级",
+          "这个",
+          "直觉",
+          "w5",
+          "数据",
+          "回答",
+          "之前",
+          "就是",
+          "未经检验",
+          "默认值",
+          "不是",
+          "调好",
+          "参数"
+        ]
+      ],
+      "shared_tokens": [
+        [
+          "500",
+          "50",
+          "重叠"
+        ],
+        [
+          "50",
+          "默认值"
+        ]
+      ],
+      "vector_top5": [],
+      "bm25_top5": [],
+      "verdict": "both_weak"
+    }
+  ]
+}

@@ -138,6 +138,8 @@ importlib-resources==7.1.0
     # via chromadb
 itsdangerous==2.2.0
     # via streamlit
+jieba==0.42.1
+    # via industrial-ai-platform
 jinja2==3.1.6
     # via
     #   altair
@@ -223,6 +225,7 @@ numpy==2.4.6 ; python_full_version < '3.12'
     #   onnxruntime
     #   pandas
     #   pydeck
+    #   rank-bm25
     #   scikit-learn
     #   scipy
     #   sentence-transformers
@@ -234,6 +237,7 @@ numpy==2.5.4 ; python_full_version >= '3.12'
     #   onnxruntime
     #   pandas
     #   pydeck
+    #   rank-bm25
     #   scikit-learn
     #   scipy
     #   sentence-transformers
@@ -409,6 +413,8 @@ pyyaml==6.0.3
     #   langchain-core
     #   transformers
     #   uvicorn
+rank-bm25==0.2.2
+    # via industrial-ai-platform
 referencing==0.37.0
     # via
     #   jsonschema
