@@ -1,0 +1,710 @@
+{
+  "meta": {
+    "chunk_chars": 500,
+    "overlap": 50,
+    "embedder": "bge",
+    "gold": 20,
+    "chunks": 532,
+    "index_build_ms": 11818.4,
+    "score_direction": "score 是**相似度**（越大越像），不是 distance"
+  },
+  "rows": [
+    {
+      "k": 3,
+      "queries": 20,
+      "hits": 11,
+      "recall_at_k": 0.55,
+      "mrr": 0.4167,
+      "mean_context_tokens": 804.5,
+      "mean_noise": 2.45,
+      "mean_distinct_sources": 2.05,
+      "mean_wasted_tokens_before_hit": 72.5,
+      "per_query": [
+        {
+          "id": "rg-01",
+          "hit_rank": null,
+          "context_tokens": 1121,
+          "noise": 3,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-02",
+          "hit_rank": 1,
+          "context_tokens": 883,
+          "noise": 2,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-03",
+          "hit_rank": 1,
+          "context_tokens": 1118,
+          "noise": 2,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-04",
+          "hit_rank": 1,
+          "context_tokens": 1062,
+          "noise": 2,
+          "distinct_sources": 1,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-05",
+          "hit_rank": 2,
+          "context_tokens": 687,
+          "noise": 2,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 208
+        },
+        {
+          "id": "rg-06",
+          "hit_rank": null,
+          "context_tokens": 889,
+          "noise": 3,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-07",
+          "hit_rank": 2,
+          "context_tokens": 774,
+          "noise": 2,
+          "distinct_sources": 1,
+          "wasted_tokens_before_hit": 307
+        },
+        {
+          "id": "rg-08",
+          "hit_rank": null,
+          "context_tokens": 666,
+          "noise": 3,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-09",
+          "hit_rank": 1,
+          "context_tokens": 852,
+          "noise": 2,
+          "distinct_sources": 1,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-10",
+          "hit_rank": 2,
+          "context_tokens": 1146,
+          "noise": 2,
+          "distinct_sources": 1,
+          "wasted_tokens_before_hit": 402
+        },
+        {
+          "id": "rg-11",
+          "hit_rank": null,
+          "context_tokens": 519,
+          "noise": 3,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-12",
+          "hit_rank": null,
+          "context_tokens": 1140,
+          "noise": 3,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-13",
+          "hit_rank": null,
+          "context_tokens": 594,
+          "noise": 3,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-14",
+          "hit_rank": null,
+          "context_tokens": 535,
+          "noise": 3,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-15",
+          "hit_rank": null,
+          "context_tokens": 630,
+          "noise": 3,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-16",
+          "hit_rank": 2,
+          "context_tokens": 517,
+          "noise": 2,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 103
+        },
+        {
+          "id": "rg-17",
+          "hit_rank": 1,
+          "context_tokens": 375,
+          "noise": 2,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-18",
+          "hit_rank": 3,
+          "context_tokens": 828,
+          "noise": 2,
+          "distinct_sources": 1,
+          "wasted_tokens_before_hit": 430
+        },
+        {
+          "id": "rg-19",
+          "hit_rank": null,
+          "context_tokens": 771,
+          "noise": 3,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-20",
+          "hit_rank": 1,
+          "context_tokens": 982,
+          "noise": 2,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 0
+        }
+      ]
+    },
+    {
+      "k": 5,
+      "queries": 20,
+      "hits": 13,
+      "recall_at_k": 0.65,
+      "mrr": 0.4392,
+      "mean_context_tokens": 1321.7,
+      "mean_noise": 4.35,
+      "mean_distinct_sources": 3.25,
+      "mean_wasted_tokens_before_hit": 166.9,
+      "per_query": [
+        {
+          "id": "rg-01",
+          "hit_rank": null,
+          "context_tokens": 1904,
+          "noise": 5,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-02",
+          "hit_rank": 1,
+          "context_tokens": 1296,
+          "noise": 4,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-03",
+          "hit_rank": 1,
+          "context_tokens": 1749,
+          "noise": 4,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-04",
+          "hit_rank": 1,
+          "context_tokens": 1808,
+          "noise": 4,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-05",
+          "hit_rank": 2,
+          "context_tokens": 1144,
+          "noise": 4,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 208
+        },
+        {
+          "id": "rg-06",
+          "hit_rank": null,
+          "context_tokens": 1366,
+          "noise": 5,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-07",
+          "hit_rank": 2,
+          "context_tokens": 913,
+          "noise": 4,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 307
+        },
+        {
+          "id": "rg-08",
+          "hit_rank": null,
+          "context_tokens": 1106,
+          "noise": 5,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-09",
+          "hit_rank": 1,
+          "context_tokens": 1279,
+          "noise": 4,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-10",
+          "hit_rank": 2,
+          "context_tokens": 1746,
+          "noise": 4,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 402
+        },
+        {
+          "id": "rg-11",
+          "hit_rank": null,
+          "context_tokens": 1329,
+          "noise": 5,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-12",
+          "hit_rank": 4,
+          "context_tokens": 1825,
+          "noise": 4,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 1140
+        },
+        {
+          "id": "rg-13",
+          "hit_rank": 5,
+          "context_tokens": 1073,
+          "noise": 4,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 748
+        },
+        {
+          "id": "rg-14",
+          "hit_rank": null,
+          "context_tokens": 847,
+          "noise": 5,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-15",
+          "hit_rank": null,
+          "context_tokens": 1158,
+          "noise": 5,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-16",
+          "hit_rank": 2,
+          "context_tokens": 926,
+          "noise": 4,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 103
+        },
+        {
+          "id": "rg-17",
+          "hit_rank": 1,
+          "context_tokens": 1141,
+          "noise": 4,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-18",
+          "hit_rank": 3,
+          "context_tokens": 1292,
+          "noise": 4,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 430
+        },
+        {
+          "id": "rg-19",
+          "hit_rank": null,
+          "context_tokens": 1045,
+          "noise": 5,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-20",
+          "hit_rank": 1,
+          "context_tokens": 1487,
+          "noise": 4,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 0
+        }
+      ]
+    },
+    {
+      "k": 8,
+      "queries": 20,
+      "hits": 14,
+      "recall_at_k": 0.7,
+      "mrr": 0.4454,
+      "mean_context_tokens": 2109.5,
+      "mean_noise": 7.3,
+      "mean_distinct_sources": 4.8,
+      "mean_wasted_tokens_before_hit": 242.7,
+      "per_query": [
+        {
+          "id": "rg-01",
+          "hit_rank": null,
+          "context_tokens": 2973,
+          "noise": 8,
+          "distinct_sources": 6,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-02",
+          "hit_rank": 1,
+          "context_tokens": 1921,
+          "noise": 7,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-03",
+          "hit_rank": 1,
+          "context_tokens": 2836,
+          "noise": 7,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-04",
+          "hit_rank": 1,
+          "context_tokens": 2421,
+          "noise": 7,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-05",
+          "hit_rank": 2,
+          "context_tokens": 1932,
+          "noise": 7,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 208
+        },
+        {
+          "id": "rg-06",
+          "hit_rank": null,
+          "context_tokens": 2485,
+          "noise": 8,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-07",
+          "hit_rank": 2,
+          "context_tokens": 1665,
+          "noise": 7,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 307
+        },
+        {
+          "id": "rg-08",
+          "hit_rank": 8,
+          "context_tokens": 1823,
+          "noise": 7,
+          "distinct_sources": 7,
+          "wasted_tokens_before_hit": 1516
+        },
+        {
+          "id": "rg-09",
+          "hit_rank": 1,
+          "context_tokens": 2195,
+          "noise": 7,
+          "distinct_sources": 2,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-10",
+          "hit_rank": 2,
+          "context_tokens": 2320,
+          "noise": 7,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 402
+        },
+        {
+          "id": "rg-11",
+          "hit_rank": null,
+          "context_tokens": 2236,
+          "noise": 8,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-12",
+          "hit_rank": 4,
+          "context_tokens": 2540,
+          "noise": 7,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 1140
+        },
+        {
+          "id": "rg-13",
+          "hit_rank": 5,
+          "context_tokens": 1813,
+          "noise": 7,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 748
+        },
+        {
+          "id": "rg-14",
+          "hit_rank": null,
+          "context_tokens": 1382,
+          "noise": 8,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-15",
+          "hit_rank": null,
+          "context_tokens": 2234,
+          "noise": 8,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-16",
+          "hit_rank": 2,
+          "context_tokens": 1781,
+          "noise": 7,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 103
+        },
+        {
+          "id": "rg-17",
+          "hit_rank": 1,
+          "context_tokens": 1961,
+          "noise": 7,
+          "distinct_sources": 6,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-18",
+          "hit_rank": 3,
+          "context_tokens": 1649,
+          "noise": 7,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 430
+        },
+        {
+          "id": "rg-19",
+          "hit_rank": null,
+          "context_tokens": 1775,
+          "noise": 8,
+          "distinct_sources": 6,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-20",
+          "hit_rank": 1,
+          "context_tokens": 2248,
+          "noise": 7,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 0
+        }
+      ]
+    },
+    {
+      "k": 10,
+      "queries": 20,
+      "hits": 15,
+      "recall_at_k": 0.75,
+      "mrr": 0.4504,
+      "mean_context_tokens": 2608.8,
+      "mean_noise": 9.25,
+      "mean_distinct_sources": 5.6,
+      "mean_wasted_tokens_before_hit": 373.0,
+      "per_query": [
+        {
+          "id": "rg-01",
+          "hit_rank": null,
+          "context_tokens": 3309,
+          "noise": 10,
+          "distinct_sources": 6,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-02",
+          "hit_rank": 1,
+          "context_tokens": 2553,
+          "noise": 9,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-03",
+          "hit_rank": 1,
+          "context_tokens": 3479,
+          "noise": 9,
+          "distinct_sources": 6,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-04",
+          "hit_rank": 1,
+          "context_tokens": 2780,
+          "noise": 9,
+          "distinct_sources": 6,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-05",
+          "hit_rank": 2,
+          "context_tokens": 2286,
+          "noise": 9,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 208
+        },
+        {
+          "id": "rg-06",
+          "hit_rank": 10,
+          "context_tokens": 3001,
+          "noise": 9,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 2606
+        },
+        {
+          "id": "rg-07",
+          "hit_rank": 2,
+          "context_tokens": 2361,
+          "noise": 9,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 307
+        },
+        {
+          "id": "rg-08",
+          "hit_rank": 8,
+          "context_tokens": 2386,
+          "noise": 9,
+          "distinct_sources": 7,
+          "wasted_tokens_before_hit": 1516
+        },
+        {
+          "id": "rg-09",
+          "hit_rank": 1,
+          "context_tokens": 2698,
+          "noise": 9,
+          "distinct_sources": 3,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-10",
+          "hit_rank": 2,
+          "context_tokens": 2878,
+          "noise": 9,
+          "distinct_sources": 6,
+          "wasted_tokens_before_hit": 402
+        },
+        {
+          "id": "rg-11",
+          "hit_rank": null,
+          "context_tokens": 2803,
+          "noise": 10,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-12",
+          "hit_rank": 4,
+          "context_tokens": 3067,
+          "noise": 9,
+          "distinct_sources": 6,
+          "wasted_tokens_before_hit": 1140
+        },
+        {
+          "id": "rg-13",
+          "hit_rank": 5,
+          "context_tokens": 2504,
+          "noise": 9,
+          "distinct_sources": 6,
+          "wasted_tokens_before_hit": 748
+        },
+        {
+          "id": "rg-14",
+          "hit_rank": null,
+          "context_tokens": 1797,
+          "noise": 10,
+          "distinct_sources": 4,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-15",
+          "hit_rank": null,
+          "context_tokens": 2414,
+          "noise": 10,
+          "distinct_sources": 6,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-16",
+          "hit_rank": 2,
+          "context_tokens": 2515,
+          "noise": 9,
+          "distinct_sources": 6,
+          "wasted_tokens_before_hit": 103
+        },
+        {
+          "id": "rg-17",
+          "hit_rank": 1,
+          "context_tokens": 2245,
+          "noise": 9,
+          "distinct_sources": 7,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-18",
+          "hit_rank": 3,
+          "context_tokens": 1872,
+          "noise": 9,
+          "distinct_sources": 5,
+          "wasted_tokens_before_hit": 430
+        },
+        {
+          "id": "rg-19",
+          "hit_rank": null,
+          "context_tokens": 2280,
+          "noise": 10,
+          "distinct_sources": 7,
+          "wasted_tokens_before_hit": 0
+        },
+        {
+          "id": "rg-20",
+          "hit_rank": 1,
+          "context_tokens": 2949,
+          "noise": 9,
+          "distinct_sources": 7,
+          "wasted_tokens_before_hit": 0
+        }
+      ]
+    }
+  ],
+  "prefix_invariant": {
+    "holds": true,
+    "checked_pairs": 3,
+    "mismatches": []
+  }
+}

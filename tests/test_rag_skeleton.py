@@ -501,17 +501,31 @@ def test_default_top_k_is_single_sourced() -> None:
     UI 滑块都是 5 —— 于是"默认取几条"有四个答案，且没有一处写得清基线是哪个。
     W5 要跑 `top_k ∈ {3, 5, 8}` 的矩阵，基线说不清就等于矩阵没有对照组。
 
-    这条断言只做一件事：**把"四处一致"变成会失败的事实**，
-    而不是靠人记得同步。
+    ## W5 周三：这个"一处"从 `retrieval.py` 搬到了 `settings.RagConfig`
+
+    构造器的默认值从 `top_k=DEFAULT_TOP_K` 改成了 `top_k=None` ——
+    `None` 的意思是"没指定，去读配置"。所以断言也变：
+
+    - `retrieval.DEFAULT_TOP_K` 必须是 `settings.DEFAULT_TOP_K` 的**别名**（同一个数）
+    - `QAEngine` / `Retriever` 的 `top_k` 默认必须是 `None`（不能写死数字）
+    - CLI/UI 的默认值仍必须引用 `DEFAULT_TOP_K`
+
+    **不能把这条断言放宽成"只要等于 5 就行"**：那样"有人又写死一个 5"
+    会照样通过，而它正是这条测试存在要防的事。
     """
     from app.cli.ask import _build_parser
     from app.rag.query import QAEngine
-    from app.rag.retrieval import DEFAULT_TOP_K, default_top_k
+    from app.rag.retrieval import DEFAULT_TOP_K, Retriever, default_top_k
+    from app.rag.settings import DEFAULT_TOP_K as SETTINGS_DEFAULT_TOP_K
 
-    assert DEFAULT_TOP_K == default_top_k() == 5
+    assert DEFAULT_TOP_K == default_top_k() == SETTINGS_DEFAULT_TOP_K == 5
 
-    engine_default = inspect.signature(QAEngine.__init__).parameters["top_k"].default
-    assert engine_default == DEFAULT_TOP_K, "QAEngine 的默认 top_k 与 DEFAULT_TOP_K 不一致"
+    # 两个构造器都必须用 None 表示"读配置"，不许写死数字。
+    for cls in (QAEngine, Retriever):
+        default = inspect.signature(cls.__init__).parameters["top_k"].default
+        assert default is None, (
+            f"{cls.__name__} 的 top_k 默认值应交给 RagConfig（None），实为 {default!r}"
+        )
 
     cli_default = _build_parser().parse_args(["问题"]).top_k
     assert cli_default == DEFAULT_TOP_K, "CLI --top-k 的默认值与 DEFAULT_TOP_K 不一致"

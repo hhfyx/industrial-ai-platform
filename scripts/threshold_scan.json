@@ -1,0 +1,352 @@
+{
+  "meta": {
+    "chunk_chars": 500,
+    "overlap": 50,
+    "top_k": 5,
+    "embedder": "bge",
+    "positive": 20,
+    "negative": 5,
+    "score_direction": "similarity（越大越像）；判据是 score < threshold 才拒答",
+    "chunks": 532
+  },
+  "positive": [
+    {
+      "id": "rg-01",
+      "score": 0.6382,
+      "top1_source": "chroma-store.md"
+    },
+    {
+      "id": "rg-02",
+      "score": 0.6373,
+      "top1_source": "sse.md"
+    },
+    {
+      "id": "rg-03",
+      "score": 0.641,
+      "top1_source": "cost.md"
+    },
+    {
+      "id": "rg-04",
+      "score": 0.635,
+      "top1_source": "cost.md"
+    },
+    {
+      "id": "rg-05",
+      "score": 0.6564,
+      "top1_source": "chunking-quality.md"
+    },
+    {
+      "id": "rg-06",
+      "score": 0.6265,
+      "top1_source": "chunking-quality.md"
+    },
+    {
+      "id": "rg-07",
+      "score": 0.5733,
+      "top1_source": "chroma-store.md"
+    },
+    {
+      "id": "rg-08",
+      "score": 0.6223,
+      "top1_source": "chunking-quality.md"
+    },
+    {
+      "id": "rg-09",
+      "score": 0.701,
+      "top1_source": "design-decisions.md"
+    },
+    {
+      "id": "rg-10",
+      "score": 0.6015,
+      "top1_source": "design-decisions.md"
+    },
+    {
+      "id": "rg-11",
+      "score": 0.6126,
+      "top1_source": "embedding.md"
+    },
+    {
+      "id": "rg-12",
+      "score": 0.6478,
+      "top1_source": "document-parsing.md"
+    },
+    {
+      "id": "rg-13",
+      "score": 0.6414,
+      "top1_source": "README.md"
+    },
+    {
+      "id": "rg-14",
+      "score": 0.5729,
+      "top1_source": "design-decisions.md"
+    },
+    {
+      "id": "rg-15",
+      "score": 0.5987,
+      "top1_source": "chunking-quality.md"
+    },
+    {
+      "id": "rg-16",
+      "score": 0.5482,
+      "top1_source": "rag-query-chain.md"
+    },
+    {
+      "id": "rg-17",
+      "score": 0.5412,
+      "top1_source": "SETUP.md"
+    },
+    {
+      "id": "rg-18",
+      "score": 0.7036,
+      "top1_source": "document-parsing.md"
+    },
+    {
+      "id": "rg-19",
+      "score": 0.6071,
+      "top1_source": "api-spec.md"
+    },
+    {
+      "id": "rg-20",
+      "score": 0.6307,
+      "top1_source": "README.md"
+    }
+  ],
+  "negative": [
+    {
+      "id": "rf-01",
+      "score": 0.5625,
+      "top1_source": "design-decisions.md"
+    },
+    {
+      "id": "rf-02",
+      "score": 0.6577,
+      "top1_source": "SETUP.md"
+    },
+    {
+      "id": "rf-03",
+      "score": 0.44,
+      "top1_source": "chunking-quality.md"
+    },
+    {
+      "id": "rf-04",
+      "score": 0.3945,
+      "top1_source": "README.md"
+    },
+    {
+      "id": "rf-05",
+      "score": 0.4823,
+      "top1_source": "embedding.md"
+    }
+  ],
+  "histogram": [
+    {
+      "bucket": "0.00-0.10",
+      "low": 0.0,
+      "high": 0.1,
+      "hit": 0,
+      "miss": 0,
+      "bar_hit": "",
+      "bar_miss": ""
+    },
+    {
+      "bucket": "0.10-0.20",
+      "low": 0.1,
+      "high": 0.2,
+      "hit": 0,
+      "miss": 0,
+      "bar_hit": "",
+      "bar_miss": ""
+    },
+    {
+      "bucket": "0.20-0.30",
+      "low": 0.2,
+      "high": 0.3,
+      "hit": 0,
+      "miss": 0,
+      "bar_hit": "",
+      "bar_miss": ""
+    },
+    {
+      "bucket": "0.30-0.40",
+      "low": 0.3,
+      "high": 0.4,
+      "hit": 0,
+      "miss": 1,
+      "bar_hit": "",
+      "bar_miss": "░"
+    },
+    {
+      "bucket": "0.40-0.45",
+      "low": 0.4,
+      "high": 0.45,
+      "hit": 0,
+      "miss": 1,
+      "bar_hit": "",
+      "bar_miss": "░"
+    },
+    {
+      "bucket": "0.45-0.50",
+      "low": 0.45,
+      "high": 0.5,
+      "hit": 0,
+      "miss": 1,
+      "bar_hit": "",
+      "bar_miss": "░"
+    },
+    {
+      "bucket": "0.50-0.55",
+      "low": 0.5,
+      "high": 0.55,
+      "hit": 2,
+      "miss": 0,
+      "bar_hit": "██",
+      "bar_miss": ""
+    },
+    {
+      "bucket": "0.55-0.60",
+      "low": 0.55,
+      "high": 0.6,
+      "hit": 3,
+      "miss": 1,
+      "bar_hit": "███",
+      "bar_miss": "░"
+    },
+    {
+      "bucket": "0.60-0.70",
+      "low": 0.6,
+      "high": 0.7,
+      "hit": 13,
+      "miss": 1,
+      "bar_hit": "█████████████",
+      "bar_miss": "░"
+    },
+    {
+      "bucket": "0.70-0.80",
+      "low": 0.7,
+      "high": 0.8,
+      "hit": 2,
+      "miss": 0,
+      "bar_hit": "██",
+      "bar_miss": ""
+    },
+    {
+      "bucket": "0.80-1.00",
+      "low": 0.8,
+      "high": 1.0,
+      "hit": 0,
+      "miss": 0,
+      "bar_hit": "",
+      "bar_miss": ""
+    }
+  ],
+  "sweep": [
+    {
+      "threshold": 0.2,
+      "false_refusal": 0,
+      "false_refusal_rate": 0.0,
+      "false_accept": 5,
+      "false_accept_rate": 1.0,
+      "errors": 5
+    },
+    {
+      "threshold": 0.25,
+      "false_refusal": 0,
+      "false_refusal_rate": 0.0,
+      "false_accept": 5,
+      "false_accept_rate": 1.0,
+      "errors": 5
+    },
+    {
+      "threshold": 0.3,
+      "false_refusal": 0,
+      "false_refusal_rate": 0.0,
+      "false_accept": 5,
+      "false_accept_rate": 1.0,
+      "errors": 5
+    },
+    {
+      "threshold": 0.35,
+      "false_refusal": 0,
+      "false_refusal_rate": 0.0,
+      "false_accept": 5,
+      "false_accept_rate": 1.0,
+      "errors": 5
+    },
+    {
+      "threshold": 0.4,
+      "false_refusal": 0,
+      "false_refusal_rate": 0.0,
+      "false_accept": 4,
+      "false_accept_rate": 0.8,
+      "errors": 4
+    },
+    {
+      "threshold": 0.45,
+      "false_refusal": 0,
+      "false_refusal_rate": 0.0,
+      "false_accept": 3,
+      "false_accept_rate": 0.6,
+      "errors": 3
+    },
+    {
+      "threshold": 0.5,
+      "false_refusal": 0,
+      "false_refusal_rate": 0.0,
+      "false_accept": 2,
+      "false_accept_rate": 0.4,
+      "errors": 2
+    },
+    {
+      "threshold": 0.55,
+      "false_refusal": 2,
+      "false_refusal_rate": 0.1,
+      "false_accept": 2,
+      "false_accept_rate": 0.4,
+      "errors": 4
+    },
+    {
+      "threshold": 0.6,
+      "false_refusal": 5,
+      "false_refusal_rate": 0.25,
+      "false_accept": 1,
+      "false_accept_rate": 0.2,
+      "errors": 6
+    },
+    {
+      "threshold": 0.65,
+      "false_refusal": 17,
+      "false_refusal_rate": 0.85,
+      "false_accept": 1,
+      "false_accept_rate": 0.2,
+      "errors": 18
+    },
+    {
+      "threshold": 0.7,
+      "false_refusal": 18,
+      "false_refusal_rate": 0.9,
+      "false_accept": 0,
+      "false_accept_rate": 0.0,
+      "errors": 18
+    }
+  ],
+  "boundary": {
+    "separable": false,
+    "positive_min": 0.5412,
+    "positive_max": 0.7036,
+    "negative_min": 0.3945,
+    "negative_max": 0.6577,
+    "overlap_low": 0.5412,
+    "overlap_high": 0.6577,
+    "gap": null,
+    "current_default": 0.4,
+    "note": "两组有重叠，任何阈值都必然有错；表里最优只是错误数最少"
+  },
+  "best": {
+    "threshold": 0.5,
+    "false_refusal": 0,
+    "false_refusal_rate": 0.0,
+    "false_accept": 2,
+    "false_accept_rate": 0.4,
+    "errors": 2
+  }
+}

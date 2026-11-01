@@ -308,6 +308,44 @@ class ChromaStore:
     def count(self) -> int:
         return self._collection.count()
 
+    def describe_metadata(self):  # noqa: ANN201
+        """导出当前库的过滤 schema（供 `app/rag/filters.py` 校验 where）。
+
+        ## 为什么库要实现这个，而不是让 filters 直接摸 collection
+
+        **O(n) 全量拉元数据这件事只该由库自己决定怎么做**。不同后端代价差很多：
+        Chroma 是一次 `get(include=["metadatas"])`，而将来的 pgvector 可能是一条
+        `SELECT DISTINCT` —— 后者根本不需要把 n 行拉进 Python。
+        把"怎么取"留在库内部，上层就只管"要 schema"。
+
+        ## 代价与调用时机
+
+        实测 532 块约 20 ms —— **比一次 `embed_query` 还便宜**，但它是 O(n) 的。
+        所以调用方应该在建索引后 / 启动时取一次并缓存，
+        **不要每次提问都调**（见 `filters.FilterSchema` 的说明）。
+        """
+        from app.rag.filters import FilterSchema
+
+        raw = self._collection.get(include=["metadatas"])
+        metadatas = raw.get("metadatas") or []
+        values: dict[str, set[str]] = {}
+        nulls: dict[str, int] = {}
+        total = len(metadatas)
+        for metadata in metadatas:
+            for key, value in (metadata or {}).items():
+                text = "" if value is None else str(value)
+                values.setdefault(key, set())
+                nulls.setdefault(key, 0)
+                if text == "":
+                    nulls[key] += 1
+                else:
+                    values[key].add(text)
+        return FilterSchema(
+            values={key: frozenset(items) for key, items in values.items()},
+            null_ratio={key: (nulls[key] / total if total else 0.0) for key in values},
+            total_chunks=total,
+        )
+
     def ids(self) -> list[str]:
         """导出全部 id（测试与排查用）。顺序不保证。"""
         return list(self._collection.get(include=[]).get("ids") or [])

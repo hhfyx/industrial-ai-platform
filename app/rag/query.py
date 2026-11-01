@@ -41,14 +41,14 @@ from dataclasses import dataclass, field
 
 from app.rag.embedding import Embedder
 from app.rag.generation import (
-    DEFAULT_CONTEXT_CHARS,
     REFUSAL_TEXT,
     Answer,
     build_context,
     resolve_citations,
 )
-from app.rag.retrieval import DEFAULT_TOP_K
+from app.rag.refusal import Refusal, RefusalKind, decide
 from app.rag.schema import Chunk
+from app.rag.settings import DEFAULT_SCORE_THRESHOLD, RagConfig, get_rag_config
 from app.rag.stores import VectorStore
 
 logger = logging.getLogger(__name__)
@@ -133,6 +133,14 @@ class QAResult:
 
     top_score: float | None = None
 
+    refusal: Refusal | None = None
+    """拒答的完整说明（含理由与建议）；答出来了就是 None。
+
+    **与 `answer.refused` 的分工**：`answer.refused` 是"有没有拒"这个布尔，
+    这个对象回答"为什么拒、用户接下来该做什么"。只给布尔的话，
+    CLI/UI 只能说"没找到"，而用户无法区分"文档没导入"和"问法不对"。
+    """
+
     @property
     def refused(self) -> bool:
         return self.answer.refused
@@ -150,20 +158,44 @@ class QAEngine:
         *,
         embedder: Embedder,
         store: VectorStore,
-        top_k: int = DEFAULT_TOP_K,
-        max_context_chars: int = DEFAULT_CONTEXT_CHARS,
+        top_k: int | None = None,
+        max_context_chars: int | None = None,
         min_score: float | None = None,
+        config: RagConfig | None = None,
     ) -> None:
-        if top_k <= 0:
+        # **参数来源收敛到 RagConfig**（W5 周三）。
+        # 每个参数都保留显式覆盖，因为 CLI/UI 确实会传；但"不传时取什么"
+        # 只有一个出处 —— 否则"默认 top_k 是几"又会变回四个答案。
+        self.config = config or get_rag_config()
+        if top_k is not None:
+            self.config = self.config.with_overrides(top_k=top_k)
+        if max_context_chars is not None:
+            self.config = self.config.with_overrides(max_context_chars=max_context_chars)
+        if min_score is not None:
+            self.config = self.config.with_overrides(score_threshold=min_score)
+
+        if self.config.top_k <= 0:
             raise ValueError("top_k 必须为正数")
         self.embedder = embedder
         self.store = store
-        self.top_k = top_k
-        self.max_context_chars = max_context_chars
-        # 阈值默认从 embedder 取（见 `Embedder.recommended_min_score`）。
-        # **不能是全局常量**：不同模型的分数分布完全不同，实测 hashing 的相关/无关
-        # 完全重叠（scripts/embedding_score_probe.py）。
-        self.min_score = embedder.recommended_min_score if min_score is None else min_score
+        self.top_k = self.config.top_k
+        self.max_context_chars = self.config.max_context_chars
+        # 阈值默认从 embedder 取（见 `Embedder.recommended_min_score`），
+        # 但**显式配置优先**：`RAG_SCORE_THRESHOLD` 存在时用它。
+        #
+        # 为什么 embedder 的值还算"默认"：它是按模型实测反推的
+        # （bge 0.40 / hashing 0.0），换 embedder 时阈值必须跟着换 ——
+        # 而配置里的单一数字做不到这件事。所以优先级是：
+        # 显式参数 > 配置里的非默认值 > embedder 推荐值 > 配置默认值。
+        self.min_score = (
+            min_score
+            if min_score is not None
+            else (
+                self.config.score_threshold
+                if self.config.score_threshold != DEFAULT_SCORE_THRESHOLD
+                else embedder.recommended_min_score
+            )
+        )
 
     # ------------------------------------------------------------------ 检索（分阶段打点）
 
@@ -213,17 +245,35 @@ class QAEngine:
         overall = time.perf_counter()
         chunks, scores, timing = self._retrieve_timed(question, top_k=top_k)
 
+        # **闸门走 `refusal.decide`，不是只比一个分数**（W5 周三）。
+        # 顺序：空 → 低分 → 证据形态。第三种是今天新加的，理由见
+        # `refusal.py` 模块 docstring：分数挡不住"散射/平局"那类无答案。
+        verdict = decide(chunks, scores, threshold=self.min_score, top_k=self.top_k)
+        refusal = None if verdict.kind is RefusalKind.ANSWER else verdict
+
         started = time.perf_counter()
-        answer = await generate_answer(
-            question,
-            chunks,
-            client=client,
-            model=model,
-            max_context_chars=self.max_context_chars,
-            min_score=self.min_score,
-            scores=scores,
-        )
-        timing.build_context_ms = _ms(started) if not answer.refused else 0
+        if refusal is not None:
+            # 拒答**不调模型**。
+            # `answer.text` 恒等于 `REFUSAL_TEXT`（固定字符串），针对性建议走
+            # `verdict`（`QAResult.refusal`）—— 理由见 `refusal.py` 模块说明最后一节：
+            # 拒答文案进对话历史，必须可等值比较；建议属于展示层。
+            answer = Answer(
+                text=REFUSAL_TEXT,
+                refused=True,
+                top_score=verdict.top_score,
+            )
+            timing.build_context_ms = 0
+        else:
+            answer = await generate_answer(
+                question,
+                chunks,
+                client=client,
+                model=model,
+                max_context_chars=self.max_context_chars,
+                min_score=self.min_score,
+                scores=scores,
+            )
+            timing.build_context_ms = _ms(started)
         timing.total_ms = _ms(overall)
 
         return QAResult(
@@ -231,6 +281,7 @@ class QAEngine:
             timing=timing,
             contexts=_contexts_of(answer, chunks),
             top_score=answer.top_score,
+            refusal=refusal,
         )
 
     # ------------------------------------------------------------------ 流式（UI）
@@ -271,18 +322,18 @@ class QAEngine:
         overall = time.perf_counter()
         chunks, scores, timing = self._retrieve_timed(question, top_k=top_k)
 
-        # 闸门 1+2：空结果 / 分数过低 → 拒答，**不调模型**。
-        # 位置必须在 `yield "retrieved"` **之前**判断好，但 retrieved 要先吐出去
-        # （UI 要显示"检索到 0 条"或"分数 0.1 太低"）。
-        top_score = max(scores) if scores else None
-        refuse = not chunks or (top_score is not None and top_score < self.min_score)
+        # 闸门：走同一份 `refusal.decide`，**不在这里另写一份判据**。
+        # 两条路径（非流式 / 流式）各写一遍闸门是这类系统最典型的漂移源：
+        # CLI 拒了、UI 答了，而两边都"跑通了"。
+        verdict = decide(chunks, scores, threshold=self.min_score, top_k=self.top_k)
+        refusal = None if verdict.kind is RefusalKind.ANSWER else verdict
 
         yield ("retrieved", (chunks, scores, timing))
 
-        if refuse:
-            answer = Answer(text=REFUSAL_TEXT, refused=True, top_score=top_score)
+        if refusal is not None:
+            answer = Answer(text=REFUSAL_TEXT, refused=True, top_score=verdict.top_score)
             timing.total_ms = _ms(overall)
-            yield ("done", StreamDone(answer=answer, timing=timing, contexts=[]))
+            yield ("done", StreamDone(answer=answer, timing=timing, contexts=[], refusal=refusal))
             return
 
         started = time.perf_counter()
@@ -290,7 +341,9 @@ class QAEngine:
         timing.build_context_ms = _ms(started)
 
         if not available:
-            answer = Answer(text=REFUSAL_TEXT, refused=True, top_score=top_score)
+            # `build_context` 会强制放一条，所以这个分支基本走不到。
+            # 保留它是为了"绝不把空上下文交给模型"这条不变量。
+            answer = Answer(text=REFUSAL_TEXT, refused=True, top_score=verdict.top_score)
             timing.total_ms = _ms(overall)
             yield ("done", StreamDone(answer=answer, timing=timing, contexts=[]))
             return
@@ -330,7 +383,7 @@ class QAEngine:
             refused=False,
             context_chars=len(context),
             used_chunks=len(available),
-            top_score=top_score,
+            top_score=verdict.top_score,
         )
         yield (
             "done",
@@ -354,6 +407,9 @@ class StreamDone:
     timing: QATiming
     contexts: list[Chunk] = field(default_factory=list)
     """真正拼进上下文的块（按编号顺序）。UI 用它渲染"参考来源"原文。"""
+
+    refusal: Refusal | None = None
+    """拒答说明（含理由与建议）；答出来了就是 None。与 `QAResult.refusal` 同义。"""
 
 
 def _contexts_of(answer: Answer, chunks: Sequence[Chunk]) -> list[Chunk]:

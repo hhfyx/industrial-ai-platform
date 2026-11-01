@@ -1,0 +1,330 @@
+{
+  "meta": {
+    "chunk_chars": 500,
+    "overlap": 50,
+    "top_k": 5,
+    "threshold": 0.4,
+    "embedder": "bge",
+    "chunks": 532,
+    "rows": 25
+  },
+  "rows": [
+    {
+      "id": "rg-01",
+      "expect": "answer",
+      "question": "为什么计时不能从收到第一个数据块开始，而要等正文内容真的出现？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.6382,
+      "distinct_sources": 3,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-02",
+      "expect": "answer",
+      "question": "流式输出真能让总耗时变短吗，它实际优化的是哪一项？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.6373,
+      "distinct_sources": 3,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-03",
+      "expect": "answer",
+      "question": "为什么长文档一次校验失败重试，账单会比短文本贵好几倍？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.641,
+      "distinct_sources": 3,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-04",
+      "expect": "answer",
+      "question": "想用便宜模型降本，按请求分流和按字段分流的风险差别在哪？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.635,
+      "distinct_sources": 3,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-05",
+      "expect": "answer",
+      "question": "为什么块数和平均长度相同的两套切分，读起来质量会差很远？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.6564,
+      "distinct_sources": 3,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-06",
+      "expect": "answer",
+      "question": "判断一个条款有没有被拦腰切断，为什么机器自己判不了？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.6265,
+      "distinct_sources": 4,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-07",
+      "expect": "answer",
+      "question": "相似度比较的方向写反了，会出现什么后果？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.5733,
+      "distinct_sources": 3,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-08",
+      "expect": "answer",
+      "question": "检索分数为什么要在接口层统一成一种方向，而不是各库各报各的？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.6223,
+      "distinct_sources": 4,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-09",
+      "expect": "answer",
+      "question": "页码为什么必须在切块的那一刻就记下来，事后再补不行吗？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.701,
+      "distinct_sources": 2,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-10",
+      "expect": "answer",
+      "question": "什么情况下把整份文档塞进上下文反而比检索更合适？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.6015,
+      "distinct_sources": 2,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-11",
+      "expect": "answer",
+      "question": "给中文小模型加查询前缀，为什么对关键词重合度高的提问没有帮助？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.6126,
+      "distinct_sources": 3,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-12",
+      "expect": "answer",
+      "question": "引用回查时为什么按正文内容去找，而不是按块在库里的序号？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.6478,
+      "distinct_sources": 4,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-13",
+      "expect": "answer",
+      "question": "用户嫌首字慢，砍块数有用吗，应该先动哪些参数？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.6414,
+      "distinct_sources": 4,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-14",
+      "expect": "answer",
+      "question": "相邻块之间留一段重复文字，能补救哪一类被切断的情况？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.5729,
+      "distinct_sources": 4,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-15",
+      "expect": "answer",
+      "question": "分隔符表里的顺序如果排错，块尾会变成什么样子？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.5987,
+      "distinct_sources": 4,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-16",
+      "expect": "answer",
+      "question": "few-shot 里示例的摆放位置为什么会改变模型判断的倾向？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.5482,
+      "distinct_sources": 3,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-17",
+      "expect": "answer",
+      "question": "第一次推送时授权完，密码还会再问一遍吗，到底存在哪里？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.5412,
+      "distinct_sources": 4,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-18",
+      "expect": "answer",
+      "question": "表格单独抽出来之后，为什么还要把原文里那段文字删掉？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.7036,
+      "distinct_sources": 2,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-19",
+      "expect": "answer",
+      "question": "契约里新增一个可选字段，为什么老调用方完全不受影响？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.6071,
+      "distinct_sources": 3,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rg-20",
+      "expect": "answer",
+      "question": "摘要任务为什么十几秒才吐出第一个字，是模型太慢还是别的原因？",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.6307,
+      "distinct_sources": 4,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rf-01",
+      "expect": "refuse",
+      "question": "怎么配置 Kubernetes 集群的节点自动扩缩容",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.5625,
+      "distinct_sources": 2,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rf-02",
+      "expect": "refuse",
+      "question": "React 前端项目怎么配置路由懒加载",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.6577,
+      "distinct_sources": 2,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rf-03",
+      "expect": "refuse",
+      "question": "公司的期权分四年成熟每年可以行权多少",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.44,
+      "distinct_sources": 4,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    },
+    {
+      "id": "rf-04",
+      "expect": "refuse",
+      "question": "红烧肉要炖多久才能软烂入味",
+      "kind": "low_score",
+      "refused": true,
+      "top_score": 0.3945,
+      "distinct_sources": null,
+      "margin": null,
+      "advice": [
+        "换个问法，或补充更具体的限定词",
+        "缩小范围：先指定文档或章节再问"
+      ],
+      "text": "知识库中未找到相关内容。\n\n我没有在你的知识库里找到能回答这个问题的内容，因此不作回答。如果这个问题确实应该有答案，请确认相关文档已经导入。\n\n· 最相关的一条相似度只有 0.394，低于可信阈值 0.40\n· 换个问法，或补充更具体的限定词\n· 缩小范围：先指定文档或章节再问"
+    },
+    {
+      "id": "rf-05",
+      "expect": "refuse",
+      "question": "今天的美元兑人民币汇率是多少",
+      "kind": "answer",
+      "refused": false,
+      "top_score": 0.4823,
+      "distinct_sources": 4,
+      "margin": null,
+      "advice": [],
+      "text": ""
+    }
+  ],
+  "pipelines": {
+    "纯阈值（现方案）": {
+      "false_refusal": 0,
+      "false_accept": 4,
+      "false_refusal_rate": 0.0,
+      "false_accept_rate": 0.8
+    },
+    "阈值+形态（已撤销）": {
+      "false_refusal": 8,
+      "false_accept": 2,
+      "false_refusal_rate": 0.4,
+      "false_accept_rate": 0.4
+    }
+  }
+}
