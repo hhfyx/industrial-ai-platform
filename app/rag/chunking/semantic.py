@@ -294,10 +294,32 @@ def _assemble(
     if buffer:
         raw_segments.append(buffer)
 
+    # ---- 统一预算：`chunk_chars` 是三种策略共同的"目标块长"
+    #
+    # **这里曾经完全没有读 `chunk_chars`**（W5 周六发现）：
+    # 只用了 `semantic_min_chars` / `semantic_max_chars` 两个私有兜底值。
+    # 后果是**改 `chunk_chars` 对语义切分毫无影响** ——
+    # 实测 300 / 500 / 800 三档切出来的块数完全相同（2002），
+    # 也就是"三策略对比"里语义策略根本没参与参数比较，
+    # 那场比较对它是**不公平**的（它被钉死在 max_chars=800 上）。
+    #
+    # 修法：把 `chunk_chars` 作为**上限**，两个私有兜底值作为次级约束：
+    #   - 过长判定用 `min(chunk_chars, semantic_max_chars)`
+    #     （semantic_max_chars 仍然是"单主题文档的强制断开点"，
+    #       它不该超过全局预算）
+    #   - `semantic_min_chars` 原样保留（"过短合并"与预算无关）
+    budget = min(cfg.chunk_chars, cfg.semantic_max_chars)
+
     # 兜底 1：过短的段并回上一段（对策：并列条款每句都成断点）
+    # **合并后要复查是否超预算**：否则一串短句会被并成一个远超 chunk_chars 的巨块，
+    # 而那是"修了 A 引出 B"的典型。超了就另起一段。
     merged: list[str] = []
     for segment in raw_segments:
-        if merged and len(merged[-1]) < cfg.semantic_min_chars:
+        if (
+            merged
+            and len(merged[-1]) < cfg.semantic_min_chars
+            and len(merged[-1]) + len(segment) <= budget
+        ):
             merged[-1] += segment
         else:
             merged.append(segment)
@@ -305,13 +327,13 @@ def _assemble(
     # 兜底 2：过长的段在句子边界强制断开（对策：单主题技术文档永不到达断点）
     final: list[str] = []
     for segment in merged:
-        if len(segment) <= cfg.semantic_max_chars:
+        if len(segment) <= budget:
             final.append(segment)
             continue
-        # 按句子重新累加，到 max_chars 就断（**不截断句子**）
+        # 按句子重新累加，到 budget 就断（**不截断句子**）
         buffer = ""
         for sentence in split_sentences(segment):
-            if buffer and len(buffer) + len(sentence) > cfg.semantic_max_chars:
+            if buffer and len(buffer) + len(sentence) > budget:
                 final.append(buffer)
                 buffer = sentence
             else:

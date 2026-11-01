@@ -85,7 +85,7 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(PROJECT_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
-from retrieval_harness import load_corpus  # noqa: E402
+from retrieval_harness import load_corpus, load_raw_corpus  # noqa: E402
 
 EVAL_FILE: Path = PROJECT_ROOT / "eval" / "questions-50.jsonl"
 RESULTS_DIR: Path = PROJECT_ROOT / "eval" / "results"
@@ -518,6 +518,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--threshold", type=float, default=None)
     parser.add_argument("--embedder", choices=["bge", "hashing"], default="bge")
     parser.add_argument("--out", type=Path, default=None, help="不给就按时间戳命名")
+    parser.add_argument(
+        "--merged-corpus",
+        action="store_true",
+        help="用合并正文语料（只适合调 chunk/overlap；**分数分布不等于线上**）",
+    )
     parser.add_argument("--no-write", action="store_true", help="只打印，不落盘")
     args = parser.parse_args(argv)
 
@@ -545,12 +550,24 @@ def main(argv: list[str] | None = None) -> int:
     else:
         embedder = CachedEmbedder(get_embedder("bge-small-zh"))
 
-    corpus = load_corpus()
+    # **默认用 loader 原样输出**（与线上 `index_file` 的输入一致）。
+    # 合并语料（`load_corpus`）只适合调 chunk/overlap 的网格 ——
+    # 它的分数分布与线上不同（可答 min 0.480 vs 0.5157，拒答 max 0.6288 vs 0.7958），
+    # 拿它定的阈值会在线上误拒。见 `retrieval_harness.load_corpus` 的警示。
+    if args.merged_corpus:
+        corpus = load_corpus()
+        docs_to_chunk = corpus.all_docs
+        corpus_desc = f"合并正文（{len(docs_to_chunk)} 段，**不等于线上**）"
+    else:
+        docs_to_chunk = load_raw_corpus()
+        corpus_desc = f"loader 原样（{len(docs_to_chunk)} 段，与线上一致）"
+
     chunk_cfg = ChunkingConfig(chunk_chars=chunk_chars, overlap_chars=overlap)
-    chunks = build_strategy(strategy, cfg=chunk_cfg).chunk(corpus.all_docs, chunk_cfg)
+    chunks = build_strategy(strategy, cfg=chunk_cfg).chunk(docs_to_chunk, chunk_cfg)
     print(
-        f"索引：{len(chunks)} 块（chunk={chunk_chars} overlap={overlap} "
-        f"strategy={strategy}），题目 {len(items)} 条",
+        f"语料：{corpus_desc}；索引 {len(chunks)} 块"
+        f"（chunk={chunk_chars} overlap={overlap} strategy={strategy}），"
+        f"题目 {len(items)} 条",
         file=sys.stderr,
     )
 
@@ -584,7 +601,8 @@ def main(argv: list[str] | None = None) -> int:
             "strategy": strategy,
             "embedder": args.embedder,
             "chunks": len(chunks),
-            "corpus_docs": len(corpus.prose) + len(corpus.fixed),
+            "corpus_docs": len(docs_to_chunk),
+            "corpus_kind": "merged" if args.merged_corpus else "raw",
             "ks": list(KS),
         },
         "metrics": metrics,

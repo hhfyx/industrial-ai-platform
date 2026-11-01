@@ -472,6 +472,59 @@ def test_semantic_forces_break_in_single_topic() -> None:
     )
 
 
+def test_semantic_respects_chunk_chars_budget() -> None:
+    """**语义切分必须响应 `chunk_chars`**（W5 周六修的实现 bug）。
+
+    修之前：`semantic._assemble` **一次都没读 `chunk_chars`**，
+    只用了自己的 `semantic_min_chars` / `semantic_max_chars`。
+    后果是改 `chunk_chars` 对它毫无影响 —— 实测 300/500/800 三档
+    切出来的块数完全相同（2002），于是"三策略对比"里
+    语义策略根本没参与参数比较，那场比较对它是**不公平的**。
+
+    这条断言锁的是"块数随预算变化"这个行为本身，
+    而不是某个具体数字 —— 数字会随语料变，行为不该变。
+    """
+    # 单调的多主题文本：句子之间差异足够大，语义策略能切出多个段
+    text = "".join(f"第{i}个主题讨论完全不同的内容，包含编号 {i * 7}。\n" for i in range(60))
+
+    counts: dict[int, int] = {}
+    for budget in (300, 500, 800):
+        chunks = SemanticChunking(HashingEmbedder(dimension=64)).chunk(
+            [_doc(text, page=1, pages=(1,))],
+            ChunkingConfig(chunk_chars=budget, semantic_max_chars=800),
+        )
+        counts[budget] = len(chunks)
+
+    assert len(set(counts.values())) > 1, (
+        f"改 chunk_chars 没影响块数（{counts}）—— 语义切分又忽略预算了"
+    )
+    assert counts[300] >= counts[500] >= counts[800], f"预算越小块数应越多，实际 {counts}"
+
+
+def test_semantic_min_merge_does_not_exceed_budget() -> None:
+    """ "过短合并"不能把一串短句并成远超预算的巨块。
+
+    第一个兜底（`semantic_min_chars`）会往前合并。如果不复查预算，
+    一串 20 字的短句会被并成一个几千字的块 —— 而那是
+    "修了参数敏感性问题、引出超长块问题"的典型。
+    这条在修 `chunk_chars` 时一起加的。
+    """
+    # 大量极短句：每句都会成为断点，全靠 min_chars 合并
+    text = "".join("短句。" for _ in range(200))
+    budget = 300
+    chunks = SemanticChunking(HashingEmbedder(dimension=64)).chunk(
+        [_doc(text, page=1, pages=(1,))],
+        ChunkingConfig(
+            chunk_chars=budget,
+            semantic_min_chars=200,
+            semantic_max_chars=800,
+        ),
+    )
+    assert len(chunks) > 1
+    oversize = [len(chunk.text) for chunk in chunks if len(chunk.text) > budget + 60]
+    assert not oversize, f"合并后超过预算的块：{oversize}（预算 {budget}）"
+
+
 def test_semantic_records_embedder_name() -> None:
     """块上要记 `embedder` —— 语义切分的结论**完全由它决定**。
 

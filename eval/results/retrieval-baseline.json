@@ -1,13 +1,14 @@
 {
   "meta": {
-    "generated_at": "2026-11-01 16:50:59",
+    "generated_at": "2026-11-01 17:54:56",
     "questions_file": "eval\\questions-50.jsonl",
     "chunk_chars": 500,
     "overlap": 50,
     "strategy": "recursive",
     "embedder": "bge",
-    "chunks": 532,
-    "corpus_docs": 359,
+    "chunks": 1907,
+    "corpus_docs": 1820,
+    "corpus_kind": "raw",
     "ks": [
       1,
       3,
@@ -22,19 +23,19 @@
     "refusals": 10,
     "recall": {
       "recall@1": {
-        "hits": 5,
+        "hits": 6,
         "total": 40,
-        "rate": 0.125
+        "rate": 0.15
       },
       "recall@3": {
-        "hits": 9,
+        "hits": 12,
         "total": 40,
-        "rate": 0.225
+        "rate": 0.3
       },
       "recall@5": {
-        "hits": 13,
+        "hits": 15,
         "total": 40,
-        "rate": 0.325
+        "rate": 0.375
       },
       "recall@8": {
         "hits": 17,
@@ -47,36 +48,42 @@
         "rate": 0.425
       }
     },
-    "mrr": 0.2096,
+    "mrr": 0.2352,
     "by_type": {
       "fact": {
         "total": 30,
-        "recall@5": 0.3667,
-        "mrr": 0.2581
+        "recall@5": 0.4333,
+        "mrr": 0.29
       },
       "multi_hop": {
         "total": 10,
         "recall@5": 0.2,
-        "mrr": 0.0643
+        "mrr": 0.071
       }
     },
-    "threshold": 0.4,
+    "threshold": 0.575,
     "refusal": {
-      "refused_correctly": 0,
+      "refused_correctly": 2,
       "refusal_total": 10,
-      "refusal_accuracy": 0.0,
-      "false_refusal": [],
+      "refusal_accuracy": 0.2,
+      "false_refusal": [
+        "f-01",
+        "f-03",
+        "f-04",
+        "f-07",
+        "f-09",
+        "f-15",
+        "f-26"
+      ],
       "false_accept": [
         "r-01",
-        "r-02",
         "r-03",
         "r-04",
         "r-05",
         "r-06",
         "r-07",
         "r-08",
-        "r-09",
-        "r-10"
+        "r-09"
       ],
       "recall_miss": [
         "f-01",
@@ -84,26 +91,26 @@
         "f-03",
         "f-04",
         "f-05",
+        "f-07",
         "f-08",
         "f-09",
-        "f-17",
+        "f-10",
         "f-18",
         "f-19",
         "f-20",
-        "f-21",
         "f-22",
+        "f-25",
         "f-26",
         "f-27",
         "f-30",
+        "m-01",
         "m-02",
         "m-03",
         "m-05",
         "m-06",
-        "m-07",
-        "m-08",
-        "m-10"
+        "m-08"
       ],
-      "overall_accuracy": 0.34,
+      "overall_accuracy": 0.36,
       "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
     }
   },
@@ -124,7 +131,7 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.6191
+      "top_score": 0.637
     },
     {
       "id": "f-03",
@@ -133,7 +140,7 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.4883
+      "top_score": 0.5311
     },
     {
       "id": "f-04",
@@ -142,7 +149,7 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.5234
+      "top_score": 0.544
     },
     {
       "id": "f-05",
@@ -151,25 +158,25 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.565
+      "top_score": 0.6025
     },
     {
       "id": "f-06",
       "type": "fact",
-      "hit_rank": 1,
+      "hit_rank": 2,
       "anchor_ranks": [
-        1
+        2
       ],
-      "top_score": 0.6212
+      "top_score": 0.6691
     },
     {
       "id": "f-07",
       "type": "fact",
-      "hit_rank": 8,
+      "hit_rank": null,
       "anchor_ranks": [
-        8
+        null
       ],
-      "top_score": 0.5348
+      "top_score": 0.5657
     },
     {
       "id": "f-08",
@@ -178,7 +185,7 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.6016
+      "top_score": 0.5983
     },
     {
       "id": "f-09",
@@ -187,25 +194,25 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.5138
+      "top_score": 0.5592
     },
     {
       "id": "f-10",
       "type": "fact",
-      "hit_rank": 5,
+      "hit_rank": null,
       "anchor_ranks": [
-        5
+        null
       ],
-      "top_score": 0.541
+      "top_score": 0.5964
     },
     {
       "id": "f-11",
       "type": "fact",
-      "hit_rank": 3,
+      "hit_rank": 1,
       "anchor_ranks": [
-        3
+        1
       ],
-      "top_score": 0.5959
+      "top_score": 0.6493
     },
     {
       "id": "f-12",
@@ -214,7 +221,7 @@
       "anchor_ranks": [
         1
       ],
-      "top_score": 0.6185
+      "top_score": 0.6146
     },
     {
       "id": "f-13",
@@ -228,20 +235,20 @@
     {
       "id": "f-14",
       "type": "fact",
-      "hit_rank": 2,
+      "hit_rank": 3,
       "anchor_ranks": [
-        2
+        3
       ],
-      "top_score": 0.67
+      "top_score": 0.6733
     },
     {
       "id": "f-15",
       "type": "fact",
-      "hit_rank": 4,
+      "hit_rank": 3,
       "anchor_ranks": [
-        4
+        3
       ],
-      "top_score": 0.4937
+      "top_score": 0.5354
     },
     {
       "id": "f-16",
@@ -250,14 +257,14 @@
       "anchor_ranks": [
         1
       ],
-      "top_score": 0.5692
+      "top_score": 0.5769
     },
     {
       "id": "f-17",
       "type": "fact",
-      "hit_rank": null,
+      "hit_rank": 5,
       "anchor_ranks": [
-        null
+        5
       ],
       "top_score": 0.6405
     },
@@ -268,7 +275,7 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.637
+      "top_score": 0.6384
     },
     {
       "id": "f-19",
@@ -277,7 +284,7 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.603
+      "top_score": 0.6257
     },
     {
       "id": "f-20",
@@ -286,14 +293,14 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.6263
+      "top_score": 0.647
     },
     {
       "id": "f-21",
       "type": "fact",
-      "hit_rank": null,
+      "hit_rank": 2,
       "anchor_ranks": [
-        null
+        2
       ],
       "top_score": 0.6487
     },
@@ -304,34 +311,34 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.5716
+      "top_score": 0.5764
     },
     {
       "id": "f-23",
+      "type": "fact",
+      "hit_rank": 3,
+      "anchor_ranks": [
+        3
+      ],
+      "top_score": 0.6177
+    },
+    {
+      "id": "f-24",
       "type": "fact",
       "hit_rank": 1,
       "anchor_ranks": [
         1
       ],
-      "top_score": 0.6
-    },
-    {
-      "id": "f-24",
-      "type": "fact",
-      "hit_rank": 2,
-      "anchor_ranks": [
-        2
-      ],
-      "top_score": 0.48
+      "top_score": 0.5755
     },
     {
       "id": "f-25",
       "type": "fact",
-      "hit_rank": 6,
+      "hit_rank": null,
       "anchor_ranks": [
-        6
+        null
       ],
-      "top_score": 0.6282
+      "top_score": 0.6463
     },
     {
       "id": "f-26",
@@ -349,7 +356,7 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.5825
+      "top_score": 0.6037
     },
     {
       "id": "f-28",
@@ -363,11 +370,11 @@
     {
       "id": "f-29",
       "type": "fact",
-      "hit_rank": 6,
+      "hit_rank": 1,
       "anchor_ranks": [
-        6
+        1
       ],
-      "top_score": 0.5511
+      "top_score": 0.5882
     },
     {
       "id": "f-30",
@@ -376,17 +383,17 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.5892
+      "top_score": 0.5849
     },
     {
       "id": "m-01",
       "type": "multi_hop",
-      "hit_rank": 7,
+      "hit_rank": null,
       "anchor_ranks": [
-        2,
-        7
+        1,
+        null
       ],
-      "top_score": 0.6805
+      "top_score": 0.6986
     },
     {
       "id": "m-02",
@@ -396,7 +403,7 @@
         null,
         null
       ],
-      "top_score": 0.6243
+      "top_score": 0.6299
     },
     {
       "id": "m-03",
@@ -406,17 +413,17 @@
         null,
         null
       ],
-      "top_score": 0.5361
+      "top_score": 0.5863
     },
     {
       "id": "m-04",
       "type": "multi_hop",
-      "hit_rank": 4,
+      "hit_rank": 7,
       "anchor_ranks": [
-        2,
-        4
+        7,
+        6
       ],
-      "top_score": 0.5746
+      "top_score": 0.6299
     },
     {
       "id": "m-05",
@@ -424,9 +431,9 @@
       "hit_rank": null,
       "anchor_ranks": [
         null,
-        null
+        1
       ],
-      "top_score": 0.6104
+      "top_score": 0.6757
     },
     {
       "id": "m-06",
@@ -436,17 +443,17 @@
         null,
         null
       ],
-      "top_score": 0.6453
+      "top_score": 0.662
     },
     {
       "id": "m-07",
       "type": "multi_hop",
-      "hit_rank": null,
+      "hit_rank": 5,
       "anchor_ranks": [
-        null,
-        4
+        1,
+        5
       ],
-      "top_score": 0.6073
+      "top_score": 0.6025
     },
     {
       "id": "m-08",
@@ -456,25 +463,25 @@
         null,
         null
       ],
-      "top_score": 0.5699
+      "top_score": 0.673
     },
     {
       "id": "m-09",
       "type": "multi_hop",
-      "hit_rank": 4,
+      "hit_rank": 5,
       "anchor_ranks": [
-        1,
-        4
+        3,
+        5
       ],
-      "top_score": 0.6558
+      "top_score": 0.7011
     },
     {
       "id": "m-10",
       "type": "multi_hop",
-      "hit_rank": null,
+      "hit_rank": 6,
       "anchor_ranks": [
-        2,
-        null
+        4,
+        6
       ],
       "top_score": 0.694
     },
@@ -483,70 +490,70 @@
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.6288
+      "top_score": 0.7958
     },
     {
       "id": "r-02",
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.5636
+      "top_score": 0.5748
     },
     {
       "id": "r-03",
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.5608
+      "top_score": 0.6485
     },
     {
       "id": "r-04",
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.5687
+      "top_score": 0.5779
     },
     {
       "id": "r-05",
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.5516
+      "top_score": 0.5752
     },
     {
       "id": "r-06",
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.5271
+      "top_score": 0.6042
     },
     {
       "id": "r-07",
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.5321
+      "top_score": 0.5976
     },
     {
       "id": "r-08",
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.5827
+      "top_score": 0.7103
     },
     {
       "id": "r-09",
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.5192
+      "top_score": 0.5785
     },
     {
       "id": "r-10",
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.5169
+      "top_score": 0.5549
     }
   ]
 }

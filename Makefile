@@ -14,7 +14,7 @@ PY := python
 UTF8 := -X utf8
 
 .DEFAULT_GOAL := help
-.PHONY: help test lint fmt ci eval-retrieval eval-retrieval-hashing topk token-audit grid filter-eval threshold refusal-demo
+.PHONY: help test lint fmt ci eval-retrieval eval-retrieval-hashing topk token-audit grid filter-eval threshold refusal-demo strategy-compare strategy-significance threshold-fine diagnose-semantic answer-quality
 
 help:  ## 列出所有任务
 	@$(PY) $(UTF8) scripts/tasks.py
@@ -55,3 +55,19 @@ threshold:  ## 阈值分布
 
 refusal-demo:  ## 拒答可演示
 	@$(PY) $(UTF8) scripts/tasks.py refusal-demo
+
+# ------------------------------------------------------------------ W5 周六主交付
+strategy-compare:  ## 三策略 × 各自最优参数（主表）
+	@$(PY) $(UTF8) scripts/tasks.py strategy-compare
+
+strategy-significance:  ## 三策略差异显著性
+	@$(PY) $(UTF8) scripts/tasks.py strategy-significance
+
+threshold-fine:  ## 阈值精标（50 条集）
+	@$(PY) $(UTF8) scripts/tasks.py threshold-fine
+
+diagnose-semantic:  ## 诊断语义切分
+	@$(PY) $(UTF8) scripts/tasks.py diagnose-semantic
+
+answer-quality:  ## 答案质量抽检（会花 LLM 钱）
+	@$(PY) $(UTF8) scripts/tasks.py answer-quality

@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "chunk_chars": 800,
+    "embedder": "bge",
+    "semantic_min_chars": 200,
+    "semantic_max_chars": 800
+  },
+  "segment_stats": {
+    "documents": 1748,
+    "chars_total": 295998,
+    "chars_mean": 169.3,
+    "chars_median": 122.0,
+    "chars_max": 3868,
+    "below_min_chars": 1218,
+    "below_min_ratio": 0.6968,
+    "note": "语义断点要在段**内部**找。若段长普遍小于 semantic_min_chars，策略会把它们整段并回去，于是不产生新边界"
+  },
+  "profiles": {
+    "recursive": {
+      "chunks": 1789,
+      "min": 3,
+      "p25": 49,
+      "median": 127,
+      "p75": 236,
+      "max": 1307,
+      "mean": 166.5
+    },
+    "semantic": {
+      "chunks": 2003,
+      "min": 2,
+      "p25": 42,
+      "median": 120,
+      "p75": 219,
+      "max": 1307,
+      "mean": 148.3
+    }
+  },
+  "breakpoint_quality": {
+    "supported": true,
+    "boundary_count": 5987,
+    "interior_count": 1244,
+    "boundary_similarity_mean": 0.5368,
+    "interior_similarity_mean": 0.4953,
+    "difference": -0.0415,
+    "mechanism_effective": false,
+    "caveat": "边界位置是按块数等分**估算**的（语义策略不暴露实际切点）；所以这只是方向性证据，不是精确测量"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "source": "strategy_compare.json",
+  "intervals": {
+    "recursive": [
+      0.2422,
+      0.5297
+    ],
+    "heading": [
+      0.2213,
+      0.5049
+    ],
+    "semantic": [
+      0.2213,
+      0.5049
+    ]
+  },
+  "pairs": [
+    {
+      "left": "heading",
+      "right": "recursive",
+      "only_left": 1,
+      "only_right": 1,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "left": "heading",
+      "right": "semantic",
+      "only_left": 1,
+      "only_right": 1,
+      "p_value": 1.0,
+      "significant": false
+    },
+    {
+      "left": "recursive",
+      "right": "semantic",
+      "only_left": 0,
+      "only_right": 0,
+      "p_value": 1.0,
+      "significant": false
+    }
+  ],
+  "all_significant_pairs": false,
+  "intervals_all_overlap": true
+}

@@ -69,6 +69,24 @@ TASKS: dict[str, tuple[str, list[str]]] = {
     ),
     "threshold": ("阈值分布：命中 vs 未命中的分数", ["scripts/threshold_scan.py"]),
     "refusal-demo": ("拒答可演示（含已撤销方案的对照）", ["scripts/refusal_demo.py"]),
+    # ---- W5 周六主交付 ----
+    "strategy-compare": (
+        "三策略 × 各自最优参数的全量对比（主表）",
+        ["scripts/strategy_compare.py"],
+    ),
+    "strategy-significance": (
+        "三策略差异的显著性检验（Wilson + 配对 McNemar）",
+        ["scripts/strategy_significance.py"],
+    ),
+    "threshold-fine": ("阈值精标（50 条集，19 档扫描）", ["scripts/threshold_fine.py"]),
+    "diagnose-semantic": (
+        "诊断语义切分：是实现不行，还是语料无从发挥",
+        ["scripts/diagnose_semantic.py"],
+    ),
+    "answer-quality": (
+        "答案质量抽检（20 条走完整链路，**会花 LLM 钱**）",
+        ["scripts/answer_quality.py"],
+    ),
 }
 
 

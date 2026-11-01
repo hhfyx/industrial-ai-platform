@@ -87,6 +87,20 @@ INDEX_STRATEGY: str = "recursive"
 
 # 参与检索评测的源文件白名单。**与 `eval/retrieval-gold.jsonl` 的 source 必须一致** ——
 # 语料里缺了某份文档，那条 gold 必然"未命中"，而那会被误读成"参数不好"。
+#
+# ## ⚠️ W5 周六发现：这个白名单会让"召回率"不可比
+#
+# 它只有 13 份文档，而 `strategy_compare.load_raw_corpus` 扫的是**全部** docs。
+# 于是同一套 50 条题在两个脚本里跑出完全不同的召回率：
+#
+#     白名单 13 份 → 717 段 → 764 块 → Recall@5 40.0%（但误拒 9）
+#     全部 docs    → 1820 段 → 1835 块 → Recall@5 40.0%
+#
+# **库越小越容易命中**（竞争者少），所以"用小子集调出来的参数"
+# 在完整库上不成立。这是评测集最容易犯的一类错：**测的不是线上那个库**。
+#
+# 现在 `load_raw_corpus` 默认扫全部 docs（与 `strategy_compare` 一致）；
+# 白名单只在**需要复现历史数字**时显式传入。
 CORPUS_SOURCES: tuple[str, ...] = (
     "README.md",
     "docs/sse.md",
@@ -102,6 +116,22 @@ CORPUS_SOURCES: tuple[str, ...] = (
     "docs/document-parsing.md",
     "docs/api-spec.md",
 )
+
+
+def full_corpus_sources() -> tuple[str, ...]:
+    """**全部** md 文档（docs/ 递归 + 根 README）。
+
+    这是"线上的库"实际包含的东西 —— 用户上传什么就在库里，
+    不会因为我们只关心 13 份就少放。用它做评测才和线上同构。
+
+    **按名字排序**：保证不同机器、不同文件系统顺序下切出来的块序一致
+    （块序影响 `store_id`，进而影响同分时的排序）。
+    """
+    docs = sorted(
+        f"docs/{p.relative_to(PROJECT_ROOT / 'docs').as_posix()}"
+        for p in (PROJECT_ROOT / "docs").rglob("*.md")
+    )
+    return ("README.md", *docs)
 
 
 @dataclass
@@ -127,7 +157,26 @@ class Corpus:
 
 
 def load_corpus(sources: Sequence[str] = CORPUS_SOURCES) -> Corpus:
-    """按白名单加载并合并语料。文件缺失时**记 warning 而不是静默跳过**。"""
+    """按白名单加载并**合并正文**。文件缺失时**记 warning 而不是静默跳过**。
+
+    ## ⚠️ 这个粒度**不等于线上**
+
+    线上走 `RagPipeline.index_file(path)` → `load_document` → 切分器，
+    拿到的是 loader **原样输出**（1748 段，平均 169 字）。
+    而这里把每份文档的正文段合并成一段（359 段）。
+
+    差异的后果（W5 周六实测）：
+    - 合并后 `chunk_chars` 才"有感觉"（300→800 块数差 34%）
+    - 但**分数分布也变了**：合并语料可答 min=0.480，原样语料是 0.5157；
+      拒答 max 也从 0.6288 变成 0.7958
+    - 于是**阈值不可跨粒度移植** —— 用合并语料定出的 0.575，
+      在原样语料上会误拒 16 条
+
+    所以：
+    - **调 `chunk_chars` / `overlap` 的网格**用这个（参数敏感性高）
+    - **任何要报告"线上会怎样"的评测**（策略对比、阈值、答案质量）
+      必须用 `load_raw_corpus`
+    """
     corpus = Corpus()
     for relative in sources:
         path = PROJECT_ROOT / relative
@@ -163,7 +212,24 @@ def chunk_corpus(corpus: Corpus, cfg: ChunkingConfig) -> list[Chunk]:
     return strategy.chunk(corpus.all_docs, cfg)
 
 
-# --------------------------------------------------------------------------- 金标集
+def load_raw_corpus(sources: Sequence[str] | None = None) -> list[Document]:
+    """**loader 原样输出，不合并** —— 这是线上 `index_file` 的实际输入。
+
+    见 `load_corpus` 的警示：任何要报告"线上会怎样"的评测都用这个。
+
+    `sources=None` 用**全部** md（`full_corpus_sources()`），
+    与 `strategy_compare.load_raw_corpus` 一致 —— 两者必须同库，否则召回率不可比。
+    """
+    targets = full_corpus_sources() if sources is None else sources
+    docs: list[Document] = []
+    for relative in targets:
+        path = PROJECT_ROOT / relative
+        if not path.exists():
+            continue
+        docs.extend(load_document(path).documents)
+    return (
+        docs  # --------------------------------------------------------------------------- 金标集
+    )
 
 
 @dataclass(frozen=True, slots=True)
