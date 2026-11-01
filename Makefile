@@ -81,3 +81,7 @@ bm25-audit:  ## BM25 管线体检（词典/语料/索引一致性）
 
 bm25-compare:  ## 术语型 query：BM25 vs 纯向量对照
 	@$(PY) $(UTF8) scripts/tasks.py bm25-compare
+
+# ------------------------------------------------------------------ W6 周二：混合检索
+hybrid-compare:  ## 八组对照（纯向量/RRF/加权）+ 显著性检验
+	@$(PY) $(UTF8) scripts/tasks.py hybrid-compare

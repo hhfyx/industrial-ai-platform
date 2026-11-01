@@ -45,6 +45,7 @@ ANALYSIS_NAME_PATTERNS: tuple[str, ...] = (
     "retrieval-params",
     "eval-50",
     "strategy-comparison",
+    "bm25",
     "w4-checklist",
 )
 
@@ -58,10 +59,12 @@ def _looks_like_analysis(name: str) -> bool:
 def test_no_analysis_doc_leaks_into_the_corpus() -> None:
     """**按名字判，不按名单判** —— 名单是人手写的，一定会漏。
 
-    W5 就是漏了 `retrieval-tuning-token-grid.md`：它和
-    `retrieval-tuning-final.md` 同性质（周三的 token 审计 + 网格报告），
-    但当时只写进了 final 一个名字。漏排的结果是两个提交跑出
-    1678 块 vs 1592 块两个库，而主指标一模一样 —— 不会报警。
+    这条已经被同一个坑咬了两次：
+
+    - W5 漏了 `retrieval-tuning-token-grid.md`（与 final 同性质）→ 1678 块 vs 1592 块
+    - W6 周一漏了当天新写的 `bm25.md` → 1650 块 vs 1592 块
+
+    两次主指标都几乎不变，所以**没有任何数字会报警**。只能靠规则守。
     """
     leaked = [src for src in rh.full_corpus_sources() if _looks_like_analysis(Path(src).name)]
     assert leaked == [], (
@@ -69,6 +72,38 @@ def test_no_analysis_doc_leaks_into_the_corpus() -> None:
         + "\n  ".join(leaked)
         + "\n把它们加进 ANALYSIS_DOCS（判据是『是不是分析报告』，不是『名单里有没有』）"
     )
+
+
+def test_weekly_reports_never_enter_the_corpus() -> None:
+    """**整个 `docs/weekly/` 都不进检索库** —— 这是泄题，不只是竞争。
+
+    W6 周一实测：`weekly/w6.md` 进了库，而它正文里写着
+    「向量 16 / BM25 14 / 差异 10 条」。检索"BM25 表现如何"时那块会直接命中 ——
+    **那不是检索能力，是答案就在库里。**
+
+    周报每周新增一份、每份都在复述当周结论，所以逐个加 `ANALYSIS_DOCS` 必然漏，
+    必须按目录排除。
+    """
+    leaked = [src for src in rh.full_corpus_sources() if "/weekly/" in src]
+    assert leaked == [], (
+        f"周报进了检索库（它们复述当周结论，等于泄题）：{leaked}\n应当在 ANALYSIS_DIRS 里按目录排除"
+    )
+
+
+def test_analysis_dirs_actually_take_effect() -> None:
+    """`ANALYSIS_DIRS` 不是写给自己看的 —— 被它指到的目录必须真的从语料里消失。"""
+    kept = rh.full_corpus_sources()
+    for prefix in rh.ANALYSIS_DIRS:
+        on_disk = [
+            f"{prefix}{p.relative_to(PROJECT_ROOT / prefix).as_posix()}"
+            for p in (PROJECT_ROOT / prefix).rglob("*.md")
+            if (PROJECT_ROOT / prefix).exists()
+        ]
+        if not (PROJECT_ROOT / prefix).exists():
+            continue
+        assert on_disk, f"{prefix} 下没有任何 md —— 这条断言失去意义"
+        leaked = [src for src in kept if src.startswith(prefix)]
+        assert leaked == [], f"{prefix} 在 ANALYSIS_DIRS 里，但仍出现在语料：{leaked}"
 
 
 def test_analysis_docs_stay_in_sync_with_the_name_patterns() -> None:

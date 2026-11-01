@@ -113,6 +113,11 @@ TASKS: dict[str, tuple[str, list[str]]] = {
         "术语型 query 对照：BM25 vs 纯向量（10 条，各自 top5）",
         ["scripts/bm25_compare.py"],
     ),
+    # ---- W6 周二：混合检索（RRF / 加权融合）----
+    "hybrid-compare": (
+        "八组对照：纯向量 / 纯BM25 / RRF×2 / 朴素反例 / 加权×3 + 显著性检验",
+        ["scripts/hybrid_compare.py"],
+    ),
 }
 
 

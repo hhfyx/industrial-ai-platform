@@ -33,7 +33,19 @@ W4 已经因为"distance vs 相似度"踩过一次。所以：
 
 from __future__ import annotations
 
-__all__ = ["BM25Hit", "BM25Index", "BM25Params", "BM25Retriever", "tokenize"]
+__all__ = [
+    "BM25Hit",
+    "BM25Index",
+    "BM25Params",
+    "BM25Retriever",
+    "FusedHit",
+    "FusionConfig",
+    "FusionMode",
+    "MergeStats",
+    "merge_rankings",
+    "normalize_within_query",
+    "tokenize",
+]
 
 
 def __getattr__(name: str) -> object:
@@ -42,7 +54,21 @@ def __getattr__(name: str) -> object:
     与 `embedding.get_embedder` / `stores.get_store` 同一原则：
     可选依赖的缺失应当是"用一个清晰错误拒绝调用"，而不是
     "在包导入阶段把整个应用带崩"。`/health` 要能在缺依赖时正常回答。
+
+    **`fusion` 里的东西不走延迟导入**：它只用标准库与 `dataclasses`，
+    没有任何可选依赖 —— 融合是纯算法，压测与单元测试都该能独立导入它。
     """
+    if name in (
+        "FusionConfig",
+        "FusionMode",
+        "MergeStats",
+        "merge_rankings",
+        "normalize_within_query",
+        "FusedHit",
+    ):
+        from app.rag.bm25 import fusion
+
+        return getattr(fusion, name)
     if name in ("BM25Hit", "BM25Retriever"):
         from app.rag.bm25 import retriever
 

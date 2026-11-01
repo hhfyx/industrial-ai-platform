@@ -100,6 +100,9 @@ POST /api/v1/extract
 │       stores/    Chroma 持久化 / 内存（同 Protocol）                 │
 │       bm25/      字面检索（jieba 分词 + 领域词典 + IDF 加权）        │
 │                   **与向量并列的另一条路**，不替换它（见 docs/bm25.md）│
+│                   fusion.py：RRF / 加权融合（归一化按 query 内部做） │
+│                   ⚠ 八组对照全部 p>0.05，**基线仍是纯向量**（见        │
+│                     docs/hybrid-retrieval.md）                       │
 │                                                                     │
 │   ② 检索段（每次）   query→向量→cosine→TopK → 阈值闸门                │
 │   ③ 生成段（每次）   拼上下文[1][2]… → 流式调模型 → 解析[n] → 引用    │

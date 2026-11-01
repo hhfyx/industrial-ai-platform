@@ -126,6 +126,8 @@ ANALYSIS_DOCS: frozenset[str] = frozenset(
         "retrieval-params.md",
         "eval-50.md",
         "strategy-comparison.md",
+        # W6 新增的分析报告
+        "bm25.md",
         # 历史周报与清单：同样是"对项目的描述"，不是被检索的业务文档
         "w4-checklist.md",
     }
@@ -135,23 +137,29 @@ ANALYSIS_DOCS: frozenset[str] = frozenset(
 它们描述"这个项目做了什么"，而不是"用户要查的知识"。
 混进去的后果见 `full_corpus_sources` 的说明（17% 的 top5 被污染）。
 
-## `retrieval-tuning-token-grid.md` 是 W6 补进来的（漏排了）
+## 判据是"目录/性质"，不是"名单"（W6 周二改成规则）
 
-W5 周日只排除了 `retrieval-tuning-final.md`，漏了同一性质的
-`retrieval-tuning-token-grid.md`（84 段 / 86 块）。它是**周三的 token 审计 +
-chunk/overlap 网格报告**，和 final 一样在复述结论、复述项目做了什么 ——
-判据（"分析报告"）从来没区分过这两份，只是当时只想到一份。
+前两轮都栽在同一件事上：名单是手写的，**新写一份分析文档就会漏**。
 
-漏排的后果不是"数字偏大"这么简单，而是**同一份 harness 两次跑出两个库**：
-- 现行 `full_corpus_sources()`（漏排）→ 1597 段 / 1678 块
-- 按判据排干净 → 1513 段 / 1592 块
+| 轮次 | 漏了什么 | 后果 |
+| --- | --- | --- |
+| W5 周日 | `retrieval-tuning-token-grid.md` | 两个提交跑出 1678 块 vs 1592 块 |
+| W6 周一 | `bm25.md` + `weekly/w6.md`（当天新写） | 1650 块 vs 1592 块，且 `w6.md` 里直接写着「Recall@5 40.0%」 |
 
-两个口径下 Recall@5 都是 40.0%（16/40）、MRR 都是 0.2402 —— **主指标不变**，
-变的只是块数/耗时这类元数据列。所以这是一次**零结论风险的纯口径统一**：
-补上它不会推翻任何 W5 结论，只会让"块数"这一列第一次可复现。
+第二次尤其严重：**`w6.md` 复述了本周的指标**，等于把答案放进了检索库。
+所以现在`full_corpus_sources()` 除了看 `ANALYSIS_DOCS` 名单，
+还**按目录排除整个 `docs/weekly/`**（周报天然是"对项目的描述"，
+每一份都复述当周结论，逐个加名单必然再次漏）。
+"""
 
-历史文件名 `retrieval-tuning.md`（周三版本，后改名为 `-token-grid.md`）
-如果哪天被恢复，同样要排 —— 判据是"是不是分析报告"，不是名单里有没有。
+#: 整个目录都不进检索语料。**按目录而不是按文件**，因为周报每周新增一份，
+#: 而每一份都在复述当周结论 —— 逐个加名单是必然漏的。
+ANALYSIS_DIRS: tuple[str, ...] = ("docs/weekly/",)
+"""`docs/weekly/` 下的周报全部排除。
+
+W6 周一实测：`weekly/w6.md` 进了检索库，而它正文里就有「向量 16 / BM25 14 /
+差异 10 条」。检索一个问「BM25 在全量 40 条上表现如何」的 query 时，
+这块会直接命中 —— **那不是检索能力，是泄题**。
 """
 
 
@@ -174,8 +182,11 @@ def full_corpus_sources() -> tuple[str, ...]:
     这是一个非常隐蔽的评测污染：不报错、让召回率**随我写文档的多少而下降**、
     越努力写文档评测越差 —— 而人会去调参数。
 
-    判据用**文件名白名单**而不是"git 是否跟踪"：后者会把新加的文档漏进来，
-    而新文档同样会造成污染。
+    判据用**文件名白名单 + 目录排除**：`ANALYSIS_DOCS` 管具体文件，
+    `ANALYSIS_DIRS` 管整个目录（周报每周新增一份，逐个加名单必然漏）。
+
+    **为什么不用"git 是否跟踪"**：那会把新加的文档漏进来，而新文档同样造成污染 ——
+    W6 周一就是这么被自己当天写的 `bm25.md` 和 `weekly/w6.md` 坑了一次。
 
     **按名字排序**：保证不同机器、不同文件系统顺序下切出来的块序一致
     （块序影响 `store_id`，进而影响同分时的排序）。
@@ -184,6 +195,10 @@ def full_corpus_sources() -> tuple[str, ...]:
         f"docs/{p.relative_to(PROJECT_ROOT / 'docs').as_posix()}"
         for p in (PROJECT_ROOT / "docs").rglob("*.md")
         if p.name not in ANALYSIS_DOCS
+        and not any(
+            f"docs/{p.relative_to(PROJECT_ROOT / 'docs').as_posix()}".startswith(prefix)
+            for prefix in ANALYSIS_DIRS
+        )
     )
     return ("README.md", *docs)
 
@@ -434,6 +449,8 @@ def summarize_outcomes(outcomes: Sequence[QueryOutcome]) -> dict[str, Any]:
 
 
 __all__ = [
+    "ANALYSIS_DIRS",
+    "ANALYSIS_DOCS",
     "CORPUS_SOURCES",
     "GOLD_PATH",
     "INDEX_STRATEGY",
@@ -444,8 +461,10 @@ __all__ = [
     "QueryOutcome",
     "chunk_corpus",
     "evaluate_query",
+    "full_corpus_sources",
     "load_corpus",
     "load_gold",
+    "load_raw_corpus",
     "summarize_outcomes",
     "validate_gold",
 ]
