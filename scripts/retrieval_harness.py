@@ -118,38 +118,66 @@ CORPUS_SOURCES: tuple[str, ...] = (
 )
 
 
+#: 文档名命中这些**模式**就不进检索语料。**这才是判据，`ANALYSIS_DOCS` 只是历史遗留。**
+#:
+#: 为什么必须是模式而不是名单：前三轮，名单每次都漏，因为**漏的那份是当天新写的**。
+#:
+#: | 轮次 | 漏了什么 | 后果 |
+#: | --- | --- | --- |
+#: | W5 周日 | `retrieval-tuning-token-grid.md` | 1678 块 vs 1592 块 |
+#: | W6 周一 | `bm25.md` + `weekly/w6.md`（当天新写） | 1650 块，且 w6.md 里写着「Recall@5 40.0%」 |
+#: | W6 周三 | `hybrid-retrieval.md`（昨天新写） | 1404 块 vs 1363 块 |
+#:
+#: 三次全都是"**我在写分析文档，然后在用它污染评测**"这个循环。
+#: 名单是事后补的，而新文档是事前写的 —— 顺序上就赢不了。
+#:
+#: 判据是**名字长什么样**：本项目的分析报告都以 `retrieval-*` / `bm25` /
+#: `hybrid-*` / `eval-*` / `strategy-*` 打头，或叫 `*-checklist`。
+#: 判据收紧了宁可多排（多排只是少了点语料，误排进库是**污染评测**）。
+ANALYSIS_NAME_PATTERNS: tuple[str, ...] = (
+    "retrieval-",
+    "bm25",
+    "hybrid-",
+    "eval-",
+    "strategy-",
+    "rerank",
+)
+
+
+def _is_analysis_name(name: str) -> bool:
+    """文档名是否属于"分析报告"这一类。
+
+    `*-checklist.md` 也排除（w4-checklist.md 是这类），
+    它的性质是"对项目的描述"，与周报相同。
+    """
+    stem = name.removesuffix(".md")
+    return stem.endswith("-checklist") or any(
+        stem.startswith(pattern) for pattern in ANALYSIS_NAME_PATTERNS
+    )
+
+
 ANALYSIS_DOCS: frozenset[str] = frozenset(
     {
-        # 本周（W5）新增的分析报告 —— 它们在复述结论，是最强的语义竞争者
+        # 历史遗留的显式名单。**它已经不是判据了** ——
+        # 判据是上面的 `ANALYSIS_NAME_PATTERNS`，这里留着的唯一理由是
+        # 让"哪几份曾被手工点名"可被搜索到。
         "retrieval-tuning-final.md",
         "retrieval-tuning-token-grid.md",
         "retrieval-params.md",
         "eval-50.md",
         "strategy-comparison.md",
-        # W6 新增的分析报告
         "bm25.md",
-        # 历史周报与清单：同样是"对项目的描述"，不是被检索的业务文档
+        "hybrid-retrieval.md",
         "w4-checklist.md",
     }
 )
-"""**不进检索语料**的文档：分析报告、周报、清单。
+"""**历史上被手工点名排除**的文档。
 
-它们描述"这个项目做了什么"，而不是"用户要查的知识"。
-混进去的后果见 `full_corpus_sources` 的说明（17% 的 top5 被污染）。
+⚠️ **这不是判据。** 判据是 `ANALYSIS_NAME_PATTERNS`。
 
-## 判据是"目录/性质"，不是"名单"（W6 周二改成规则）
-
-前两轮都栽在同一件事上：名单是手写的，**新写一份分析文档就会漏**。
-
-| 轮次 | 漏了什么 | 后果 |
-| --- | --- | --- |
-| W5 周日 | `retrieval-tuning-token-grid.md` | 两个提交跑出 1678 块 vs 1592 块 |
-| W6 周一 | `bm25.md` + `weekly/w6.md`（当天新写） | 1650 块 vs 1592 块，且 `w6.md` 里直接写着「Recall@5 40.0%」 |
-
-第二次尤其严重：**`w6.md` 复述了本周的指标**，等于把答案放进了检索库。
-所以现在`full_corpus_sources()` 除了看 `ANALYSIS_DOCS` 名单，
-还**按目录排除整个 `docs/weekly/`**（周报天然是"对项目的描述"，
-每一份都复述当周结论，逐个加名单必然再次漏）。
+保留它是因为：三轮下来这个名单一直在补（每次补的都是"当天新写的那份"），
+而这个提醒本身有价值 —— **名单是事后补的，新文档是事前写的，所以名单永远追不上**。
+新加分析文档时**不需要**改这里，只要名字符合模式就会自动排除。
 """
 
 #: 整个目录都不进检索语料。**按目录而不是按文件**，因为周报每周新增一份，
@@ -182,11 +210,15 @@ def full_corpus_sources() -> tuple[str, ...]:
     这是一个非常隐蔽的评测污染：不报错、让召回率**随我写文档的多少而下降**、
     越努力写文档评测越差 —— 而人会去调参数。
 
-    判据用**文件名白名单 + 目录排除**：`ANALYSIS_DOCS` 管具体文件，
-    `ANALYSIS_DIRS` 管整个目录（周报每周新增一份，逐个加名单必然漏）。
+    判据是**三层**，从宽到窄：
+
+    1. `_is_analysis_name()` —— 名字模式（`retrieval-*` / `bm25*` / `hybrid-*` …）
+       **这才是主判据**，覆盖"下周我会新写的那份"
+    2. `ANALYSIS_DIRS` —— 整个目录（周报每周新增一份）
+    3. `ANALYSIS_DOCS` —— 历史手工名单（仅作记录，不再是判据）
 
     **为什么不用"git 是否跟踪"**：那会把新加的文档漏进来，而新文档同样造成污染 ——
-    W6 周一就是这么被自己当天写的 `bm25.md` 和 `weekly/w6.md` 坑了一次。
+    W5、W6 周一、W6 周三连续三次都是"当天新写的那份"漏进库。
 
     **按名字排序**：保证不同机器、不同文件系统顺序下切出来的块序一致
     （块序影响 `store_id`，进而影响同分时的排序）。
@@ -194,7 +226,7 @@ def full_corpus_sources() -> tuple[str, ...]:
     docs = sorted(
         f"docs/{p.relative_to(PROJECT_ROOT / 'docs').as_posix()}"
         for p in (PROJECT_ROOT / "docs").rglob("*.md")
-        if p.name not in ANALYSIS_DOCS
+        if not _is_analysis_name(p.name)
         and not any(
             f"docs/{p.relative_to(PROJECT_ROOT / 'docs').as_posix()}".startswith(prefix)
             for prefix in ANALYSIS_DIRS

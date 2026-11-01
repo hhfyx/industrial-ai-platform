@@ -118,6 +118,19 @@ TASKS: dict[str, tuple[str, list[str]]] = {
         "八组对照：纯向量 / 纯BM25 / RRF×2 / 朴素反例 / 加权×3 + 显著性检验",
         ["scripts/hybrid_compare.py"],
     ),
+    # ---- W6 周三：Reranker（Cross-Encoder 精排）----
+    "rerank-probe": (
+        "精排延迟/批量/截断/分数跨度实测（**很慢，全量约 10 分钟**）",
+        ["scripts/rerank_probe.py"],
+    ),
+    "rerank-eval": (
+        "10 条 query 精排前后 top5 变化（约 4 分钟）",
+        ["scripts/rerank_eval.py"],
+    ),
+    "fetch-reranker": (
+        "从 ModelScope 拉 bge-reranker-v2-m3（2.3 GB，本机 HF 不可达）",
+        ["scripts/fetch_reranker.py"],
+    ),
 }
 
 

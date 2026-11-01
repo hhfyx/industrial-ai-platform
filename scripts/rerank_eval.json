@@ -1,0 +1,493 @@
+{
+  "meta": {
+    "generated_at": "2026-11-01 23:18:27",
+    "corpus_docs": 1288,
+    "chunks": 1363,
+    "chunk_chars": 500,
+    "overlap": 50,
+    "strategy": "recursive",
+    "model": "d:\\cache\\modelscope\\bge-reranker-v2-m3",
+    "device": "cpu",
+    "load_ms": 12909,
+    "candidates": 20,
+    "top_k": 5
+  },
+  "summary": {
+    "queries": 10,
+    "better": [
+      "f-05",
+      "f-08"
+    ],
+    "worse": [],
+    "same": [
+      "f-30",
+      "f-18",
+      "f-20",
+      "f-07",
+      "f-25",
+      "f-19",
+      "f-22",
+      "f-10"
+    ],
+    "changed_rank": [
+      "f-05",
+      "f-08"
+    ],
+    "mrr_before": 0.0129,
+    "mrr_after": 0.1167,
+    "hit_before": 0,
+    "hit_after": 1
+  },
+  "rows": [
+    {
+      "id": "f-30",
+      "question": "正文超过长度上限时返回什么错误码？",
+      "gold_answer": "422 INVALID_INPUT，不是 413",
+      "rank_before": null,
+      "rank_after": null,
+      "verdict": "same",
+      "mrr_before": 0.0,
+      "mrr_after": 0.0,
+      "pushed_in": [
+        {
+          "chunk_id": "467a7a5c1cec062e",
+          "source": "api-spec.md",
+          "head": "```json {\"code\": \"INVALID_INPUT\", \"message\": \"正文长度超过上限 20000"
+        },
+        {
+          "chunk_id": "137ebda1592c2655",
+          "source": "README.md",
+          "head": "### 2. `finish_reason` 才是截断的唯一判据  `max_tokens` 设小时，内容可能停在句号之"
+        },
+        {
+          "chunk_id": "303e4a93a9c6e640",
+          "source": "embedding.md",
+          "head": "| | 含义 | 超了会怎样 | | --- | --- | --- | | **维度 512** | 每条向量 512"
+        }
+      ],
+      "replaced_in": [
+        {
+          "chunk_id": "2c4be3ec938ccf57",
+          "source": "structured-output.md",
+          "head": "## 3. 修复重试：为什么回灌报错原文有效  「你错了，请重试」是废话 —— 模型不知道错在哪，下一轮大概率重复同一个"
+        },
+        {
+          "chunk_id": "258ebeecf2a108dc",
+          "source": "SETUP.md",
+          "head": "**fine-grained 最常见的两个错误**：  1. `Repository access` 选了 `Publi"
+        },
+        {
+          "chunk_id": "1c09230338f3d2ee",
+          "source": "chroma-store.md",
+          "head": "old 不在语料里直接退出。 **测试数据本身出错，是最贵的错**：它不报错，只让所有结论失真。  **教训三：只判\"内"
+        }
+      ],
+      "rerank_ms": 5736,
+      "retrieval_ms": 2725,
+      "truncated_pairs": 0
+    },
+    {
+      "id": "f-18",
+      "question": "bge 的输入长度上限是多少 token？",
+      "gold_answer": "512 token（与向量维度 512 是两件事）",
+      "rank_before": null,
+      "rank_after": null,
+      "verdict": "same",
+      "mrr_before": 0.0,
+      "mrr_after": 0.0,
+      "pushed_in": [
+        {
+          "chunk_id": "7968312cf3d0f2b8",
+          "source": "embedding.md",
+          "head": "**两个 512 很容易被混成\"512 维 512 字\"**，但它们完全不相干。  按中文 0.676 tok/字（`s"
+        },
+        {
+          "chunk_id": "d08e66ca812f9347",
+          "source": "design-decisions.md",
+          "head": "### 为什么是 500  **① 让\"一个条款\"整块落在一个 chunk 里。** 一份 A4 中文合同的一个条款段通"
+        },
+        {
+          "chunk_id": "6b6b4e3932f15d77",
+          "source": "structured-output.md",
+          "head": "max_tokens=4096` 正常返回（`completion_tokens=1685`）。  **所以 `DEFA"
+        },
+        {
+          "chunk_id": "ba73c1e14bad5bd1",
+          "source": "deploy-notes.md",
+          "head": "``` ⚠️ 当前运行在低内存托管环境，向量化已降级为 hashing （只有字面相似，没有语义检索）。用 bge 需 "
+        }
+      ],
+      "replaced_in": [
+        {
+          "chunk_id": "d0851f5dcf8b6cb4",
+          "source": "system-prompt.md",
+          "head": "### 4.1 B 版真正的代价，有两个  **① Token 翻倍**：204 → 423 token / 次（+21"
+        },
+        {
+          "chunk_id": "41f438bac75ac3ac",
+          "source": "design-decisions.md",
+          "head": "``` 全书塞入：输入 token ∝ 文档长度 × 提问次数 ← 两个方向都线性 RAG ：输入 token = mi"
+        },
+        {
+          "chunk_id": "31eef63714878a13",
+          "source": "design-decisions.md",
+          "head": "| | 输入 token | 单次成本（2 元/M 输入） | 每 1000 次 | | --- | ---: | --"
+        },
+        {
+          "chunk_id": "0277de8a0fa0a06b",
+          "source": "streamlit-ui.md",
+          "head": "## 0. 必答题：1.5 秒里检索占多少  **检索约 9~11 ms，占首 token 的 0.36%~0.80% "
+        }
+      ],
+      "rerank_ms": 6369,
+      "retrieval_ms": 120,
+      "truncated_pairs": 0
+    },
+    {
+      "id": "f-20",
+      "question": "块的确定性 id 里为什么不放块序号？",
+      "gold_answer": "否则调切分参数会让整库 id 失效、幂等性被打穿",
+      "rank_before": null,
+      "rank_after": null,
+      "verdict": "same",
+      "mrr_before": 0.0,
+      "mrr_after": 0.0,
+      "pushed_in": [
+        {
+          "chunk_id": "b20a96f6c55f770c",
+          "source": "chroma-store.md",
+          "head": "`append=True` 时用 `store.count_by_source(s)` 算偏移量， 让新块的 `inde"
+        },
+        {
+          "chunk_id": "effe8831472a1893",
+          "source": "streamlit-ui.md",
+          "head": "最后一条是硬要求：**有编号但找不到出处就是 bug**。静默丢弃会让用户 以为那个 `[9]` 有依据。  ---"
+        }
+      ],
+      "replaced_in": [
+        {
+          "chunk_id": "fc51f15ae23190be",
+          "source": "chunking-boundaries.md",
+          "head": "| 块尾 | 判定 | 为什么 | | --- | --- | --- | | `。！？；` | 安全 | 句末 | |"
+        },
+        {
+          "chunk_id": "fa19030901f69a8e",
+          "source": "chunking-boundaries.md",
+          "head": "| 块首 | 判定 | 为什么 | | --- | --- | --- | | 句末标点开头 | 可疑 | 标点属于上一"
+        }
+      ],
+      "rerank_ms": 7495,
+      "retrieval_ms": 108,
+      "truncated_pairs": 0
+    },
+    {
+      "id": "f-05",
+      "question": "首字延迟这个指标的口径是怎么定的？",
+      "gold_answer": "从发起请求到第一个非空 content 的时间",
+      "rank_before": 13,
+      "rank_after": 1,
+      "verdict": "better",
+      "mrr_before": 0.0769,
+      "mrr_after": 1.0,
+      "pushed_in": [
+        {
+          "chunk_id": "9f8e59a8683ae8f9",
+          "source": "sse.md",
+          "head": "### 1.1 TTFT 的口径必须写死  **TTFT（Time To First Token）= 从发起请求到收到第"
+        },
+        {
+          "chunk_id": "4bb02995134e2776",
+          "source": "sse.md",
+          "head": "### 首 token 的位置也值得注意  实测首个 `delta` 常常是 `#`、` `（Markdown 标题符号"
+        },
+        {
+          "chunk_id": "663d7ee6d24a1d22",
+          "source": "README.md",
+          "head": "**结论：单次请求慢在模型，我方链路只占 162 ms（约 12%），可忽略。** 这个数字就是优化的靶子 —— 想压到"
+        },
+        {
+          "chunk_id": "62559b47d704bf24",
+          "source": "streamlit-ui.md",
+          "head": "### 这个数字决定了 W8 该做什么  **优化检索对降低首 token 时间几乎没有帮助。** 9 ms 换到 4."
+        }
+      ],
+      "replaced_in": [
+        {
+          "chunk_id": "d869e679a98dcaa9",
+          "source": "embedding.md",
+          "head": "所以上表里 API 的\"单条延迟 / 批量吞吐\"两格写的是**未能实测**，不是\"大概多少\"。 **编一个\"约 100m"
+        },
+        {
+          "chunk_id": "4fb73ac0c4897210",
+          "source": "chunking-quality.md",
+          "head": "| 现象 | 判定 | | --- | --- | | 块首是一个完整的句子开头（或标题、或续接标记） | ✅ | | "
+        },
+        {
+          "chunk_id": "fa19030901f69a8e",
+          "source": "chunking-boundaries.md",
+          "head": "| 块首 | 判定 | 为什么 | | --- | --- | --- | | 句末标点开头 | 可疑 | 标点属于上一"
+        },
+        {
+          "chunk_id": "036fc548178dbf94",
+          "source": "prompt-patterns.md",
+          "head": "| 臂 | 平均延迟 | 相对 A | | --- | ---: | ---: | | A | 724 ms | 1× "
+        }
+      ],
+      "rerank_ms": 7760,
+      "retrieval_ms": 103,
+      "truncated_pairs": 0
+    },
+    {
+      "id": "f-07",
+      "question": "六轮基准里流式把首字等待改善了多少倍？",
+      "gold_answer": "3209 ms → 1567 ms，约 2.0 倍",
+      "rank_before": null,
+      "rank_after": null,
+      "verdict": "same",
+      "mrr_before": 0.0,
+      "mrr_after": 0.0,
+      "pushed_in": [
+        {
+          "chunk_id": "b9acac43ed352dd4",
+          "source": "prompt-patterns.md",
+          "head": "花了 42 倍输出 token，换来的是**准确率下降**。  更关键的是**错在哪个字段**。三个臂的字段级错误分布："
+        },
+        {
+          "chunk_id": "663d7ee6d24a1d22",
+          "source": "README.md",
+          "head": "**结论：单次请求慢在模型，我方链路只占 162 ms（约 12%），可忽略。** 这个数字就是优化的靶子 —— 想压到"
+        },
+        {
+          "chunk_id": "0f2ae6c11eb87b1a",
+          "source": "sse.md",
+          "head": "| 指标 | 值 | 来源 | | --- | --- | --- | | TTFT（流式单次） | **1457ms*"
+        }
+      ],
+      "replaced_in": [
+        {
+          "chunk_id": "9ab46edee78d2382",
+          "source": "ab-scaffold.md",
+          "head": "**Δ = +0.6186（远超阈值 0.2）→ B 更好。**  **v2 不但更准，还更便宜、更快** —— 因为 "
+        },
+        {
+          "chunk_id": "0d97f09118048b2a",
+          "source": "prompt-ab.md",
+          "head": "现，复盘时才查出来。 原因是被迫在修复轮里来回试 —— 它知道信息在，\"时间\"填不对，就一直改。  > **归因结论：+"
+        },
+        {
+          "chunk_id": "a0eccf9d468fc869",
+          "source": "structured-output.md",
+          "head": "### 为什么是 2 轮  每轮都是真实计费 + 秒级延迟。W4 的 RAG、W7 的 judge 都在线上链路， 用户"
+        }
+      ],
+      "rerank_ms": 6945,
+      "retrieval_ms": 115,
+      "truncated_pairs": 0
+    },
+    {
+      "id": "f-25",
+      "question": "在自带思维链的模型上再叠加 CoT 提示，收益与代价如何？",
+      "gold_answer": "输出 token 涨到 42 倍，准确率反而下降",
+      "rank_before": null,
+      "rank_after": null,
+      "verdict": "same",
+      "mrr_before": 0.0,
+      "mrr_after": 0.0,
+      "pushed_in": [
+        {
+          "chunk_id": "20b55b043cfdff34",
+          "source": "prompt-patterns.md",
+          "head": "### 3.3 CoT（显式提示）—— 本任务上**净亏损**  - **适用**：需要多步计算、多约束同时满足、或答案"
+        },
+        {
+          "chunk_id": "9a01d816b6400d0c",
+          "source": "prompt-ab.md",
+          "head": "### 三个可以推广的规律  **① \"分步结构\"在推理模型上不一定划算。** qa 和 summarize 的 v2 "
+        }
+      ],
+      "replaced_in": [
+        {
+          "chunk_id": "d15707a02374841a",
+          "source": "prompt-patterns.md",
+          "head": "机制（有 token 数据）：思维链从 539 字符涨到 1224 字符，但**准确率降了**。 多出来的部分是模型把自"
+        },
+        {
+          "chunk_id": "98e2b67f9d11a103",
+          "source": "prompt-patterns.md",
+          "head": "| 相对谁 | 赢多少 | | --- | --- | | vs Zero-shot | **+4 条 / +20pp*"
+        }
+      ],
+      "rerank_ms": 8294,
+      "retrieval_ms": 136,
+      "truncated_pairs": 0
+    },
+    {
+      "id": "f-19",
+      "question": "多进程部署时，本地模型该怎么避免每个进程各加载一份？",
+      "gold_answer": "启动时 warmup 一次，多 worker 用独立 embedding 服务",
+      "rank_before": null,
+      "rank_after": null,
+      "verdict": "same",
+      "mrr_before": 0.0,
+      "mrr_after": 0.0,
+      "pushed_in": [
+        {
+          "chunk_id": "88beab47485bff36",
+          "source": "streamlit-ui.md",
+          "head": "| 项 | 状态 | 说明 | | --- | --- | --- | | **真实 TTFT** | ❌ **未验证*"
+        },
+        {
+          "chunk_id": "140fef5be46c9bcb",
+          "source": "rag-query-chain.md",
+          "head": "| 项 | 状态 | 说明 | | --- | --- | --- | | **真模型端到端** | ❌ **未验证**"
+        },
+        {
+          "chunk_id": "92835bb2fd782ff1",
+          "source": "README.md",
+          "head": "| # | 问题 | 现状 | 为什么 | 怎么修 | | --- | --- | --- | --- | --- | "
+        }
+      ],
+      "replaced_in": [
+        {
+          "chunk_id": "0007d09f722bda3e",
+          "source": "prompt-patterns.md",
+          "head": "## 五、复用到别的任务时，先验什么  这套结论**只在\"值域封闭的单步分类\"上成立**。换任务时按这个顺序验：  1."
+        },
+        {
+          "chunk_id": "eb76b1a245ce4d64",
+          "source": "streamlit-ui.md",
+          "head": "**领域层不 import streamlit**。`on_stage=None` 时 CLI 照常工作， 测试传一个假"
+        },
+        {
+          "chunk_id": "a939c7d34d1fc1dc",
+          "source": "prompt-templates.md",
+          "head": "版本机制有测试覆盖（环境变量切换、显式传参）， 但\"真正新增一个 v2 并切换\"的完整流程没走过。 - `load_sc"
+        }
+      ],
+      "rerank_ms": 10209,
+      "retrieval_ms": 145,
+      "truncated_pairs": 0
+    },
+    {
+      "id": "f-22",
+      "question": "同一份中文合同上，另一套切分器的块尾停在什么位置？",
+      "gold_answer": "5 块里 4 块停在半个词上，如\"程\"\"准\"",
+      "rank_before": null,
+      "rank_after": null,
+      "verdict": "same",
+      "mrr_before": 0.0,
+      "mrr_after": 0.0,
+      "pushed_in": [
+        {
+          "chunk_id": "5d941b395d9849f5",
+          "source": "document-parsing.md",
+          "head": "### 正确做法：解析阶段就落到每个段落上，切分只继承"
+        },
+        {
+          "chunk_id": "d2755138307c9bcb",
+          "source": "rag-query-chain.md",
+          "head": "`。` 必须排在 `，` 前面 —— 反了就会优先在逗号处断，块尾变成半句话。  ---"
+        },
+        {
+          "chunk_id": "da96171d4d311757",
+          "source": "chunking-boundaries.md",
+          "head": "``` '设备精度为 ±0.05mm，' ← 硬切，块尾是完整的 ±0.05mm '±0.05mm，重复定位 0.02m"
+        }
+      ],
+      "replaced_in": [
+        {
+          "chunk_id": "89067fc01a3a9868",
+          "source": "rag-query-chain.md",
+          "head": "## 1. 中文切分：为什么不用 LangChain 的 `RecursiveCharacterTextSplitter"
+        },
+        {
+          "chunk_id": "e1e72ea23cf8ede2",
+          "source": "chunking-boundaries.md",
+          "head": "### `boundaries.py`：数字与单位不许切开  \"0.05mm 不能拆\"这条同时约束**三处**代码："
+        },
+        {
+          "chunk_id": "8c8b7cbf5d54a63c",
+          "source": "rag-query-chain.md",
+          "head": "## 0. 必答题：`chunk_overlap` 到底解决什么问题  **防止关键信息正好被切在边界上断开。**  具"
+        }
+      ],
+      "rerank_ms": 6051,
+      "retrieval_ms": 116,
+      "truncated_pairs": 0
+    },
+    {
+      "id": "f-08",
+      "question": "为什么反复把整篇文档塞回上下文最费钱？",
+      "gold_answer": "输入占 96%，回灌要把 1996 token 再加一遍，达 4.2 倍",
+      "rank_before": 19,
+      "rank_after": 6,
+      "verdict": "better",
+      "mrr_before": 0.0526,
+      "mrr_after": 0.1667,
+      "pushed_in": [
+        {
+          "chunk_id": "10b2c3a2ddb55194",
+          "source": "chroma-store.md",
+          "head": "因为每段文本都是该 source 的\"第 0 块\"，`store_id` 都是 `xxx_-1_0` —— 后一次静默覆"
+        }
+      ],
+      "replaced_in": [
+        {
+          "chunk_id": "1c09230338f3d2ee",
+          "source": "chroma-store.md",
+          "head": "old 不在语料里直接退出。 **测试数据本身出错，是最贵的错**：它不报错，只让所有结论失真。  **教训三：只判\"内"
+        }
+      ],
+      "rerank_ms": 8707,
+      "retrieval_ms": 120,
+      "truncated_pairs": 0
+    },
+    {
+      "id": "f-10",
+      "question": "三条人工判据里哪一条可以自动化到九成？",
+      "gold_answer": "判据一（块首块尾是否完整），能自动判定 90%",
+      "rank_before": null,
+      "rank_after": null,
+      "verdict": "same",
+      "mrr_before": 0.0,
+      "mrr_after": 0.0,
+      "pushed_in": [
+        {
+          "chunk_id": "56017b744664d768",
+          "source": "chunking-quality.md",
+          "head": "> **半句率**（W5 周二新增，`app/rag/chunking/quality.py`）是这三条判据里 > **"
+        },
+        {
+          "chunk_id": "73772756a873b861",
+          "source": "chunking-quality.md",
+          "head": "## 待补（周六之前不做）  - [ ] 把判据二写成可执行的检查表（当前完全靠人读，**这是三条里最贵的**） - ["
+        },
+        {
+          "chunk_id": "75a66e8dffb12956",
+          "source": "README.md",
+          "head": "**三条有数字支撑的取舍**：  1. **不用语义切分**：Recall 37.5% vs 40.0%（**不显著，p"
+        }
+      ],
+      "replaced_in": [
+        {
+          "chunk_id": "c26e3d3f9ffc0ada",
+          "source": "chroma-store.md",
+          "head": "## 4. 检索验证：10 条已知答案  **本周不做量化**，所以判断是人工的：看 top3 里有没有对应原文。"
+        },
+        {
+          "chunk_id": "512f73af51a1b84c",
+          "source": "embedding.md",
+          "head": "> 第三条看起来多余（两个实现都归一化了），但它是**保险**： > 第三个 embedder 未必。除一次模长成本 O"
+        },
+        {
+          "chunk_id": "b861f9583dd859d8",
+          "source": "system-prompt.md",
+          "head": "| | A | B | | --- | ---: | ---: | | 正常工单里出现「无法判断」的条数 | **3 /"
+        }
+      ],
+      "rerank_ms": 7108,
+      "retrieval_ms": 118,
+      "truncated_pairs": 0
+    }
+  ]
+}

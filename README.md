@@ -103,6 +103,9 @@ POST /api/v1/extract
 │                   fusion.py：RRF / 加权融合（归一化按 query 内部做） │
 │                   ⚠ 八组对照全部 p>0.05，**基线仍是纯向量**（见        │
 │                     docs/hybrid-retrieval.md）                       │
+│                   rerank.py：Cross-Encoder 精排（bge-reranker-v2-m3）│
+│                   ⚠ **CPU 上 Top20 要 8.9 s、Top50 要 16.4 s**        │
+│                     → 精排不进在线链路（见 docs/reranker.md）          │
 │                                                                     │
 │   ② 检索段（每次）   query→向量→cosine→TopK → 阈值闸门                │
 │   ③ 生成段（每次）   拼上下文[1][2]… → 流式调模型 → 解析[n] → 引用    │

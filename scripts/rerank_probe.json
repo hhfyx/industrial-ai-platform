@@ -1,0 +1,181 @@
+{
+  "meta": {
+    "generated_at": "2026-11-01 23:10:09",
+    "corpus_docs": 1288,
+    "chunks": 1363,
+    "chunk_chars": 500,
+    "overlap": 50,
+    "strategy": "recursive",
+    "model": "d:\\cache\\modelscope\\bge-reranker-v2-m3",
+    "device": "cpu",
+    "max_length": 512,
+    "load_ms": 12320
+  },
+  "single": {
+    "pairs": 1,
+    "elapsed_ms": 172
+  },
+  "throughput": [
+    {
+      "batch_size": 1,
+      "sort_by_length": true,
+      "pairs": 50,
+      "elapsed_ms": 21540.6,
+      "ms_per_pair": 430.81,
+      "pairs_per_sec": 2.3
+    },
+    {
+      "batch_size": 1,
+      "sort_by_length": false,
+      "pairs": 50,
+      "elapsed_ms": 27435.1,
+      "ms_per_pair": 548.7,
+      "pairs_per_sec": 1.8
+    },
+    {
+      "batch_size": 8,
+      "sort_by_length": true,
+      "pairs": 50,
+      "elapsed_ms": 24133.4,
+      "ms_per_pair": 482.67,
+      "pairs_per_sec": 2.1
+    },
+    {
+      "batch_size": 8,
+      "sort_by_length": false,
+      "pairs": 50,
+      "elapsed_ms": 51089.1,
+      "ms_per_pair": 1021.78,
+      "pairs_per_sec": 1.0
+    },
+    {
+      "batch_size": 16,
+      "sort_by_length": true,
+      "pairs": 50,
+      "elapsed_ms": 50528.3,
+      "ms_per_pair": 1010.57,
+      "pairs_per_sec": 1.0
+    },
+    {
+      "batch_size": 16,
+      "sort_by_length": false,
+      "pairs": 50,
+      "elapsed_ms": 88357.7,
+      "ms_per_pair": 1767.15,
+      "pairs_per_sec": 0.6
+    },
+    {
+      "batch_size": 32,
+      "sort_by_length": true,
+      "pairs": 50,
+      "elapsed_ms": 44549.1,
+      "ms_per_pair": 890.98,
+      "pairs_per_sec": 1.1
+    },
+    {
+      "batch_size": 32,
+      "sort_by_length": false,
+      "pairs": 50,
+      "elapsed_ms": 58432.2,
+      "ms_per_pair": 1168.64,
+      "pairs_per_sec": 0.9
+    }
+  ],
+  "end_to_end": [
+    {
+      "candidates": 20,
+      "queries": 5,
+      "mean_ms": 8884.1,
+      "min_ms": 8085.6,
+      "max_ms": 9489.2
+    },
+    {
+      "candidates": 50,
+      "queries": 5,
+      "mean_ms": 16362.5,
+      "min_ms": 14929.3,
+      "max_ms": 18217.5
+    }
+  ],
+  "truncation": [
+    {
+      "policy": "tail",
+      "max_length": 256,
+      "truncated_pairs": 1,
+      "logit": -9.5097,
+      "score": 7.4e-05
+    },
+    {
+      "policy": "head",
+      "max_length": 256,
+      "truncated_pairs": 1,
+      "logit": -7.9914,
+      "score": 0.000338
+    },
+    {
+      "policy": "middle",
+      "max_length": 256,
+      "truncated_pairs": 1,
+      "logit": -8.1796,
+      "score": 0.00028
+    }
+  ],
+  "score_spread": [
+    {
+      "id": "f-01",
+      "top1": 0.0015,
+      "top5_min": 0.0007,
+      "top1_norm": 1.0,
+      "top5_min_norm": 0.451
+    },
+    {
+      "id": "f-02",
+      "top1": 0.7485,
+      "top5_min": 0.1692,
+      "top1_norm": 1.0,
+      "top5_min_norm": 0.2258
+    },
+    {
+      "id": "f-03",
+      "top1": 0.1711,
+      "top5_min": 0.0096,
+      "top1_norm": 1.0,
+      "top5_min_norm": 0.0557
+    },
+    {
+      "id": "f-04",
+      "top1": 0.0055,
+      "top5_min": 0.0009,
+      "top1_norm": 1.0,
+      "top5_min_norm": 0.1582
+    },
+    {
+      "id": "f-05",
+      "top1": 0.1191,
+      "top5_min": 0.0147,
+      "top1_norm": 1.0,
+      "top5_min_norm": 0.1225
+    },
+    {
+      "id": "f-06",
+      "top1": 0.6782,
+      "top5_min": 0.0147,
+      "top1_norm": 1.0,
+      "top5_min_norm": 0.0213
+    },
+    {
+      "id": "f-07",
+      "top1": 0.6237,
+      "top5_min": 0.0268,
+      "top1_norm": 1.0,
+      "top5_min_norm": 0.0427
+    },
+    {
+      "id": "f-08",
+      "top1": 0.8415,
+      "top5_min": 0.0801,
+      "top1_norm": 1.0,
+      "top5_min_norm": 0.0948
+    }
+  ]
+}

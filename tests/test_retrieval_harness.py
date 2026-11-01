@@ -38,40 +38,69 @@ if str(PROJECT_ROOT / "scripts") not in sys.path:
 
 import retrieval_harness as rh  # noqa: E402
 
-#: 名字长这样就算"分析/复盘报告"，**不该进检索库**。
-#: 判据是"它在复述项目做了什么"，不是"这份文件我记不记得排除"。
-ANALYSIS_NAME_PATTERNS: tuple[str, ...] = (
-    "retrieval-tuning",
-    "retrieval-params",
-    "eval-50",
-    "strategy-comparison",
-    "bm25",
-    "w4-checklist",
-)
-
-
-def _looks_like_analysis(name: str) -> bool:
-    return any(
-        name.startswith(pattern) or name == f"{pattern}.md" for pattern in ANALYSIS_NAME_PATTERNS
-    )
-
 
 def test_no_analysis_doc_leaks_into_the_corpus() -> None:
-    """**按名字判，不按名单判** —— 名单是人手写的，一定会漏。
+    """**按名字模式判，不按名单判** —— 名单是事后补的，新文档是事前写的。
 
-    这条已经被同一个坑咬了两次：
+    这个坑被咬了**三次**，每次都是同一句话：我在写分析文档，然后用它污染评测。
 
-    - W5 漏了 `retrieval-tuning-token-grid.md`（与 final 同性质）→ 1678 块 vs 1592 块
-    - W6 周一漏了当天新写的 `bm25.md` → 1650 块 vs 1592 块
+    | 轮次 | 漏了什么 | 后果 |
+    | --- | --- | --- |
+    | W5 周日 | `retrieval-tuning-token-grid.md` | 1678 块 vs 1592 块 |
+    | W6 周一 | `bm25.md` + `weekly/w6.md`（当天新写） | 1650 块，w6.md 里写着「Recall@5 40.0%」 |
+    | W6 周三 | `hybrid-retrieval.md`（昨天新写） | 1404 块 vs 1363 块 |
 
-    两次主指标都几乎不变，所以**没有任何数字会报警**。只能靠规则守。
+    三次主指标都几乎不变，所以**没有任何数字会报警**。只能靠规则守。
     """
-    leaked = [src for src in rh.full_corpus_sources() if _looks_like_analysis(Path(src).name)]
+    leaked = [src for src in rh.full_corpus_sources() if rh._is_analysis_name(Path(src).name)]
     assert leaked == [], (
         "这些文档在复述结论、不该进检索库，却漏在语料里：\n  "
         + "\n  ".join(leaked)
-        + "\n把它们加进 ANALYSIS_DOCS（判据是『是不是分析报告』，不是『名单里有没有』）"
+        + "\n判据是 ANALYSIS_NAME_PATTERNS（名字模式），不是 ANALYSIS_DOCS（名单）"
     )
+
+
+def test_new_analysis_doc_is_excluded_without_touching_any_list() -> None:
+    """**新写一份分析文档，不改任何名单也该被排除。**
+
+    这条直接针对三轮里"漏的总是当天新写那份"的模式：它用一个**还没存在**的
+    文件名去问规则，而不是检查仓库里现有的文件。
+
+    如果这条红了，说明判据退化成了名单 —— 那下周又会漏一次。
+    """
+    hypothetical = [
+        "reranker.md",
+        "hybrid-rerank.md",
+        "retrieval-tuning-v2.md",
+        "eval-200.md",
+        "strategy-compare-2.md",
+        "w7-checklist.md",
+    ]
+    not_excluded = [name for name in hypothetical if not rh._is_analysis_name(name)]
+    assert not_excluded == [], (
+        f"这些'将来会写'的分析文档不会被排除：{not_excluded}\n"
+        "把它们的前缀补进 ANALYSIS_NAME_PATTERNS"
+    )
+
+
+def test_prose_docs_are_not_falsely_excluded() -> None:
+    """**反向检查**：真正的知识文档不该被模式误伤。
+
+    判据收得太紧会把正经文档也排掉（语料变小 → 库越小越容易命中 → 召回虚高）。
+    这里点名几份必须留在语料里的文档。
+    """
+    must_keep = [
+        "sse.md",
+        "api-spec.md",
+        "chroma-store.md",
+        "rag-architecture.md",
+        "document-parsing.md",
+        "design-decisions.md",
+        "SETUP.md",
+        "cost.md",
+    ]
+    excluded = [name for name in must_keep if rh._is_analysis_name(name)]
+    assert excluded == [], f"这些正经知识文档被误排了：{excluded}"
 
 
 def test_weekly_reports_never_enter_the_corpus() -> None:
@@ -81,7 +110,7 @@ def test_weekly_reports_never_enter_the_corpus() -> None:
     「向量 16 / BM25 14 / 差异 10 条」。检索"BM25 表现如何"时那块会直接命中 ——
     **那不是检索能力，是答案就在库里。**
 
-    周报每周新增一份、每份都在复述当周结论，所以逐个加 `ANALYSIS_DOCS` 必然漏，
+    周报每周新增一份、每份都在复述当周结论，所以逐个加名单必然漏，
     必须按目录排除。
     """
     leaked = [src for src in rh.full_corpus_sources() if "/weekly/" in src]
@@ -106,17 +135,18 @@ def test_analysis_dirs_actually_take_effect() -> None:
         assert leaked == [], f"{prefix} 在 ANALYSIS_DIRS 里，但仍出现在语料：{leaked}"
 
 
-def test_analysis_docs_stay_in_sync_with_the_name_patterns() -> None:
-    """`ANALYSIS_DOCS` 里每一条都必须能被上面的前缀规则解释。
+def test_legacy_doc_list_is_covered_by_the_name_rule() -> None:
+    """历史名单 `ANALYSIS_DOCS` 里每一条都必须**同时**被名字规则命中。
 
-    反过来不检查（规则是"应该排除"的意图，名单是"已经排除"的事实）——
-    但名单里出现一个规则解释不了的怪名字，说明有人在按感觉加白名单，
-    下次就会漏。发现这种就把它写进 `ANALYSIS_NAME_PATTERNS`。
+    这条不是检查名单本身有用（它已经不是判据了），而是查一个回归：
+    如果有人往里加了一份名字不符合模式的文件，说明**有人还在按感觉手工加白名单**
+    —— 那正是三轮都漏的原因。发现这种就该补 `ANALYSIS_NAME_PATTERNS`，
+    而不是继续往名单里塞。
     """
-    unexplained = sorted(name for name in rh.ANALYSIS_DOCS if not _looks_like_analysis(name))
+    unexplained = sorted(name for name in rh.ANALYSIS_DOCS if not rh._is_analysis_name(name))
     assert unexplained == [], (
-        "ANALYSIS_DOCS 里有名字不符合任何分析报告规则，"
-        f"要么它是别的类别、要么该补进 ANALYSIS_NAME_PATTERNS：{unexplained}"
+        "ANALYSIS_DOCS 里有名字不符合任何名字模式的条目 ——"
+        f"说明有人还在手工加白名单（那就一定会再漏）：{unexplained}"
     )
 
 

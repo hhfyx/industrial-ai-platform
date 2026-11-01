@@ -85,3 +85,13 @@ bm25-compare:  ## 术语型 query：BM25 vs 纯向量对照
 # ------------------------------------------------------------------ W6 周二：混合检索
 hybrid-compare:  ## 八组对照（纯向量/RRF/加权）+ 显著性检验
 	@$(PY) $(UTF8) scripts/tasks.py hybrid-compare
+
+# ------------------------------------------------------------------ W6 周三：Reranker
+fetch-reranker:  ## 从 ModelScope 拉 bge-reranker-v2-m3（2.3 GB）
+	@$(PY) $(UTF8) scripts/tasks.py fetch-reranker
+
+rerank-probe:  ## 精排延迟/批量/截断/分数跨度（很慢，约 10 分钟）
+	@$(PY) $(UTF8) scripts/tasks.py rerank-probe
+
+rerank-eval:  ## 10 条 query 精排前后 top5（约 4 分钟）
+	@$(PY) $(UTF8) scripts/tasks.py rerank-eval
