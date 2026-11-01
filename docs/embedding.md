@@ -123,7 +123,7 @@ model.max_seq_length          == 512
 > 也就是说"块大一点"会在某个点突然撞墙，而撞上时**没有任何报错**。
 >
 > 完整数据（直方图、按 block 类型拆分、越界样本）见
-> [retrieval-tuning.md](retrieval-tuning.md) §1。
+> [retrieval-tuning-final.md](retrieval-tuning-final.md) §1。
 >
 > 结论：**系数可以用来看量级，不能用来看尾部。** 尾部（越界）只由逐块数
 > 的真实分布决定 —— 而平均值对它没有信息量。
@@ -132,7 +132,7 @@ model.max_seq_length          == 512
 > 会被截断到前 757 字。这是有意的取舍（切碎表格的代价更大），
 > 但它是**真实的损失**，不是"应该没事"。
 >
-> 实测确认（`docs/retrieval-tuning.md` §1.3）：`chunk_chars=500` 下
+> 实测确认（`docs/retrieval-tuning-final.md` §1.3）：`chunk_chars=500` 下
 > **正文块最大 408 token（0 越界），表格块最大 606 token（1/117 越界）**。
 > 这条损失是真实发生过的，不是理论推算。
 

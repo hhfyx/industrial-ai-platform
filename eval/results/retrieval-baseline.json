@@ -1,13 +1,13 @@
 {
   "meta": {
-    "generated_at": "2026-11-01 17:54:56",
+    "generated_at": "2026-11-01 18:38:10",
     "questions_file": "eval\\questions-50.jsonl",
     "chunk_chars": 500,
     "overlap": 50,
     "strategy": "recursive",
     "embedder": "bge",
-    "chunks": 1907,
-    "corpus_docs": 1820,
+    "chunks": 1678,
+    "corpus_docs": 1597,
     "corpus_kind": "raw",
     "ks": [
       1,
@@ -33,9 +33,9 @@
         "rate": 0.3
       },
       "recall@5": {
-        "hits": 15,
+        "hits": 16,
         "total": 40,
-        "rate": 0.375
+        "rate": 0.4
       },
       "recall@8": {
         "hits": 17,
@@ -48,24 +48,24 @@
         "rate": 0.425
       }
     },
-    "mrr": 0.2352,
+    "mrr": 0.2402,
     "by_type": {
       "fact": {
         "total": 30,
         "recall@5": 0.4333,
-        "mrr": 0.29
+        "mrr": 0.2956
       },
       "multi_hop": {
         "total": 10,
-        "recall@5": 0.2,
-        "mrr": 0.071
+        "recall@5": 0.3,
+        "mrr": 0.0743
       }
     },
     "threshold": 0.575,
     "refusal": {
-      "refused_correctly": 2,
+      "refused_correctly": 4,
       "refusal_total": 10,
-      "refusal_accuracy": 0.2,
+      "refusal_accuracy": 0.4,
       "false_refusal": [
         "f-01",
         "f-03",
@@ -79,10 +79,8 @@
         "r-01",
         "r-03",
         "r-04",
-        "r-05",
         "r-06",
         "r-07",
-        "r-08",
         "r-09"
       ],
       "recall_miss": [
@@ -110,7 +108,7 @@
         "m-06",
         "m-08"
       ],
-      "overall_accuracy": 0.36,
+      "overall_accuracy": 0.4,
       "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
     }
   },
@@ -149,7 +147,7 @@
       "anchor_ranks": [
         null
       ],
-      "top_score": 0.544
+      "top_score": 0.534
     },
     {
       "id": "f-05",
@@ -316,11 +314,11 @@
     {
       "id": "f-23",
       "type": "fact",
-      "hit_rank": 3,
+      "hit_rank": 2,
       "anchor_ranks": [
-        3
+        2
       ],
-      "top_score": 0.6177
+      "top_score": 0.614
     },
     {
       "id": "f-24",
@@ -400,10 +398,10 @@
       "type": "multi_hop",
       "hit_rank": null,
       "anchor_ranks": [
-        null,
+        10,
         null
       ],
-      "top_score": 0.6299
+      "top_score": 0.6058
     },
     {
       "id": "m-03",
@@ -478,10 +476,10 @@
     {
       "id": "m-10",
       "type": "multi_hop",
-      "hit_rank": 6,
+      "hit_rank": 5,
       "anchor_ranks": [
-        4,
-        6
+        3,
+        5
       ],
       "top_score": 0.694
     },
@@ -490,7 +488,7 @@
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.7958
+      "top_score": 0.6288
     },
     {
       "id": "r-02",
@@ -518,7 +516,7 @@
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.5752
+      "top_score": 0.57
     },
     {
       "id": "r-06",
@@ -539,7 +537,7 @@
       "type": "refusal",
       "hit_rank": null,
       "anchor_ranks": [],
-      "top_score": 0.7103
+      "top_score": 0.5549
     },
     {
       "id": "r-09",

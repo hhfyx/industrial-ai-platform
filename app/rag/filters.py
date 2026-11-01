@@ -57,7 +57,7 @@
 ## `section_path` 的正确打开方式
 
 它不是"某个策略的附属品"，而是**只有 heading 策略才能提供的定位维度**。
-`docs/retrieval-tuning.md` 里那条 `heading` 策略的价值，正落在这里：
+`docs/retrieval-tuning-final.md` 里那条 `heading` 策略的价值，正落在这里：
 
     recursive → 能按 source / block 过滤，**不能按章节**
     heading   → 额外有 section_path / heading_title，**能按章节**

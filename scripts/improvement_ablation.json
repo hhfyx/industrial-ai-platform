@@ -1,0 +1,73 @@
+{
+  "meta": {
+    "generated_at": "2026-11-01 18:27:32",
+    "chunk_chars": 500,
+    "overlap": 50,
+    "strategy": "recursive",
+    "top_k": 5,
+    "chunks": 1651,
+    "note": "只追加邻居到候选尾部，不改变 top_k 排序。激进版候选 14.2 块，本质是把 k 从 5 加大 —— 它的收益不算本改动的价值"
+  },
+  "variants": {
+    "off（基线）": {
+      "expand": null,
+      "recall@5": 0.4,
+      "hits": 16,
+      "answerable": 40,
+      "multi_hop_recall": 0.3,
+      "fact_recall": 0.4333,
+      "mean_context_tokens": 701.5,
+      "mean_candidates": 5.0
+    },
+    "克制版 budget=1 cap=8": {
+      "expand": [
+        1,
+        8
+      ],
+      "recall@5": 0.425,
+      "hits": 17,
+      "answerable": 40,
+      "multi_hop_recall": 0.4,
+      "fact_recall": 0.4333,
+      "mean_context_tokens": 1015.5,
+      "mean_candidates": 8.0
+    },
+    "激进版 budget=2 无上限": {
+      "expand": [
+        2,
+        null
+      ],
+      "recall@5": 0.475,
+      "hits": 19,
+      "answerable": 40,
+      "multi_hop_recall": 0.5,
+      "fact_recall": 0.4667,
+      "mean_context_tokens": 1819.6,
+      "mean_candidates": 14.2
+    }
+  },
+  "ablations": {
+    "克制版 budget=1 cap=8": {
+      "delta_pp": 2.5,
+      "token_delta_pct": 44.8,
+      "gained": [
+        "m-01"
+      ],
+      "lost": [],
+      "tokens_per_pp": 125.6,
+      "mean_candidates": 8.0
+    },
+    "激进版 budget=2 无上限": {
+      "delta_pp": 7.5,
+      "token_delta_pct": 159.4,
+      "gained": [
+        "f-07",
+        "m-01",
+        "m-05"
+      ],
+      "lost": [],
+      "tokens_per_pp": 149.1,
+      "mean_candidates": 14.2
+    }
+  }
+}

@@ -1,0 +1,1493 @@
+{
+  "rows": [
+    {
+      "id": "f-01",
+      "type": "fact",
+      "question": "对外暴露的四组 HTTP 入口分别是什么？",
+      "gold_answer": "抽取、抽取流式、对话流式、摘要流式四个端点",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.5379,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        417
+      ],
+      "gold_chunk_tails": [
+        "uid 10001） |"
+      ],
+      "top5": [
+        {
+          "score": 0.5379,
+          "source": "README.md",
+          "head": "``` httpx : 0.28.1 httpx2 : 2.16.0 httpx is httpx2 -> False "
+        },
+        {
+          "score": 0.5293,
+          "source": "why-i-use-langchain.md",
+          "head": "签名里有四个 `method` 选项和一个 `strict` 开关，这本身就是\"结构化输出有多种实现路线\"的 知识封装："
+        },
+        {
+          "score": 0.5093,
+          "source": "system-prompt.md",
+          "head": "## 3. 对抗测试：10 条输入 × 2 版  10 条输入分五类，覆盖任务要求的全部场景："
+        },
+        {
+          "score": 0.5022,
+          "source": "why-i-use-langchain.md",
+          "head": "## 一句话版本  **LangChain 替我抽象了「prompt 模板 / 链式编排 / 输出解析」三层； 但在「结"
+        },
+        {
+          "score": 0.501,
+          "source": "README.md",
+          "head": "# industrial-ai-platform  **一个从\"调模型\"长到\"能查、能引、能拒答\"的文档智能平台。** "
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块是**表格**（1 个，长度 [417]）—— 整块不切是契约",
+        "表格块在 top50 里找不到 → 表格通常很长，被更短更聚焦的正文块挤掉",
+        "修法不是改切分，而是「长块降权」或「表格单独路由」"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-02",
+      "type": "fact",
+      "question": "知识库回答里的编号引用怎么和原文对上？",
+      "gold_answer": "答案带 [n] 引用，可点开看原文高亮",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.637,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        321
+      ],
+      "gold_chunk_tails": [
+        "字，TTFT 有口径 |"
+      ],
+      "top5": [
+        {
+          "score": 0.637,
+          "source": "prompt-templates.md",
+          "head": "### 2.1 问答（qa）—— 引用编号 + 不确定  **入参**：`question` / `contexts`（"
+        },
+        {
+          "score": 0.6207,
+          "source": "rag-query-chain.md",
+          "head": "**拒答是代码的决定，不是模型的**：`REFUSAL_TEXT` 是固定字符串。 让模型自己说\"我不知道\"不可靠 ——"
+        },
+        {
+          "score": 0.6191,
+          "source": "README.md",
+          "head": "### ① 知识库问答（主交付）"
+        },
+        {
+          "score": 0.6138,
+          "source": "streamlit-ui.md",
+          "head": "## 4. 引用出处：「参考来源」可展开  回答下方列出被真正引用的条目，点开看原文："
+        },
+        {
+          "score": 0.6131,
+          "source": "embedding.md",
+          "head": "``` query = \"为这个句子生成表示以用于检索相关文章：\" + 原始问题 passage = 原文，不加任何前缀"
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块是**表格**（1 个，长度 [321]）—— 整块不切是契约",
+        "表格块在 top50 里找不到 → 表格通常很长，被更短更聚焦的正文块挤掉",
+        "修法不是改切分，而是「长块降权」或「表格单独路由」"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-03",
+      "type": "fact",
+      "question": "容器里的运行时栈和运行身份是什么？",
+      "gold_answer": "非 root（uid 10001），Python 3.11 运行时",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.5311,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        417
+      ],
+      "gold_chunk_tails": [
+        "uid 10001） |"
+      ],
+      "top5": [
+        {
+          "score": 0.5311,
+          "source": "container-networking.md",
+          "head": "### 原因 1：`127.0.0.1` 在容器里指的是容器自己  `.env` 里的 `LLM_BASE_URL=ht"
+        },
+        {
+          "score": 0.5281,
+          "source": "container-networking.md",
+          "head": "## 四、已做的改动（只改文档，不改行为）  - [`.env.example`](../.env.example) 里"
+        },
+        {
+          "score": 0.5258,
+          "source": "container-networking.md",
+          "head": "**本机网关（端口 8326）是 DeepSeek Harness 进程内起的**， 它的鉴权跟着宿主进程的登录态走。容"
+        },
+        {
+          "score": 0.5234,
+          "source": "container-networking.md",
+          "head": "# 容器化验收记录（W3 收尾）  > 2026-11-08。`docker compose up --build` 后"
+        },
+        {
+          "score": 0.5189,
+          "source": "container-networking.md",
+          "head": "## 六、本周这条验收的诚实边界  **我验到的是**：\"容器能起、健康、接口 200、降级契约字段正确出现、规则版结果"
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块是**表格**（1 个，长度 [417]）—— 整块不切是契约",
+        "表格块在 top50 里找不到 → 表格通常很长，被更短更聚焦的正文块挤掉",
+        "修法不是改切分，而是「长块降权」或「表格单独路由」"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-04",
+      "type": "fact",
+      "question": "免费部署环境下问答的检索方式会怎么变？",
+      "gold_answer": "自动降级为字面检索",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.534,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        417
+      ],
+      "gold_chunk_tails": [
+        "uid 10001） |"
+      ],
+      "top5": [
+        {
+          "score": 0.534,
+          "source": "streamlit-ui.md",
+          "head": "| # | 场景 | 处理 | | --- | --- | --- | | 1 | **空检索** | 拒答话术 + *"
+        },
+        {
+          "score": 0.528,
+          "source": "w4.md",
+          "head": "### 5. 「效果不好的证据」比\"效果好的宣称\"值钱  README 里那节「v1 已知问题」是本周真正的交付物： 1"
+        },
+        {
+          "score": 0.5234,
+          "source": "embedding.md",
+          "head": "``` query = \"为这个句子生成表示以用于检索相关文章：\" + 原始问题 passage = 原文，不加任何前缀"
+        },
+        {
+          "score": 0.5145,
+          "source": "ab-scaffold.md",
+          "head": "> **为什么要写成检查**：任务原话是「绝不从你要汇报的结果里挑」。 > 这条纪律如果不自动化，它会在我第三次跑实验、"
+        },
+        {
+          "score": 0.5105,
+          "source": "chunking-boundaries.md",
+          "head": "## 必答题：`section_path` 进 metadata 有什么用  题目已经把答案的一半写出来了：**检索时按"
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块是**表格**（1 个，长度 [417]）—— 整块不切是契约",
+        "表格块在 top50 里找不到 → 表格通常很长，被更短更聚焦的正文块挤掉",
+        "修法不是改切分，而是「长块降权」或「表格单独路由」"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-05",
+      "type": "fact",
+      "question": "首字延迟这个指标的口径是怎么定的？",
+      "gold_answer": "从发起请求到第一个非空 content 的时间",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.6025,
+      "gold_rank_in_top50": 15,
+      "gold_chunk_lengths": [
+        190
+      ],
+      "gold_chunk_tails": [
+        "天早些时候网关正常时）："
+      ],
+      "top5": [
+        {
+          "score": 0.6025,
+          "source": "rag-architecture.md",
+          "head": "**这张表最重要的一列是最后一列**。索引慢不等于 RAG 慢： 把索引耗时算进\"问答延迟\"，就会为\"首字快\"去砍块数，"
+        },
+        {
+          "score": 0.5826,
+          "source": "embedding.md",
+          "head": "所以上表里 API 的\"单条延迟 / 批量吞吐\"两格写的是**未能实测**，不是\"大概多少\"。 **编一个\"约 100m"
+        },
+        {
+          "score": 0.5813,
+          "source": "w2.md",
+          "head": "**单次请求慢在模型**（我方只占 162 ms / 12%）。 **但长文档的\"首字慢\"是链路问题**：50 页 → "
+        },
+        {
+          "score": 0.5706,
+          "source": "w4.md",
+          "head": "### 最后那条怎样改变了我的判断  我原以为\"检索应该是延迟的一大块\"。实测把它压到 1% 以下，意味着：  - ❌ "
+        },
+        {
+          "score": 0.565,
+          "source": "chunking-quality.md",
+          "head": "| 现象 | 判定 | | --- | --- | | 块首是一个完整的句子开头（或标题、或续接标记） | ✅ | | "
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块在 top50 的第 15 位（top5 外）→ 排序问题而非定位问题"
+      ],
+      "auto_confidence": "low"
+    },
+    {
+      "id": "f-07",
+      "type": "fact",
+      "question": "六轮基准里流式把首字等待改善了多少倍？",
+      "gold_answer": "3209 ms → 1567 ms，约 2.0 倍",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.5657,
+      "gold_rank_in_top50": 25,
+      "gold_chunk_lengths": [
+        238
+      ],
+      "gold_chunk_tails": [
+        " 逐字符，打字机效果 |"
+      ],
+      "top5": [
+        {
+          "score": 0.5657,
+          "source": "sse.md",
+          "head": "### 一个诚实的保留：样本量  首轮 3 次时方差极大（第 1 轮非流式 7638ms，第 2 轮 2223ms）， "
+        },
+        {
+          "score": 0.5385,
+          "source": "ab-scaffold.md",
+          "head": "**Δ = +0.6186（远超阈值 0.2）→ B 更好。**  **v2 不但更准，还更便宜、更快** —— 因为 "
+        },
+        {
+          "score": 0.5379,
+          "source": "sse.md",
+          "head": "**两个数字必须一起看**：  1. **流式不缩短总耗时**（3209 vs 3159ms，差异在噪声内）。 它做的是"
+        },
+        {
+          "score": 0.5278,
+          "source": "prompt-ab.md",
+          "head": "现，复盘时才查出来。 原因是被迫在修复轮里来回试 —— 它知道信息在，\"时间\"填不对，就一直改。  > **归因结论：+"
+        },
+        {
+          "score": 0.5183,
+          "source": "structured-output.md",
+          "head": "### 为什么是 2 轮  每轮都是真实计费 + 秒级延迟。W4 的 RAG、W7 的 judge 都在线上链路， 用户"
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块是**表格**（1 个，长度 [238]）—— 整块不切是契约",
+        "表格块在 top50 第 25 位 → 排序问题"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-08",
+      "type": "fact",
+      "question": "为什么反复把整篇文档塞回上下文最费钱？",
+      "gold_answer": "输入占 96%，回灌要把 1996 token 再加一遍，达 4.2 倍",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.5983,
+      "gold_rank_in_top50": 21,
+      "gold_chunk_lengths": [
+        442
+      ],
+      "gold_chunk_tails": [
+        "个低质量结果。\n\n---"
+      ],
+      "top5": [
+        {
+          "score": 0.5983,
+          "source": "design-decisions.md",
+          "head": "### 理由二：lost in the middle —— 塞得越满，中间越容易被跳过  这是**质量**问题，不是成本"
+        },
+        {
+          "score": 0.5895,
+          "source": "design-decisions.md",
+          "head": "### 反过来：什么时候\"整本塞进去\"确实更好  不写这一节，上面的论证就成了单方面宣传。三种情况下确实该直接塞：  1"
+        },
+        {
+          "score": 0.5885,
+          "source": "design-decisions.md",
+          "head": "### 为什么不长上下文硬塞  见第 0 节。一句话：**成本线性、注意力被摊薄、无法溯源与更新**。"
+        },
+        {
+          "score": 0.5869,
+          "source": "design-decisions.md",
+          "head": "| | 全书塞入 | RAG | | --- | --- | --- | | **文档改了一页** | 每次提问都要重新"
+        },
+        {
+          "score": 0.579,
+          "source": "chroma-store.md",
+          "head": "old 不在语料里直接退出。 **测试数据本身出错，是最贵的错**：它不报错，只让所有结论失真。  **教训三：只判\"内"
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块在 top50 的第 21 位 → 能定位但排得很后",
+        "分数相近但排位靠后 → 语义区分度不足，不是切分问题"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-09",
+      "type": "fact",
+      "question": "把六成请求分给小模型能省多少，风险是什么？",
+      "gold_answer": "省 45.0%，但复杂字段准确率会掉",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.5592,
+      "gold_rank_in_top50": 35,
+      "gold_chunk_lengths": [
+        431
+      ],
+      "gold_chunk_tails": [
+        "者独立，收益近似相乘 |"
+      ],
+      "top5": [
+        {
+          "score": 0.5592,
+          "source": "cost.md",
+          "head": "### 为什么「小模型分流」看着最香，实际要谨慎  45% 的节省接近缓存，但代价是**质量不确定**： - 简单字段（"
+        },
+        {
+          "score": 0.5373,
+          "source": "README.md",
+          "head": "> 单价取\"输入 2 元 / 输出 8 元每百万 token\"作为示例锚点，**不是任何供应商报价**。 > 关键结论是"
+        },
+        {
+          "score": 0.5246,
+          "source": "ab-scaffold.md",
+          "head": "条判定可能有争议**： `cl-02`（问成本测算算\"功能咨询\"还是\"其他\"）实测模型判\"其他\"， 我标的是\"功能咨询\""
+        },
+        {
+          "score": 0.5241,
+          "source": "w3.md",
+          "head": "| 做法 | 结果 | 结论 | | --- | --- | --- | | 给推理模型加 CoT 提示 | 12/20"
+        },
+        {
+          "score": 0.5215,
+          "source": "w3.md",
+          "head": "#### 可推广的两条规则  > **① 任何\"总量\"指标，只要分母与\"成功样本数\"有关，就必须按成功样本归一。** >"
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块是**表格**（1 个，长度 [431]）—— 整块不切是契约",
+        "表格块在 top50 第 35 位 → 排序问题"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-10",
+      "type": "fact",
+      "question": "三条人工判据里哪一条可以自动化到九成？",
+      "gold_answer": "判据一（块首块尾是否完整），能自动判定 90%",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.5964,
+      "gold_rank_in_top50": 30,
+      "gold_chunk_lengths": [
+        316
+      ],
+      "gold_chunk_tails": [
+        "` 的实测表。\n\n---"
+      ],
+      "top5": [
+        {
+          "score": 0.5964,
+          "source": "chroma-store.md",
+          "head": "## 4. 检索验证：10 条已知答案  **本周不做量化**，所以判断是人工的：看 top3 里有没有对应原文。"
+        },
+        {
+          "score": 0.5871,
+          "source": "chunking-predictions.md",
+          "head": "## 附带一个更小的预判（关于\"评分维度\"本身）  我预判三个维度里，**\"标题与内容是否分离\"会自动分高下**（能从块"
+        },
+        {
+          "score": 0.5774,
+          "source": "chunking-quality.md",
+          "head": "**这条最需要人工**：机器只能近似（\"块首是否以半个句子开头\"）， 而\"这两块是不是一个论述单元\"是语义判断。**这就"
+        },
+        {
+          "score": 0.5639,
+          "source": "embedding.md",
+          "head": "> 第三条看起来多余（两个实现都归一化了），但它是**保险**： > 第三个 embedder 未必。除一次模长成本 O"
+        },
+        {
+          "score": 0.5634,
+          "source": "system-prompt.md",
+          "head": "| | A | B | | --- | ---: | ---: | | 正常工单里出现「无法判断」的条数 | **3 /"
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块在 top50 的第 30 位 → 能定位但排得很后",
+        "分数相近但排位靠后 → 语义区分度不足，不是切分问题"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-18",
+      "type": "fact",
+      "question": "bge 的输入长度上限是多少 token？",
+      "gold_answer": "512 token（与向量维度 512 是两件事）",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.6372,
+      "gold_rank_in_top50": 35,
+      "gold_chunk_lengths": [
+        154
+      ],
+      "gold_chunk_tails": [
+        "静默截断**，不报错 |"
+      ],
+      "top5": [
+        {
+          "score": 0.6372,
+          "source": "system-prompt.md",
+          "head": "### 4.1 B 版真正的代价，有两个  **① Token 翻倍**：204 → 423 token / 次（+21"
+        },
+        {
+          "score": 0.637,
+          "source": "design-decisions.md",
+          "head": "``` 全书塞入：输入 token ∝ 文档长度 × 提问次数 ← 两个方向都线性 RAG ：输入 token = mi"
+        },
+        {
+          "score": 0.614,
+          "source": "embedding.md",
+          "head": "bge 实测（全语料平均） | **0.6667 tok/字** | 333 token | > > 总量上接近（差 1"
+        },
+        {
+          "score": 0.6097,
+          "source": "design-decisions.md",
+          "head": "| | 输入 token | 单次成本（2 元/M 输入） | 每 1000 次 | | --- | ---: | --"
+        },
+        {
+          "score": 0.6093,
+          "source": "streamlit-ui.md",
+          "head": "## 0. 必答题：1.5 秒里检索占多少  **检索约 9~11 ms，占首 token 的 0.36%~0.80% "
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块是**表格**（1 个，长度 [154]）—— 整块不切是契约",
+        "表格块在 top50 第 35 位 → 排序问题"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-19",
+      "type": "fact",
+      "question": "多进程部署时，本地模型该怎么避免每个进程各加载一份？",
+      "gold_answer": "启动时 warmup 一次，多 worker 用独立 embedding 服务",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.6257,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        234
+      ],
+      "gold_chunk_tails": [
+        "mbedding 服务。"
+      ],
+      "top5": [
+        {
+          "score": 0.6257,
+          "source": "embedding.md",
+          "head": "只写在模型 README 里，**代码层不强制**。忘了加不会有任何报错。  所以本项目把它做成**接口级**的事："
+        },
+        {
+          "score": 0.6194,
+          "source": "w3.md",
+          "head": "**秒答版**：  > 模型负责\"拟提议\"，我们负责\"真执行\"。所以工具层的每一行代码都是安全边界 —— > 参数校验、"
+        },
+        {
+          "score": 0.6024,
+          "source": "design-decisions.md",
+          "head": "四个模型名全部 404）。**如果当初选了 API，今天的整条 RAG 链路一行都跑不起来。**  **③ 重新索引不该"
+        },
+        {
+          "score": 0.5875,
+          "source": "prompt-patterns.md",
+          "head": "## 五、复用到别的任务时，先验什么  这套结论**只在\"值域封闭的单步分类\"上成立**。换任务时按这个顺序验：  1."
+        },
+        {
+          "score": 0.5821,
+          "source": "streamlit-ui.md",
+          "head": "**领域层不 import streamlit**。`on_stage=None` 时 CLI 照常工作， 测试传一个假"
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块在 top50 里都没有 → 检索完全没定位到",
+        "gold 块结尾正常 → 更可能是术语/表述差异"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-20",
+      "type": "fact",
+      "question": "块的确定性 id 里为什么不放块序号？",
+      "gold_answer": "否则调切分参数会让整库 id 失效、幂等性被打穿",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.647,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        93
+      ],
+      "gold_chunk_tails": [
+        "等性就被参数调优打穿了。"
+      ],
+      "top5": [
+        {
+          "score": 0.647,
+          "source": "chunking-boundaries.md",
+          "head": "| 块尾 | 判定 | 为什么 | | --- | --- | --- | | `。！？；` | 安全 | 句末 | |"
+        },
+        {
+          "score": 0.6311,
+          "source": "chunking-boundaries.md",
+          "head": "| 块首 | 判定 | 为什么 | | --- | --- | --- | | 句末标点开头 | 可疑 | 标点属于上一"
+        },
+        {
+          "score": 0.6302,
+          "source": "chroma-store.md",
+          "head": "因为每段文本都是该 source 的\"第 0 块\"，`store_id` 都是 `xxx_-1_0` —— 后一次静默覆"
+        },
+        {
+          "score": 0.625,
+          "source": "prompt-templates.md",
+          "head": "| 设计 | 为什么 | | --- | --- | | 编号由**调用方**决定（`ctx.id`） | 模板不重排、"
+        },
+        {
+          "score": 0.6205,
+          "source": "rag-architecture.md",
+          "head": "私有路径 —— 刷新页面、翻历史消息、拿 CLI 的 `--json` 复核这三处都拿不到块对象。 按 `content"
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块在 top50 里都没有 → 检索完全没定位到",
+        "gold 块结尾正常 → 更可能是术语/表述差异"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-22",
+      "type": "fact",
+      "question": "同一份中文合同上，另一套切分器的块尾停在什么位置？",
+      "gold_answer": "5 块里 4 块停在半个词上，如\"程\"\"准\"",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.5764,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        187
+      ],
+      "gold_chunk_tails": [
+        "5** | 9.4% |"
+      ],
+      "top5": [
+        {
+          "score": 0.5764,
+          "source": "w4.md",
+          "head": "| 尝试 | 结果 | 为什么保留在文档里 | | --- | --- | --- | | 用 LangChain `R"
+        },
+        {
+          "score": 0.5727,
+          "source": "design-decisions.md",
+          "head": "### 为什么是 500  **① 让\"一个条款\"整块落在一个 chunk 里。** 一份 A4 中文合同的一个条款段通"
+        },
+        {
+          "score": 0.5716,
+          "source": "chunking-quality.md",
+          "head": "| 现象 | 判定 | | --- | --- | | 块首是一个完整的句子开头（或标题、或续接标记） | ✅ | | "
+        },
+        {
+          "score": 0.5667,
+          "source": "rag-query-chain.md",
+          "head": "## 1. 中文切分：为什么不用 LangChain 的 `RecursiveCharacterTextSplitter"
+        },
+        {
+          "score": 0.5548,
+          "source": "chunking-boundaries.md",
+          "head": "### `boundaries.py`：数字与单位不许切开  \"0.05mm 不能拆\"这条同时约束**三处**代码："
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块是**表格**（1 个，长度 [187]）—— 整块不切是契约",
+        "表格块在 top50 里找不到 → 表格通常很长，被更短更聚焦的正文块挤掉",
+        "修法不是改切分，而是「长块降权」或「表格单独路由」"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-25",
+      "type": "fact",
+      "question": "在自带思维链的模型上再叠加 CoT 提示，收益与代价如何？",
+      "gold_answer": "输出 token 涨到 42 倍，准确率反而下降",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.6463,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        60
+      ],
+      "gold_chunk_tails": [
+        "三个臂的字段级错误分布："
+      ],
+      "top5": [
+        {
+          "score": 0.6463,
+          "source": "w2.md",
+          "head": "**三条结论，每条都有数据：**  1. **CoT 提示零收益、负代价**：12/20 → 12/20，但 token"
+        },
+        {
+          "score": 0.6303,
+          "source": "prompt-patterns.md",
+          "head": "机制（有 token 数据）：思维链从 539 字符涨到 1224 字符，但**准确率降了**。 多出来的部分是模型把自"
+        },
+        {
+          "score": 0.6282,
+          "source": "prompt-patterns.md",
+          "head": "| 问的是什么 | 对照 | 结果 | | --- | --- | --- | | **Prompt 里要求「先写理由」"
+        },
+        {
+          "score": 0.596,
+          "source": "w3.md",
+          "head": "| 做法 | 结果 | 结论 | | --- | --- | --- | | 给推理模型加 CoT 提示 | 12/20"
+        },
+        {
+          "score": 0.5958,
+          "source": "prompt-patterns.md",
+          "head": "### 为什么变差（三条，都有数据支撑）  **1. 这是推理模型，思维链本来就在跑；再加 CoT 提示是让同一个动作做"
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块在 top50 里都没有 → 检索完全没定位到",
+        "gold 块结尾正常 → 更可能是术语/表述差异"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-26",
+      "type": "fact",
+      "question": "不把解释器版本钉死会有什么后果？",
+      "gold_answer": "可能被系统里的旧版 Python 接管",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.5157,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        139
+      ],
+      "gold_chunk_tails": [
+        "提交**，保证依赖可复现"
+      ],
+      "top5": [
+        {
+          "score": 0.5157,
+          "source": "chroma-store.md",
+          "head": "| 方法 | 缺了会怎样 | | --- | --- | | `__call__` | 写入路径炸 | | `embed"
+        },
+        {
+          "score": 0.5111,
+          "source": "chroma-store.md",
+          "head": "## 5. 一个测试抓出来的真实 bug（`index_text` 的覆盖语义）  写完 Chroma 后跑全套测试，*"
+        },
+        {
+          "score": 0.5105,
+          "source": "streamlit-ui.md",
+          "head": "**为什么\"折叠\"而不是\"删除\"**：本周不做指代消解（W8 才做）， 所以历史在这里的作用只是\"让对话连贯\"，不是\"让"
+        },
+        {
+          "score": 0.5104,
+          "source": "prompt-templates.md",
+          "head": "定器删除\"不确定+引用=矛盾\"这条（它是误判） - 模板「已知失败场景」第 2 条记录了这个反复  > 这是本周第二次\""
+        },
+        {
+          "score": 0.5074,
+          "source": "design-decisions.md",
+          "head": "### 为什么不长上下文硬塞  见第 0 节。一句话：**成本线性、注意力被摊薄、无法溯源与更新**。"
+        }
+      ],
+      "candidate": "① 切分断语义",
+      "signals": [
+        "gold 块在 top50 里都没有 → 检索完全没定位到",
+        "gold 块以非句末标点结尾（[True]）→ 强信号：切分断了语义"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-27",
+      "type": "fact",
+      "question": "外部命令报退出码 1 时凭什么判断成败？",
+      "gold_answer": "看产物，不看退出码",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.6037,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        263
+      ],
+      "gold_chunk_tails": [
+        " BOM 问题\n\n---"
+      ],
+      "top5": [
+        {
+          "score": 0.6037,
+          "source": "system-prompt.md",
+          "head": "## 5. 判定器返工：我差点得出「A/B 无差异」的错误结论  第一版判定器是**二元口径**：输出里只要出现「无法」"
+        },
+        {
+          "score": 0.5985,
+          "source": "chunking-predictions.md",
+          "head": "递归字符拿到的信号 （句号/换行）恰好就是真正的段落边界，而标题策略无用武之地（没有 `#`）。  **它为什么\"不会输"
+        },
+        {
+          "score": 0.5778,
+          "source": "system-prompt.md",
+          "head": "### 1.4 拒答（不知道时怎么说）  > 「若工单信息不足以判断某个字段，该字段填『无法判断』，不要猜测。」  **"
+        },
+        {
+          "score": 0.5741,
+          "source": "prompt-ab.md",
+          "head": "**模型的失败模式是把\"意图\"当成\"现象\"来判。** 而用户写咨询时， 往往先描述现象再提问题 —— 现象在前，意图在后"
+        },
+        {
+          "score": 0.5733,
+          "source": "chroma-store.md",
+          "head": "### 两条\"未命中\"的真实原因（人工判断）  **① \"验收不合格怎么办\"** —— top1 命中\"验收不通过：乙方"
+        }
+      ],
+      "candidate": "① 切分断语义",
+      "signals": [
+        "gold 块在 top50 里都没有 → 检索完全没定位到",
+        "gold 块以非句末标点结尾（[True]）→ 强信号：切分断了语义"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "f-30",
+      "type": "fact",
+      "question": "正文超过长度上限时返回什么错误码？",
+      "gold_answer": "422 INVALID_INPUT，不是 413",
+      "anchor_ranks": [
+        null
+      ],
+      "top1_score": 0.5849,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        236
+      ],
+      "gold_chunk_tails": [
+        "413` 不在本契约内。"
+      ],
+      "top5": [
+        {
+          "score": 0.5849,
+          "source": "prompt-ab.md",
+          "head": "### 但抬到 8192 之后，失败类型从\"截断\"变成了\"超时\"  这是第二次失败暴露的新问题：**思维链变长 → 单条"
+        },
+        {
+          "score": 0.5822,
+          "source": "structured-output.md",
+          "head": "## 3. 修复重试：为什么回灌报错原文有效  「你错了，请重试」是废话 —— 模型不知道错在哪，下一轮大概率重复同一个"
+        },
+        {
+          "score": 0.578,
+          "source": "design-decisions.md",
+          "head": "``` 错误链路：全篇抽成一坨文本 → 按字数切 → 事后把块\"对回\"页码 ↑ 只能猜 ```"
+        },
+        {
+          "score": 0.5742,
+          "source": "SETUP.md",
+          "head": "**fine-grained 最常见的两个错误**：  1. `Repository access` 选了 `Publi"
+        },
+        {
+          "score": 0.5739,
+          "source": "chroma-store.md",
+          "head": "old 不在语料里直接退出。 **测试数据本身出错，是最贵的错**：它不报错，只让所有结论失真。  **教训三：只判\"内"
+        }
+      ],
+      "candidate": "② 术语/同义词未命中",
+      "signals": [
+        "gold 块在 top50 里都没有 → 检索完全没定位到",
+        "gold 块结尾正常 → 更可能是术语/表述差异"
+      ],
+      "auto_confidence": "medium"
+    },
+    {
+      "id": "m-01",
+      "type": "multi_hop",
+      "question": "一次标准合同抽取（含两次回灌）比一次 RAG 提问便宜还是贵，差几倍？",
+      "gold_answer": "RAG 单次 0.019352 元 vs 0.004138 元，约 4.7 倍",
+      "anchor_ranks": [
+        1,
+        null
+      ],
+      "top1_score": 0.6986,
+      "gold_rank_in_top50": 1,
+      "gold_chunk_lengths": [
+        442,
+        217
+      ],
+      "gold_chunk_tails": [
+        "个低质量结果。\n\n---",
+        "159.76 元** |"
+      ],
+      "top5": [
+        {
+          "score": 0.6986,
+          "source": "cost.md",
+          "head": "### 三条从数字里读出来的结论  **① 回灌重试不是「多一点时间」，是「多几倍钱」。** 标准合同一次成功 0.00"
+        },
+        {
+          "score": 0.6758,
+          "source": "design-decisions.md",
+          "head": "### 反过来：什么时候\"整本塞进去\"确实更好  不写这一节，上面的论证就成了单方面宣传。三种情况下确实该直接塞：  1"
+        },
+        {
+          "score": 0.6727,
+          "source": "design-decisions.md",
+          "head": "### 理由一：成本随长度**线性**涨，而 RAG 是**常数**  同一次提问，同样一份 50 页文档："
+        },
+        {
+          "score": 0.6724,
+          "source": "w2.md",
+          "head": "**① 回灌重试不是\"多一点时间\"，是\"多 3.5 倍钱\"。** 所以\"提高首次成功率\"（更明确的 prompt、标量归"
+        },
+        {
+          "score": 0.6547,
+          "source": "README.md",
+          "head": "> 单价取\"输入 2 元 / 输出 8 元每百万 token\"作为示例锚点，**不是任何供应商报价**。 > 关键结论是"
+        }
+      ],
+      "candidate": "③ 多跳需跨块",
+      "signals": [
+        "多跳的 1 个锚点未命中（锚点位置 (1, None)）",
+        "只缺一处 → 需要「跨块合并」或两轮检索才能补齐"
+      ],
+      "auto_confidence": "high"
+    },
+    {
+      "id": "m-02",
+      "type": "multi_hop",
+      "question": "bge 的 0.40 阈值换到 Chroma 后端为什么不用手动换算？",
+      "gold_answer": "score 已统一为余弦相似度，两 store 分数与顺序一致",
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top1_score": 0.6058,
+      "gold_rank_in_top50": 10,
+      "gold_chunk_lengths": [
+        231,
+        149
+      ],
+      "gold_chunk_tails": [
+        "概率搞反。**\n\n---",
+        "**诚实关掉闸门** |"
+      ],
+      "top5": [
+        {
+          "score": 0.6058,
+          "source": "chroma-store.md",
+          "head": "## 5. 一个测试抓出来的真实 bug（`index_text` 的覆盖语义）  写完 Chroma 后跑全套测试，*"
+        },
+        {
+          "score": 0.5982,
+          "source": "chroma-store.md",
+          "head": "### 这个 bug 的价值  **一次\"看起来与 Chroma 无关\"的测试，抓出了索引语义的缺陷。** 这正是不该把"
+        },
+        {
+          "score": 0.597,
+          "source": "deploy-notes.md",
+          "head": "## 一句话结论  **免费层跑不了 bge。** 模型栈实测增量 **528 MB**，加上 Streamlit 自身"
+        },
+        {
+          "score": 0.5913,
+          "source": "design-decisions.md",
+          "head": "### 代价是什么  1. **单机、单进程写入**。ChromaDB 的持久化后端是 SQLite，写并发很差。 **"
+        },
+        {
+          "score": 0.5881,
+          "source": "design-decisions.md",
+          "head": "### 代价是什么  1. **阈值是\"从 8 条样本反推的量级\"，不是调好的参数。** 正确的做法是按 embedde"
+        }
+      ],
+      "candidate": "③ 多跳需跨块",
+      "signals": [
+        "多跳的 2 个锚点未命中（锚点位置 (None, None)）",
+        "两处都缺 → 不只是跨块问题，可能整体没定位到"
+      ],
+      "auto_confidence": "high"
+    },
+    {
+      "id": "m-03",
+      "type": "multi_hop",
+      "question": "要再压缩首字等待，先优化检索有用吗？",
+      "gold_answer": "没用：检索只占首 token 的 0.36%~0.80%",
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top1_score": 0.5863,
+      "gold_rank_in_top50": 29,
+      "gold_chunk_lengths": [
+        187,
+        331
+      ],
+      "gold_chunk_tails": [
+        "得出\"没用\"的错误结论。",
+        "一节比效果数字重要。**"
+      ],
+      "top5": [
+        {
+          "score": 0.5863,
+          "source": "rag-architecture.md",
+          "head": "**这张表最重要的一列是最后一列**。索引慢不等于 RAG 慢： 把索引耗时算进\"问答延迟\"，就会为\"首字快\"去砍块数，"
+        },
+        {
+          "score": 0.5793,
+          "source": "w4.md",
+          "head": "### 最后那条怎样改变了我的判断  我原以为\"检索应该是延迟的一大块\"。实测把它压到 1% 以下，意味着：  - ❌ "
+        },
+        {
+          "score": 0.5727,
+          "source": "streamlit-ui.md",
+          "head": "### 这个数字决定了 W8 该做什么  **优化检索对降低首 token 时间几乎没有帮助。** 9 ms 换到 4."
+        },
+        {
+          "score": 0.5595,
+          "source": "prompt-ab.md",
+          "head": "**真正的元凶是\"两步走\"结构。** v2 要求先输出 `缺少信息`、再输出 `答案`， 模型在有把握回答的题上也倾向于"
+        },
+        {
+          "score": 0.5515,
+          "source": "w4.md",
+          "head": "| 问题 | 答案 | 证据 | | --- | --- | --- | | 长上下文能替代 RAG 吗 | 不能：成本"
+        }
+      ],
+      "candidate": "③ 多跳需跨块",
+      "signals": [
+        "多跳的 2 个锚点未命中（锚点位置 (None, None)）",
+        "两处都缺 → 不只是跨块问题，可能整体没定位到"
+      ],
+      "auto_confidence": "high"
+    },
+    {
+      "id": "m-04",
+      "type": "multi_hop",
+      "question": "50 字重叠的存储代价与检索重复代价各是多少？",
+      "gold_answer": "存储冗余 9.4%；重复内容率 5.5%→8.0%",
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top1_score": 0.6299,
+      "gold_rank_in_top50": 6,
+      "gold_chunk_lengths": [
+        465,
+        206
+      ],
+      "gold_chunk_tails": [
+        " §4.3）。\n\n---",
+        " 分数接近时才会发生 |"
+      ],
+      "top5": [
+        {
+          "score": 0.6299,
+          "source": "design-decisions.md",
+          "head": "### 为什么是 50 重叠  必答题的完整论证在 [rag-query-chain.md §0](rag-query-"
+        },
+        {
+          "score": 0.5888,
+          "source": "design-decisions.md",
+          "head": "### 代价是什么  1. **索引冗余 9.4%（实测）**：2128 字 → 2328 字。同样的文字存两次、算两次"
+        },
+        {
+          "score": 0.5877,
+          "source": "chunking-quality.md",
+          "head": "### 2026-11-18 补充：冗余率与命中率的实测对照  `docs/retrieval-tuning.md` 用"
+        },
+        {
+          "score": 0.5687,
+          "source": "embedding.md",
+          "head": "### 维度 vs 存储成本  512 维、fp32（4 字节）→ 每条 2 KB："
+        },
+        {
+          "score": 0.5657,
+          "source": "design-decisions.md",
+          "head": "## 4. 决策四：为什么是 500 字 + 50 重叠"
+        }
+      ],
+      "candidate": "③ 多跳需跨块",
+      "signals": [
+        "多跳的 2 个锚点未命中（锚点位置 (None, None)）",
+        "两处都缺 → 不只是跨块问题，可能整体没定位到"
+      ],
+      "auto_confidence": "high"
+    },
+    {
+      "id": "m-05",
+      "type": "multi_hop",
+      "question": "跨页段落的页码信息为什么必须在解析阶段就记下来？",
+      "gold_answer": "解析时记 span→pages(1,2)；页码只在切分那一刻存在",
+      "anchor_ranks": [
+        null,
+        1
+      ],
+      "top1_score": 0.6757,
+      "gold_rank_in_top50": 1,
+      "gold_chunk_lengths": [
+        410,
+        152
+      ],
+      "gold_chunk_tails": [
+        "splitting` |",
+        "ecture.md)）。"
+      ],
+      "top5": [
+        {
+          "score": 0.6757,
+          "source": "design-decisions.md",
+          "head": "**溯源这一条是硬的**：页码信息只存在于切分那一刻。事后想补，只能全量重新解析 + 重新切分 + 重新向量化 —— 这"
+        },
+        {
+          "score": 0.6754,
+          "source": "document-parsing.md",
+          "head": "**为什么跨页那段要 `pages=(1,2)` 而不只是 `page=1`**： 用户点进 p1 找不到那句的后半截，"
+        },
+        {
+          "score": 0.6208,
+          "source": "chunking-boundaries.md",
+          "head": "在长合同、技术规格书这类文档里，章节名比页码有用得多 —— 页码是\"排版坐标\"，章节才是\"读者的坐标\"。  **③ 二次"
+        },
+        {
+          "score": 0.6207,
+          "source": "design-decisions.md",
+          "head": "### 选了什么  `Document(page, pages)` 与 `Chunk(page, pages)` 从**"
+        },
+        {
+          "score": 0.6159,
+          "source": "design-decisions.md",
+          "head": "1. **元数据体积**：每个 chunk 多 3 个字段（`page` / `pages` / `chunk_inde"
+        }
+      ],
+      "candidate": "③ 多跳需跨块",
+      "signals": [
+        "多跳的 1 个锚点未命中（锚点位置 (None, 1)）",
+        "只缺一处 → 需要「跨块合并」或两轮检索才能补齐"
+      ],
+      "auto_confidence": "high"
+    },
+    {
+      "id": "m-06",
+      "type": "multi_hop",
+      "question": "换 embedding 模型导致维度变化要付什么代价，库侧支持到哪？",
+      "gold_answer": "需全量重建索引；迁移未做，只能 clear 重建",
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top1_score": 0.662,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        154,
+        479
+      ],
+      "gold_chunk_tails": [
+        "静默截断**，不报错 |",
+        "页密度与真实文档不同 |"
+      ],
+      "top5": [
+        {
+          "score": 0.662,
+          "source": "design-decisions.md",
+          "head": "### 代价是什么  1. **多了一整条链路要维护**：解析 → 切分 → 向量化 → 入库 → 检索 → 生成。 六"
+        },
+        {
+          "score": 0.6592,
+          "source": "streamlit-ui.md",
+          "head": "**「重建索引」必须清向量库**：改了 embedder 之后不清理， 新旧向量会混在一个库里。维度不同会直接报错（还好"
+        },
+        {
+          "score": 0.6198,
+          "source": "w3.md",
+          "head": "**改契约和改措辞不是一个量级的杠杆。** 所以遇到\"模型表现不行\"，第一反应应该是查**接口对不对**，而不是改 pr"
+        },
+        {
+          "score": 0.6182,
+          "source": "embedding.md",
+          "head": "> 第三条看起来多余（两个实现都归一化了），但它是**保险**： > 第三个 embedder 未必。除一次模长成本 O"
+        },
+        {
+          "score": 0.5991,
+          "source": "prompt-ab.md",
+          "head": "现，复盘时才查出来。 原因是被迫在修复轮里来回试 —— 它知道信息在，\"时间\"填不对，就一直改。  > **归因结论：+"
+        }
+      ],
+      "candidate": "③ 多跳需跨块",
+      "signals": [
+        "多跳的 2 个锚点未命中（锚点位置 (None, None)）",
+        "两处都缺 → 不只是跨块问题，可能整体没定位到"
+      ],
+      "auto_confidence": "high"
+    },
+    {
+      "id": "m-08",
+      "type": "multi_hop",
+      "question": "用什么证据说明契约冻结、实现可换？",
+      "gold_answer": "两版实现跑同一套 test_api.py，567 个测试离线全绿",
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top1_score": 0.673,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [
+        417,
+        451
+      ],
+      "gold_chunk_tails": [
+        "uid 10001） |",
+        "签名，路由只依赖签名 |"
+      ],
+      "top5": [
+        {
+          "score": 0.673,
+          "source": "w1.md",
+          "head": "### 2.1 契约为什么要在写实现之前冻结？—— 因为 W2 要整个换掉实现  `docs/api-spec.md` "
+        },
+        {
+          "score": 0.6666,
+          "source": "README.md",
+          "head": "## 契约冻住了吗？—— 这是最硬的证据  项目里最重要的一条测试在 `tests/test_api.py`："
+        },
+        {
+          "score": 0.6363,
+          "source": "api-spec.md",
+          "head": "> 规则 6 是本契约的落地方式：**测试一行不改而全绿**，才算实现真的可换。  ---"
+        },
+        {
+          "score": 0.6153,
+          "source": "README.md",
+          "head": "这 行命令为什么值得单独一节：**它能证明实现真的可替换**。 如果测试依赖真实模型，那它测的就不是你的代码，而是供应商"
+        },
+        {
+          "score": 0.6153,
+          "source": "sse.md",
+          "head": "### 4.1 为什么是新增端点，而不是把 `/extract` 改成流式  `docs/api-spec.md` §4"
+        }
+      ],
+      "candidate": "③ 多跳需跨块",
+      "signals": [
+        "多跳的 2 个锚点未命中（锚点位置 (None, None)）",
+        "两处都缺 → 不只是跨块问题，可能整体没定位到"
+      ],
+      "auto_confidence": "high"
+    },
+    {
+      "id": "r-01",
+      "type": "refusal",
+      "question": "换成 Qdrant 或 pgvector 时，向量索引的量化配置该怎么选？",
+      "gold_answer": "资料未覆盖，应拒答并说明无依据",
+      "anchor_ranks": [],
+      "top1_score": 0.6288,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [],
+      "gold_chunk_tails": [],
+      "top5": [
+        {
+          "score": 0.6288,
+          "source": "rag-architecture.md",
+          "head": "### ③ 向量化：`List[str]` → `List[List[float]]`"
+        },
+        {
+          "score": 0.6198,
+          "source": "streamlit-ui.md",
+          "head": "| 检索段 | 耗时（5 次中位数） | | --- | ---: | | query 向量化（bge 单条） | **"
+        },
+        {
+          "score": 0.6042,
+          "source": "rag-architecture.md",
+          "head": "``` │ │ │ └───────────────────────────────────────────┼─────"
+        },
+        {
+          "score": 0.5908,
+          "source": "design-decisions.md",
+          "head": "### 选了什么  **先 ChromaDB（嵌入式）**。W4 周四已真正实现并验证（`app/rag/stores/"
+        },
+        {
+          "score": 0.5876,
+          "source": "streamlit-ui.md",
+          "head": "**「重建索引」必须清向量库**：改了 embedder 之后不清理， 新旧向量会混在一个库里。维度不同会直接报错（还好"
+        }
+      ],
+      "candidate": "refusal_false_accept",
+      "signals": [
+        "该拒却答：top1=0.6288199052644653 >= 阈值 0.575",
+        "拒答判据是分数，而分数不含「能不能回答」这个信息"
+      ],
+      "auto_confidence": "high"
+    },
+    {
+      "id": "r-03",
+      "type": "refusal",
+      "question": "这套检索该怎么报 nDCG 与 MAP，和 BLEU 这类生成指标怎么配合？",
+      "gold_answer": "资料未覆盖，应拒答并说明无依据",
+      "anchor_ranks": [],
+      "top1_score": 0.6485,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [],
+      "gold_chunk_tails": [],
+      "top5": [
+        {
+          "score": 0.6485,
+          "source": "w4.md",
+          "head": "| # | 目标 | 怎么验 | | --- | --- | --- | | 1 | `overlap/top_k` 有"
+        },
+        {
+          "score": 0.5883,
+          "source": "why-i-use-langchain.md",
+          "head": "### 4.3 自定义重排 / RAG 检索策略  W4 要做 RAG。LangChain 的 retriever 抽象"
+        },
+        {
+          "score": 0.5843,
+          "source": "w3.md",
+          "head": "**带着本周的问题去读**： - 我在 W3 建立的 `structured_call` 会被 RAG 的哪个环节用到？"
+        },
+        {
+          "score": 0.5813,
+          "source": "w2.md",
+          "head": "**④ 装配层单独验** —— `test_wiring.py` 证明默认实现是 `LlmExtractor`、 缺 k"
+        },
+        {
+          "score": 0.5716,
+          "source": "design-decisions.md",
+          "head": "### 选了什么  **RAG**。文档进索引，提问时检索 TopK 再生成。"
+        }
+      ],
+      "candidate": "refusal_false_accept",
+      "signals": [
+        "该拒却答：top1=0.6484931260420512 >= 阈值 0.575",
+        "拒答判据是分数，而分数不含「能不能回答」这个信息"
+      ],
+      "auto_confidence": "high"
+    },
+    {
+      "id": "r-04",
+      "type": "refusal",
+      "question": "上 cross-encoder 做 rerank 后，召回与延迟的折中点在哪？",
+      "gold_answer": "资料未覆盖，应拒答并说明无依据",
+      "anchor_ranks": [],
+      "top1_score": 0.5779,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [],
+      "gold_chunk_tails": [],
+      "top5": [
+        {
+          "score": 0.5779,
+          "source": "w2.md",
+          "head": "比\"重发同一个 prompt 碰运气\"有效，因为错误信息直接告诉了模型**哪里不对、错在哪个字段、收到了什么值**。  "
+        },
+        {
+          "score": 0.5756,
+          "source": "rag-architecture.md",
+          "head": "> **所以：本实现下任何召回率数字都没有参考价值。** 拿它调参 = 优化噪声。 > 换真模型（sentence-tr"
+        },
+        {
+          "score": 0.5704,
+          "source": "README.md",
+          "head": "比\"重试同一个 prompt 碰运气\"有效得多，因为错误信息直接告诉了它**哪里不对、错在哪个字段、收到了什么值**。 "
+        },
+        {
+          "score": 0.5671,
+          "source": "rag-architecture.md",
+          "head": "召回率未验证的前提下，多给的那几条大多是噪声 —— **噪声进上下文会实实在在拉低答案质量**。  > 收敛到 5 的理"
+        },
+        {
+          "score": 0.5642,
+          "source": "README.md",
+          "head": "### 2. `finish_reason` 才是截断的唯一判据  `max_tokens` 设小时，内容可能停在句号之"
+        }
+      ],
+      "candidate": "refusal_false_accept",
+      "signals": [
+        "该拒却答：top1=0.5779147759916918 >= 阈值 0.575",
+        "拒答判据是分数，而分数不含「能不能回答」这个信息"
+      ],
+      "auto_confidence": "high"
+    },
+    {
+      "id": "r-06",
+      "type": "refusal",
+      "question": "用 vLLM 的 PagedAttention 做部署，吞吐能比现在高多少？",
+      "gold_answer": "资料未覆盖，应拒答并说明无依据",
+      "anchor_ranks": [],
+      "top1_score": 0.6042,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [],
+      "gold_chunk_tails": [],
+      "top5": [
+        {
+          "score": 0.6042,
+          "source": "embedding.md",
+          "head": "所以上表里 API 的\"单条延迟 / 批量吞吐\"两格写的是**未能实测**，不是\"大概多少\"。 **编一个\"约 100m"
+        },
+        {
+          "score": 0.5498,
+          "source": "w1.md",
+          "head": "> **注意**：W2 的 231 MB 已超出 200 MB 目标，比 W1 多 **74 MB**。这不是 Dock"
+        },
+        {
+          "score": 0.5473,
+          "source": "w1.md",
+          "head": "### 2.2 所有非 2xx 真的都是同一个形状吗？—— 是，但框架默认给了三套  FastAPI + Starlet"
+        },
+        {
+          "score": 0.5471,
+          "source": "w2.md",
+          "head": "**① 回灌重试不是\"多一点时间\"，是\"多 3.5 倍钱\"。** 所以\"提高首次成功率\"（更明确的 prompt、标量归"
+        },
+        {
+          "score": 0.5415,
+          "source": "sse.md",
+          "head": "TTFT 和 total 是**两个不同的数，别混**： - TTFT = 体感（用户看到第一行的等待） - total"
+        }
+      ],
+      "candidate": "refusal_false_accept",
+      "signals": [
+        "该拒却答：top1=0.6041561039639572 >= 阈值 0.575",
+        "拒答判据是分数，而分数不含「能不能回答」这个信息"
+      ],
+      "auto_confidence": "high"
+    },
+    {
+      "id": "r-07",
+      "type": "refusal",
+      "question": "把这条链路改写成 LangGraph 或 AutoGen 的多智能体编排，要注意什么？",
+      "gold_answer": "资料未覆盖，应拒答并说明无依据",
+      "anchor_ranks": [],
+      "top1_score": 0.5976,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [],
+      "gold_chunk_tails": [],
+      "top5": [
+        {
+          "score": 0.5976,
+          "source": "why-i-use-langchain.md",
+          "head": "签名里有四个 `method` 选项和一个 `strict` 开关，这本身就是\"结构化输出有多种实现路线\"的 知识封装："
+        },
+        {
+          "score": 0.5624,
+          "source": "why-i-use-langchain.md",
+          "head": "## 一句话版本  **LangChain 替我抽象了「prompt 模板 / 链式编排 / 输出解析」三层； 但在「结"
+        },
+        {
+          "score": 0.547,
+          "source": "chunking-boundaries.md",
+          "head": "### 具体它能做什么（三条，都要有可验证的落点）  **① 检索时按章节过滤。**  `section_path` 是"
+        },
+        {
+          "score": 0.53,
+          "source": "w3.md",
+          "head": "### 3.2 框架的简洁性，建立在它对你环境的假设上  LangChain 的 `with_structured_ou"
+        },
+        {
+          "score": 0.5265,
+          "source": "why-i-use-langchain.md",
+          "head": "**关键在 `only tool_choice auto and none are supported`** —— 网关"
+        }
+      ],
+      "candidate": "refusal_false_accept",
+      "signals": [
+        "该拒却答：top1=0.5976399967189642 >= 阈值 0.575",
+        "拒答判据是分数，而分数不含「能不能回答」这个信息"
+      ],
+      "auto_confidence": "high"
+    },
+    {
+      "id": "r-09",
+      "type": "refusal",
+      "question": "用 CLIP 或 ColPali 做图文多模态检索，和文本检索怎么融合？",
+      "gold_answer": "资料未覆盖，应拒答并说明无依据",
+      "anchor_ranks": [],
+      "top1_score": 0.5785,
+      "gold_rank_in_top50": null,
+      "gold_chunk_lengths": [],
+      "gold_chunk_tails": [],
+      "top5": [
+        {
+          "score": 0.5785,
+          "source": "chunking-boundaries.md",
+          "head": "### 具体它能做什么（三条，都要有可验证的落点）  **① 检索时按章节过滤。**  `section_path` 是"
+        },
+        {
+          "score": 0.5778,
+          "source": "w4.md",
+          "head": "| # | 目标 | 怎么验 | | --- | --- | --- | | 1 | `overlap/top_k` 有"
+        },
+        {
+          "score": 0.5467,
+          "source": "embedding.md",
+          "head": "### 实测：差异有数据  走真实链路（`RagPipeline` + `Retriever.embed_query`）"
+        },
+        {
+          "score": 0.5461,
+          "source": "prompt-templates.md",
+          "head": "**模糊样本给了 0.45** —— 正是设计想要的：两类都沾边时低分，交给人工复核。 **没有出现选两个类别的情况。*"
+        },
+        {
+          "score": 0.5415,
+          "source": "streamlit-ui.md",
+          "head": "**领域层不 import streamlit**。`on_stage=None` 时 CLI 照常工作， 测试传一个假"
+        }
+      ],
+      "candidate": "refusal_false_accept",
+      "signals": [
+        "该拒却答：top1=0.578455373253507 >= 阈值 0.575",
+        "拒答判据是分数，而分数不含「能不能回答」这个信息"
+      ],
+      "auto_confidence": "high"
+    }
+  ]
+}

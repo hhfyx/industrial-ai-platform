@@ -1,7 +1,7 @@
 # 检索参数定版：TopK、过滤、阈值、拒答
 
 > 本文是 **W5 周四**（2026-11-19）实测记录。
-> 昨天的 token/切分网格在 [retrieval-tuning.md](retrieval-tuning.md)，
+> 昨天的 token/切分网格在 [retrieval-tuning-token-grid.md](retrieval-tuning-token-grid.md)，
 > 今天的四个参数都进了 `app/rag/settings.RagConfig`。
 
 ---
@@ -77,7 +77,7 @@ chunk=500 / overlap=50 / 20 条 gold，索引 532 块，同一份索引跑四个
 - 5→8 掉到 0.63 —— 同样的 token 只能换到三分之一的召回
 - 8→10 又回到 1.00，但那时基数已经很大（2608 token / 9.25 条噪音）
 
-⚠️ **20 条样本上这个曲线不显著**（见 [retrieval-tuning.md](retrieval-tuning.md) §6：
+⚠️ **20 条样本上这个曲线不显著**（见 [retrieval-tuning-token-grid.md](retrieval-tuning-token-grid.md) §6：
 1 条翻转 = 5pp，McNemar p 全部 = 1.0）。所以 5 不是"被证明最优"，
 而是"在拐点上、且维持现状成本最低"：改成 8 要多付 60% 上下文和 68% 噪音，
 换来的 5pp 落在置信区间里。

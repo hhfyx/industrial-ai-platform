@@ -20,7 +20,7 @@
 
 这一点与前几天的网格不同，必须说清为什么。
 
-`docs/retrieval-tuning.md` 的 chunk 网格用的是**合并正文**（每份文档合成一段），
+`docs/retrieval-tuning-token-grid.md` 的 chunk 网格用的是**合并正文**（每份文档合成一段），
 理由是"loader 切成 172 字的小段，改 chunk_chars 没效果"。
 那个理由对 `recursive` 成立，但**对另两个策略是致命的**：
 

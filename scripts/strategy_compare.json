@@ -1,8 +1,8 @@
 {
   "meta": {
-    "generated_at": "2026-11-01 17:56:23",
+    "generated_at": "2026-11-01 18:14:33",
     "corpus": "loader 原样输出（不合并），因为合并会丢 heading_level",
-    "corpus_docs": 1820,
+    "corpus_docs": 1487,
     "questions": 50,
     "chunk_candidates": [
       300,
@@ -19,11 +19,11 @@
     {
       "strategy": "recursive",
       "chunk_chars": 300,
-      "chunks": 2075,
-      "split_ms": 36.0,
-      "embed_ms": 12030.4,
-      "store_ms": 19.3,
-      "index_ms": 12085.7,
+      "chunks": 1702,
+      "split_ms": 29.2,
+      "embed_ms": 82.6,
+      "store_ms": 11.1,
+      "index_ms": 122.9,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -31,14 +31,14 @@
           "rate": 0.15
         },
         "recall@3": {
-          "hits": 9,
+          "hits": 10,
           "total": 40,
-          "rate": 0.225
+          "rate": 0.25
         },
         "recall@5": {
-          "hits": 14,
+          "hits": 15,
           "total": 40,
-          "rate": 0.35
+          "rate": 0.375
         },
         "recall@8": {
           "hits": 17,
@@ -51,23 +51,23 @@
           "rate": 0.425
         }
       },
-      "mrr": 0.2288,
+      "mrr": 0.2323,
       "by_type": {
         "fact": {
           "total": 30,
           "recall@5": 0.4667,
-          "mrr": 0.29
+          "mrr": 0.2928
         },
         "multi_hop": {
           "total": 10,
-          "recall@5": 0.0,
-          "mrr": 0.0452
+          "recall@5": 0.1,
+          "mrr": 0.051
         }
       },
       "refusal": {
-        "refused_correctly": 2,
+        "refused_correctly": 3,
         "refusal_total": 10,
-        "refusal_accuracy": 0.2,
+        "refusal_accuracy": 0.3,
         "false_refusal": [
           "f-01",
           "f-03",
@@ -84,7 +84,6 @@
           "r-05",
           "r-06",
           "r-07",
-          "r-08",
           "r-09"
         ],
         "recall_miss": [
@@ -112,10 +111,10 @@
           "m-07",
           "m-08"
         ],
-        "overall_accuracy": 0.36,
+        "overall_accuracy": 0.38,
         "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
       },
-      "sentence_rate": 0.1567,
+      "sentence_rate": 0.1569,
       "anchors_ok": false,
       "anchor_problems": [
         "1 个锚点解析失败（共 50 条）：",
@@ -302,9 +301,9 @@
         {
           "id": "f-23",
           "type": "fact",
-          "hit_rank": 4,
+          "hit_rank": 3,
           "anchor_ranks": [
-            4
+            3
           ]
         },
         {
@@ -377,7 +376,7 @@
           "type": "multi_hop",
           "hit_rank": null,
           "anchor_ranks": [
-            null,
+            10,
             null
           ]
         },
@@ -446,10 +445,10 @@
         {
           "id": "m-10",
           "type": "multi_hop",
-          "hit_rank": 7,
+          "hit_rank": 5,
           "anchor_ranks": [
-            4,
-            7
+            3,
+            5
           ]
         },
         {
@@ -517,11 +516,11 @@
     {
       "strategy": "recursive",
       "chunk_chars": 500,
-      "chunks": 1907,
-      "split_ms": 25.6,
-      "embed_ms": 97.6,
-      "store_ms": 9.4,
-      "index_ms": 132.6,
+      "chunks": 1565,
+      "split_ms": 33.2,
+      "embed_ms": 140.9,
+      "store_ms": 15.6,
+      "index_ms": 189.7,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -534,9 +533,9 @@
           "rate": 0.3
         },
         "recall@5": {
-          "hits": 15,
+          "hits": 16,
           "total": 40,
-          "rate": 0.375
+          "rate": 0.4
         },
         "recall@8": {
           "hits": 17,
@@ -549,23 +548,23 @@
           "rate": 0.425
         }
       },
-      "mrr": 0.2352,
+      "mrr": 0.2402,
       "by_type": {
         "fact": {
           "total": 30,
           "recall@5": 0.4333,
-          "mrr": 0.29
+          "mrr": 0.2956
         },
         "multi_hop": {
           "total": 10,
-          "recall@5": 0.2,
-          "mrr": 0.071
+          "recall@5": 0.3,
+          "mrr": 0.0743
         }
       },
       "refusal": {
-        "refused_correctly": 2,
+        "refused_correctly": 4,
         "refusal_total": 10,
-        "refusal_accuracy": 0.2,
+        "refusal_accuracy": 0.4,
         "false_refusal": [
           "f-01",
           "f-03",
@@ -579,10 +578,8 @@
           "r-01",
           "r-03",
           "r-04",
-          "r-05",
           "r-06",
           "r-07",
-          "r-08",
           "r-09"
         ],
         "recall_miss": [
@@ -610,10 +607,10 @@
           "m-06",
           "m-08"
         ],
-        "overall_accuracy": 0.36,
+        "overall_accuracy": 0.4,
         "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
       },
-      "sentence_rate": 0.1556,
+      "sentence_rate": 0.1545,
       "anchors_ok": true,
       "anchor_problems": [],
       "per_query": [
@@ -796,9 +793,9 @@
         {
           "id": "f-23",
           "type": "fact",
-          "hit_rank": 3,
+          "hit_rank": 2,
           "anchor_ranks": [
-            3
+            2
           ]
         },
         {
@@ -871,7 +868,7 @@
           "type": "multi_hop",
           "hit_rank": null,
           "anchor_ranks": [
-            null,
+            10,
             null
           ]
         },
@@ -941,10 +938,10 @@
         {
           "id": "m-10",
           "type": "multi_hop",
-          "hit_rank": 6,
+          "hit_rank": 5,
           "anchor_ranks": [
-            4,
-            6
+            3,
+            5
           ]
         },
         {
@@ -1012,11 +1009,11 @@
     {
       "strategy": "recursive",
       "chunk_chars": 800,
-      "chunks": 1861,
-      "split_ms": 18.7,
-      "embed_ms": 101.9,
-      "store_ms": 9.9,
-      "index_ms": 130.5,
+      "chunks": 1527,
+      "split_ms": 25.9,
+      "embed_ms": 135.0,
+      "store_ms": 23.7,
+      "index_ms": 184.6,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -1029,9 +1026,9 @@
           "rate": 0.3
         },
         "recall@5": {
-          "hits": 14,
+          "hits": 15,
           "total": 40,
-          "rate": 0.35
+          "rate": 0.375
         },
         "recall@8": {
           "hits": 16,
@@ -1044,23 +1041,23 @@
           "rate": 0.4
         }
       },
-      "mrr": 0.2315,
+      "mrr": 0.2365,
       "by_type": {
         "fact": {
           "total": 30,
           "recall@5": 0.4333,
-          "mrr": 0.2917
+          "mrr": 0.2972
         },
         "multi_hop": {
           "total": 10,
-          "recall@5": 0.1,
-          "mrr": 0.051
+          "recall@5": 0.2,
+          "mrr": 0.0543
         }
       },
       "refusal": {
-        "refused_correctly": 2,
+        "refused_correctly": 4,
         "refusal_total": 10,
-        "refusal_accuracy": 0.2,
+        "refusal_accuracy": 0.4,
         "false_refusal": [
           "f-01",
           "f-03",
@@ -1075,10 +1072,8 @@
           "r-01",
           "r-03",
           "r-04",
-          "r-05",
           "r-06",
           "r-07",
-          "r-08",
           "r-09"
         ],
         "recall_miss": [
@@ -1107,10 +1102,10 @@
           "m-07",
           "m-08"
         ],
-        "overall_accuracy": 0.32,
+        "overall_accuracy": 0.36,
         "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
       },
-      "sentence_rate": 0.1532,
+      "sentence_rate": 0.1525,
       "anchors_ok": true,
       "anchor_problems": [],
       "per_query": [
@@ -1293,9 +1288,9 @@
         {
           "id": "f-23",
           "type": "fact",
-          "hit_rank": 3,
+          "hit_rank": 2,
           "anchor_ranks": [
-            3
+            2
           ]
         },
         {
@@ -1368,7 +1363,7 @@
           "type": "multi_hop",
           "hit_rank": null,
           "anchor_ranks": [
-            null,
+            9,
             null
           ]
         },
@@ -1438,10 +1433,10 @@
         {
           "id": "m-10",
           "type": "multi_hop",
-          "hit_rank": 6,
+          "hit_rank": 5,
           "anchor_ranks": [
-            4,
-            6
+            3,
+            5
           ]
         },
         {
@@ -1509,11 +1504,11 @@
     {
       "strategy": "heading",
       "chunk_chars": 300,
-      "chunks": 2006,
-      "split_ms": 50.8,
-      "embed_ms": 281.5,
-      "store_ms": 12.2,
-      "index_ms": 344.5,
+      "chunks": 1650,
+      "split_ms": 63.9,
+      "embed_ms": 139.5,
+      "store_ms": 19.2,
+      "index_ms": 222.6,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -1526,9 +1521,9 @@
           "rate": 0.275
         },
         "recall@5": {
-          "hits": 13,
+          "hits": 14,
           "total": 40,
-          "rate": 0.325
+          "rate": 0.35
         },
         "recall@8": {
           "hits": 17,
@@ -1541,23 +1536,23 @@
           "rate": 0.425
         }
       },
-      "mrr": 0.2352,
+      "mrr": 0.2371,
       "by_type": {
         "fact": {
           "total": 30,
-          "recall@5": 0.4333,
-          "mrr": 0.2983
+          "recall@5": 0.4667,
+          "mrr": 0.2994
         },
         "multi_hop": {
           "total": 10,
           "recall@5": 0.0,
-          "mrr": 0.0458
+          "mrr": 0.05
         }
       },
       "refusal": {
-        "refused_correctly": 2,
+        "refused_correctly": 3,
         "refusal_total": 10,
-        "refusal_accuracy": 0.2,
+        "refusal_accuracy": 0.3,
         "false_refusal": [
           "f-01",
           "f-03",
@@ -1574,7 +1569,6 @@
           "r-05",
           "r-06",
           "r-07",
-          "r-08",
           "r-09"
         ],
         "recall_miss": [
@@ -1602,10 +1596,10 @@
           "m-07",
           "m-08"
         ],
-        "overall_accuracy": 0.36,
+        "overall_accuracy": 0.38,
         "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
       },
-      "sentence_rate": 0.1572,
+      "sentence_rate": 0.1586,
       "anchors_ok": false,
       "anchor_problems": [
         "1 个锚点解析失败（共 50 条）：",
@@ -1672,9 +1666,9 @@
         {
           "id": "f-08",
           "type": "fact",
-          "hit_rank": 6,
+          "hit_rank": 5,
           "anchor_ranks": [
-            6
+            5
           ]
         },
         {
@@ -1936,10 +1930,10 @@
         {
           "id": "m-10",
           "type": "multi_hop",
-          "hit_rank": 8,
+          "hit_rank": 6,
           "anchor_ranks": [
-            4,
-            8
+            3,
+            6
           ]
         },
         {
@@ -2007,11 +2001,11 @@
     {
       "strategy": "heading",
       "chunk_chars": 500,
-      "chunks": 1836,
-      "split_ms": 34.8,
-      "embed_ms": 95.6,
-      "store_ms": 8.4,
-      "index_ms": 138.8,
+      "chunks": 1512,
+      "split_ms": 47.4,
+      "embed_ms": 131.8,
+      "store_ms": 17.3,
+      "index_ms": 196.5,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -2024,9 +2018,9 @@
           "rate": 0.275
         },
         "recall@5": {
-          "hits": 14,
+          "hits": 15,
           "total": 40,
-          "rate": 0.35
+          "rate": 0.375
         },
         "recall@8": {
           "hits": 16,
@@ -2039,23 +2033,23 @@
           "rate": 0.425
         }
       },
-      "mrr": 0.23,
+      "mrr": 0.2311,
       "by_type": {
         "fact": {
           "total": 30,
           "recall@5": 0.4,
-          "mrr": 0.2822
+          "mrr": 0.2826
         },
         "multi_hop": {
           "total": 10,
-          "recall@5": 0.2,
-          "mrr": 0.0733
+          "recall@5": 0.3,
+          "mrr": 0.0767
         }
       },
       "refusal": {
-        "refused_correctly": 2,
+        "refused_correctly": 4,
         "refusal_total": 10,
-        "refusal_accuracy": 0.2,
+        "refusal_accuracy": 0.4,
         "false_refusal": [
           "f-01",
           "f-03",
@@ -2070,10 +2064,8 @@
           "r-01",
           "r-03",
           "r-04",
-          "r-05",
           "r-06",
           "r-07",
-          "r-08",
           "r-09"
         ],
         "recall_miss": [
@@ -2101,10 +2093,10 @@
           "m-06",
           "m-08"
         ],
-        "overall_accuracy": 0.36,
+        "overall_accuracy": 0.4,
         "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
       },
-      "sentence_rate": 0.1599,
+      "sentence_rate": 0.1597,
       "anchors_ok": true,
       "anchor_problems": [],
       "per_query": [
@@ -2255,9 +2247,9 @@
         {
           "id": "f-19",
           "type": "fact",
-          "hit_rank": 10,
+          "hit_rank": 9,
           "anchor_ranks": [
-            10
+            9
           ]
         },
         {
@@ -2362,7 +2354,7 @@
           "type": "multi_hop",
           "hit_rank": null,
           "anchor_ranks": [
-            null,
+            10,
             null
           ]
         },
@@ -2432,10 +2424,10 @@
         {
           "id": "m-10",
           "type": "multi_hop",
-          "hit_rank": 6,
+          "hit_rank": 5,
           "anchor_ranks": [
-            4,
-            6
+            3,
+            5
           ]
         },
         {
@@ -2503,11 +2495,11 @@
     {
       "strategy": "heading",
       "chunk_chars": 800,
-      "chunks": 1787,
-      "split_ms": 28.1,
-      "embed_ms": 92.8,
-      "store_ms": 12.7,
-      "index_ms": 133.6,
+      "chunks": 1471,
+      "split_ms": 38.5,
+      "embed_ms": 144.3,
+      "store_ms": 16.3,
+      "index_ms": 199.1,
       "recall": {
         "recall@1": {
           "hits": 7,
@@ -2520,9 +2512,9 @@
           "rate": 0.3
         },
         "recall@5": {
-          "hits": 14,
+          "hits": 15,
           "total": 40,
-          "rate": 0.35
+          "rate": 0.375
         },
         "recall@8": {
           "hits": 17,
@@ -2535,23 +2527,23 @@
           "rate": 0.425
         }
       },
-      "mrr": 0.2519,
+      "mrr": 0.2532,
       "by_type": {
         "fact": {
           "total": 30,
           "recall@5": 0.4333,
-          "mrr": 0.3181
+          "mrr": 0.3187
         },
         "multi_hop": {
           "total": 10,
-          "recall@5": 0.1,
-          "mrr": 0.0533
+          "recall@5": 0.2,
+          "mrr": 0.0567
         }
       },
       "refusal": {
-        "refused_correctly": 2,
+        "refused_correctly": 4,
         "refusal_total": 10,
-        "refusal_accuracy": 0.2,
+        "refusal_accuracy": 0.4,
         "false_refusal": [
           "f-01",
           "f-03",
@@ -2566,10 +2558,8 @@
           "r-01",
           "r-03",
           "r-04",
-          "r-05",
           "r-06",
           "r-07",
-          "r-08",
           "r-09"
         ],
         "recall_miss": [
@@ -2597,10 +2587,10 @@
           "m-07",
           "m-08"
         ],
-        "overall_accuracy": 0.34,
+        "overall_accuracy": 0.38,
         "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
       },
-      "sentence_rate": 0.1581,
+      "sentence_rate": 0.1585,
       "anchors_ok": true,
       "anchor_problems": [],
       "per_query": [
@@ -2751,9 +2741,9 @@
         {
           "id": "f-19",
           "type": "fact",
-          "hit_rank": 8,
+          "hit_rank": 7,
           "anchor_ranks": [
-            8
+            7
           ]
         },
         {
@@ -2858,7 +2848,7 @@
           "type": "multi_hop",
           "hit_rank": null,
           "anchor_ranks": [
-            null,
+            9,
             null
           ]
         },
@@ -2928,10 +2918,10 @@
         {
           "id": "m-10",
           "type": "multi_hop",
-          "hit_rank": 6,
+          "hit_rank": 5,
           "anchor_ranks": [
-            4,
-            6
+            3,
+            5
           ]
         },
         {
@@ -2999,11 +2989,11 @@
     {
       "strategy": "semantic",
       "chunk_chars": 300,
-      "chunks": 2205,
-      "split_ms": 1591.2,
-      "embed_ms": 391.9,
-      "store_ms": 19.7,
-      "index_ms": 2002.8,
+      "chunks": 1802,
+      "split_ms": 776.6,
+      "embed_ms": 156.7,
+      "store_ms": 19.3,
+      "index_ms": 952.6,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -3011,14 +3001,14 @@
           "rate": 0.15
         },
         "recall@3": {
-          "hits": 9,
+          "hits": 10,
           "total": 40,
-          "rate": 0.225
+          "rate": 0.25
         },
         "recall@5": {
-          "hits": 14,
+          "hits": 15,
           "total": 40,
-          "rate": 0.35
+          "rate": 0.375
         },
         "recall@8": {
           "hits": 16,
@@ -3031,23 +3021,23 @@
           "rate": 0.425
         }
       },
-      "mrr": 0.2268,
+      "mrr": 0.2309,
       "by_type": {
         "fact": {
           "total": 30,
           "recall@5": 0.4333,
-          "mrr": 0.2817
+          "mrr": 0.2861
         },
         "multi_hop": {
           "total": 10,
-          "recall@5": 0.1,
-          "mrr": 0.0621
+          "recall@5": 0.2,
+          "mrr": 0.0654
         }
       },
       "refusal": {
-        "refused_correctly": 2,
+        "refused_correctly": 3,
         "refusal_total": 10,
-        "refusal_accuracy": 0.2,
+        "refusal_accuracy": 0.3,
         "false_refusal": [
           "f-01",
           "f-03",
@@ -3061,7 +3051,6 @@
           "r-01",
           "r-03",
           "r-04",
-          "r-05",
           "r-06",
           "r-07",
           "r-08",
@@ -3092,10 +3081,10 @@
           "m-06",
           "m-08"
         ],
-        "overall_accuracy": 0.36,
+        "overall_accuracy": 0.38,
         "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
       },
-      "sentence_rate": 0.1496,
+      "sentence_rate": 0.1479,
       "anchors_ok": true,
       "anchor_problems": [],
       "per_query": [
@@ -3278,9 +3267,9 @@
         {
           "id": "f-23",
           "type": "fact",
-          "hit_rank": 5,
+          "hit_rank": 3,
           "anchor_ranks": [
-            5
+            3
           ]
         },
         {
@@ -3353,7 +3342,7 @@
           "type": "multi_hop",
           "hit_rank": null,
           "anchor_ranks": [
-            null,
+            9,
             null
           ]
         },
@@ -3423,10 +3412,10 @@
         {
           "id": "m-10",
           "type": "multi_hop",
-          "hit_rank": 6,
+          "hit_rank": 5,
           "anchor_ranks": [
-            4,
-            6
+            3,
+            5
           ]
         },
         {
@@ -3494,11 +3483,11 @@
     {
       "strategy": "semantic",
       "chunk_chars": 500,
-      "chunks": 2092,
-      "split_ms": 531.6,
-      "embed_ms": 195.2,
-      "store_ms": 12.6,
-      "index_ms": 739.4,
+      "chunks": 1717,
+      "split_ms": 732.8,
+      "embed_ms": 149.6,
+      "store_ms": 9.3,
+      "index_ms": 891.7,
       "recall": {
         "recall@1": {
           "hits": 6,
@@ -3506,14 +3495,14 @@
           "rate": 0.15
         },
         "recall@3": {
-          "hits": 10,
+          "hits": 11,
           "total": 40,
-          "rate": 0.25
+          "rate": 0.275
         },
         "recall@5": {
-          "hits": 14,
+          "hits": 15,
           "total": 40,
-          "rate": 0.35
+          "rate": 0.375
         },
         "recall@8": {
           "hits": 15,
@@ -3526,23 +3515,23 @@
           "rate": 0.425
         }
       },
-      "mrr": 0.2265,
+      "mrr": 0.231,
       "by_type": {
         "fact": {
           "total": 30,
           "recall@5": 0.4333,
-          "mrr": 0.2828
+          "mrr": 0.2872
         },
         "multi_hop": {
           "total": 10,
-          "recall@5": 0.1,
-          "mrr": 0.0578
+          "recall@5": 0.2,
+          "mrr": 0.0622
         }
       },
       "refusal": {
-        "refused_correctly": 2,
+        "refused_correctly": 4,
         "refusal_total": 10,
-        "refusal_accuracy": 0.2,
+        "refusal_accuracy": 0.4,
         "false_refusal": [
           "f-01",
           "f-03",
@@ -3556,10 +3545,8 @@
           "r-01",
           "r-03",
           "r-04",
-          "r-05",
           "r-06",
           "r-07",
-          "r-08",
           "r-09"
         ],
         "recall_miss": [
@@ -3587,502 +3574,7 @@
           "m-06",
           "m-08"
         ],
-        "overall_accuracy": 0.36,
-        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
-      },
-      "sentence_rate": 0.145,
-      "anchors_ok": true,
-      "anchor_problems": [],
-      "per_query": [
-        {
-          "id": "f-01",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-02",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-03",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-04",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-05",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-06",
-          "type": "fact",
-          "hit_rank": 2,
-          "anchor_ranks": [
-            2
-          ]
-        },
-        {
-          "id": "f-07",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-08",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-09",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-10",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-11",
-          "type": "fact",
-          "hit_rank": 1,
-          "anchor_ranks": [
-            1
-          ]
-        },
-        {
-          "id": "f-12",
-          "type": "fact",
-          "hit_rank": 1,
-          "anchor_ranks": [
-            1
-          ]
-        },
-        {
-          "id": "f-13",
-          "type": "fact",
-          "hit_rank": 1,
-          "anchor_ranks": [
-            1
-          ]
-        },
-        {
-          "id": "f-14",
-          "type": "fact",
-          "hit_rank": 3,
-          "anchor_ranks": [
-            3
-          ]
-        },
-        {
-          "id": "f-15",
-          "type": "fact",
-          "hit_rank": 4,
-          "anchor_ranks": [
-            4
-          ]
-        },
-        {
-          "id": "f-16",
-          "type": "fact",
-          "hit_rank": 1,
-          "anchor_ranks": [
-            1
-          ]
-        },
-        {
-          "id": "f-17",
-          "type": "fact",
-          "hit_rank": 5,
-          "anchor_ranks": [
-            5
-          ]
-        },
-        {
-          "id": "f-18",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-19",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-20",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-21",
-          "type": "fact",
-          "hit_rank": 2,
-          "anchor_ranks": [
-            2
-          ]
-        },
-        {
-          "id": "f-22",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-23",
-          "type": "fact",
-          "hit_rank": 5,
-          "anchor_ranks": [
-            5
-          ]
-        },
-        {
-          "id": "f-24",
-          "type": "fact",
-          "hit_rank": 1,
-          "anchor_ranks": [
-            1
-          ]
-        },
-        {
-          "id": "f-25",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-26",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-27",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "f-28",
-          "type": "fact",
-          "hit_rank": 2,
-          "anchor_ranks": [
-            2
-          ]
-        },
-        {
-          "id": "f-29",
-          "type": "fact",
-          "hit_rank": 1,
-          "anchor_ranks": [
-            1
-          ]
-        },
-        {
-          "id": "f-30",
-          "type": "fact",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null
-          ]
-        },
-        {
-          "id": "m-01",
-          "type": "multi_hop",
-          "hit_rank": null,
-          "anchor_ranks": [
-            1,
-            null
-          ]
-        },
-        {
-          "id": "m-02",
-          "type": "multi_hop",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null,
-            null
-          ]
-        },
-        {
-          "id": "m-03",
-          "type": "multi_hop",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null,
-            null
-          ]
-        },
-        {
-          "id": "m-04",
-          "type": "multi_hop",
-          "hit_rank": 10,
-          "anchor_ranks": [
-            10,
-            6
-          ]
-        },
-        {
-          "id": "m-05",
-          "type": "multi_hop",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null,
-            2
-          ]
-        },
-        {
-          "id": "m-06",
-          "type": "multi_hop",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null,
-            null
-          ]
-        },
-        {
-          "id": "m-07",
-          "type": "multi_hop",
-          "hit_rank": 9,
-          "anchor_ranks": [
-            9,
-            1
-          ]
-        },
-        {
-          "id": "m-08",
-          "type": "multi_hop",
-          "hit_rank": null,
-          "anchor_ranks": [
-            null,
-            null
-          ]
-        },
-        {
-          "id": "m-09",
-          "type": "multi_hop",
-          "hit_rank": 5,
-          "anchor_ranks": [
-            3,
-            5
-          ]
-        },
-        {
-          "id": "m-10",
-          "type": "multi_hop",
-          "hit_rank": 6,
-          "anchor_ranks": [
-            4,
-            6
-          ]
-        },
-        {
-          "id": "r-01",
-          "type": "refusal",
-          "hit_rank": null,
-          "anchor_ranks": []
-        },
-        {
-          "id": "r-02",
-          "type": "refusal",
-          "hit_rank": null,
-          "anchor_ranks": []
-        },
-        {
-          "id": "r-03",
-          "type": "refusal",
-          "hit_rank": null,
-          "anchor_ranks": []
-        },
-        {
-          "id": "r-04",
-          "type": "refusal",
-          "hit_rank": null,
-          "anchor_ranks": []
-        },
-        {
-          "id": "r-05",
-          "type": "refusal",
-          "hit_rank": null,
-          "anchor_ranks": []
-        },
-        {
-          "id": "r-06",
-          "type": "refusal",
-          "hit_rank": null,
-          "anchor_ranks": []
-        },
-        {
-          "id": "r-07",
-          "type": "refusal",
-          "hit_rank": null,
-          "anchor_ranks": []
-        },
-        {
-          "id": "r-08",
-          "type": "refusal",
-          "hit_rank": null,
-          "anchor_ranks": []
-        },
-        {
-          "id": "r-09",
-          "type": "refusal",
-          "hit_rank": null,
-          "anchor_ranks": []
-        },
-        {
-          "id": "r-10",
-          "type": "refusal",
-          "hit_rank": null,
-          "anchor_ranks": []
-        }
-      ]
-    },
-    {
-      "strategy": "semantic",
-      "chunk_chars": 800,
-      "chunks": 2083,
-      "split_ms": 535.5,
-      "embed_ms": 113.7,
-      "store_ms": 11.2,
-      "index_ms": 660.4,
-      "recall": {
-        "recall@1": {
-          "hits": 6,
-          "total": 40,
-          "rate": 0.15
-        },
-        "recall@3": {
-          "hits": 10,
-          "total": 40,
-          "rate": 0.25
-        },
-        "recall@5": {
-          "hits": 14,
-          "total": 40,
-          "rate": 0.35
-        },
-        "recall@8": {
-          "hits": 15,
-          "total": 40,
-          "rate": 0.375
-        },
-        "recall@10": {
-          "hits": 17,
-          "total": 40,
-          "rate": 0.425
-        }
-      },
-      "mrr": 0.2281,
-      "by_type": {
-        "fact": {
-          "total": 30,
-          "recall@5": 0.4333,
-          "mrr": 0.2844
-        },
-        "multi_hop": {
-          "total": 10,
-          "recall@5": 0.1,
-          "mrr": 0.0589
-        }
-      },
-      "refusal": {
-        "refused_correctly": 2,
-        "refusal_total": 10,
-        "refusal_accuracy": 0.2,
-        "false_refusal": [
-          "f-01",
-          "f-03",
-          "f-04",
-          "f-07",
-          "f-09",
-          "f-15",
-          "f-26"
-        ],
-        "false_accept": [
-          "r-01",
-          "r-03",
-          "r-04",
-          "r-05",
-          "r-06",
-          "r-07",
-          "r-08",
-          "r-09"
-        ],
-        "recall_miss": [
-          "f-01",
-          "f-02",
-          "f-03",
-          "f-04",
-          "f-05",
-          "f-07",
-          "f-08",
-          "f-09",
-          "f-10",
-          "f-18",
-          "f-19",
-          "f-20",
-          "f-22",
-          "f-25",
-          "f-26",
-          "f-27",
-          "f-30",
-          "m-01",
-          "m-02",
-          "m-03",
-          "m-05",
-          "m-06",
-          "m-08"
-        ],
-        "overall_accuracy": 0.36,
+        "overall_accuracy": 0.4,
         "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
       },
       "sentence_rate": 0.1444,
@@ -4220,9 +3712,9 @@
         {
           "id": "f-17",
           "type": "fact",
-          "hit_rank": 4,
+          "hit_rank": 5,
           "anchor_ranks": [
-            4
+            5
           ]
         },
         {
@@ -4268,9 +3760,9 @@
         {
           "id": "f-23",
           "type": "fact",
-          "hit_rank": 5,
+          "hit_rank": 3,
           "anchor_ranks": [
-            5
+            3
           ]
         },
         {
@@ -4343,7 +3835,7 @@
           "type": "multi_hop",
           "hit_rank": null,
           "anchor_ranks": [
-            null,
+            9,
             null
           ]
         },
@@ -4413,10 +3905,503 @@
         {
           "id": "m-10",
           "type": "multi_hop",
-          "hit_rank": 6,
+          "hit_rank": 5,
           "anchor_ranks": [
-            4,
+            3,
+            5
+          ]
+        },
+        {
+          "id": "r-01",
+          "type": "refusal",
+          "hit_rank": null,
+          "anchor_ranks": []
+        },
+        {
+          "id": "r-02",
+          "type": "refusal",
+          "hit_rank": null,
+          "anchor_ranks": []
+        },
+        {
+          "id": "r-03",
+          "type": "refusal",
+          "hit_rank": null,
+          "anchor_ranks": []
+        },
+        {
+          "id": "r-04",
+          "type": "refusal",
+          "hit_rank": null,
+          "anchor_ranks": []
+        },
+        {
+          "id": "r-05",
+          "type": "refusal",
+          "hit_rank": null,
+          "anchor_ranks": []
+        },
+        {
+          "id": "r-06",
+          "type": "refusal",
+          "hit_rank": null,
+          "anchor_ranks": []
+        },
+        {
+          "id": "r-07",
+          "type": "refusal",
+          "hit_rank": null,
+          "anchor_ranks": []
+        },
+        {
+          "id": "r-08",
+          "type": "refusal",
+          "hit_rank": null,
+          "anchor_ranks": []
+        },
+        {
+          "id": "r-09",
+          "type": "refusal",
+          "hit_rank": null,
+          "anchor_ranks": []
+        },
+        {
+          "id": "r-10",
+          "type": "refusal",
+          "hit_rank": null,
+          "anchor_ranks": []
+        }
+      ]
+    },
+    {
+      "strategy": "semantic",
+      "chunk_chars": 800,
+      "chunks": 1710,
+      "split_ms": 772.4,
+      "embed_ms": 142.8,
+      "store_ms": 21.1,
+      "index_ms": 936.3,
+      "recall": {
+        "recall@1": {
+          "hits": 6,
+          "total": 40,
+          "rate": 0.15
+        },
+        "recall@3": {
+          "hits": 11,
+          "total": 40,
+          "rate": 0.275
+        },
+        "recall@5": {
+          "hits": 15,
+          "total": 40,
+          "rate": 0.375
+        },
+        "recall@8": {
+          "hits": 16,
+          "total": 40,
+          "rate": 0.4
+        },
+        "recall@10": {
+          "hits": 17,
+          "total": 40,
+          "rate": 0.425
+        }
+      },
+      "mrr": 0.2326,
+      "by_type": {
+        "fact": {
+          "total": 30,
+          "recall@5": 0.4333,
+          "mrr": 0.2889
+        },
+        "multi_hop": {
+          "total": 10,
+          "recall@5": 0.2,
+          "mrr": 0.0636
+        }
+      },
+      "refusal": {
+        "refused_correctly": 4,
+        "refusal_total": 10,
+        "refusal_accuracy": 0.4,
+        "false_refusal": [
+          "f-01",
+          "f-03",
+          "f-04",
+          "f-07",
+          "f-09",
+          "f-15",
+          "f-26"
+        ],
+        "false_accept": [
+          "r-01",
+          "r-03",
+          "r-04",
+          "r-06",
+          "r-07",
+          "r-09"
+        ],
+        "recall_miss": [
+          "f-01",
+          "f-02",
+          "f-03",
+          "f-04",
+          "f-05",
+          "f-07",
+          "f-08",
+          "f-09",
+          "f-10",
+          "f-18",
+          "f-19",
+          "f-20",
+          "f-22",
+          "f-25",
+          "f-26",
+          "f-27",
+          "f-30",
+          "m-01",
+          "m-02",
+          "m-03",
+          "m-05",
+          "m-06",
+          "m-08"
+        ],
+        "overall_accuracy": 0.4,
+        "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
+      },
+      "sentence_rate": 0.1439,
+      "anchors_ok": true,
+      "anchor_problems": [],
+      "per_query": [
+        {
+          "id": "f-01",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-02",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-03",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-04",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-05",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-06",
+          "type": "fact",
+          "hit_rank": 2,
+          "anchor_ranks": [
+            2
+          ]
+        },
+        {
+          "id": "f-07",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-08",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-09",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-10",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-11",
+          "type": "fact",
+          "hit_rank": 1,
+          "anchor_ranks": [
+            1
+          ]
+        },
+        {
+          "id": "f-12",
+          "type": "fact",
+          "hit_rank": 1,
+          "anchor_ranks": [
+            1
+          ]
+        },
+        {
+          "id": "f-13",
+          "type": "fact",
+          "hit_rank": 1,
+          "anchor_ranks": [
+            1
+          ]
+        },
+        {
+          "id": "f-14",
+          "type": "fact",
+          "hit_rank": 3,
+          "anchor_ranks": [
+            3
+          ]
+        },
+        {
+          "id": "f-15",
+          "type": "fact",
+          "hit_rank": 4,
+          "anchor_ranks": [
+            4
+          ]
+        },
+        {
+          "id": "f-16",
+          "type": "fact",
+          "hit_rank": 1,
+          "anchor_ranks": [
+            1
+          ]
+        },
+        {
+          "id": "f-17",
+          "type": "fact",
+          "hit_rank": 4,
+          "anchor_ranks": [
+            4
+          ]
+        },
+        {
+          "id": "f-18",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-19",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-20",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-21",
+          "type": "fact",
+          "hit_rank": 2,
+          "anchor_ranks": [
+            2
+          ]
+        },
+        {
+          "id": "f-22",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-23",
+          "type": "fact",
+          "hit_rank": 3,
+          "anchor_ranks": [
+            3
+          ]
+        },
+        {
+          "id": "f-24",
+          "type": "fact",
+          "hit_rank": 1,
+          "anchor_ranks": [
+            1
+          ]
+        },
+        {
+          "id": "f-25",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-26",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-27",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "f-28",
+          "type": "fact",
+          "hit_rank": 2,
+          "anchor_ranks": [
+            2
+          ]
+        },
+        {
+          "id": "f-29",
+          "type": "fact",
+          "hit_rank": 1,
+          "anchor_ranks": [
+            1
+          ]
+        },
+        {
+          "id": "f-30",
+          "type": "fact",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null
+          ]
+        },
+        {
+          "id": "m-01",
+          "type": "multi_hop",
+          "hit_rank": null,
+          "anchor_ranks": [
+            1,
+            null
+          ]
+        },
+        {
+          "id": "m-02",
+          "type": "multi_hop",
+          "hit_rank": null,
+          "anchor_ranks": [
+            9,
+            null
+          ]
+        },
+        {
+          "id": "m-03",
+          "type": "multi_hop",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null,
+            null
+          ]
+        },
+        {
+          "id": "m-04",
+          "type": "multi_hop",
+          "hit_rank": 8,
+          "anchor_ranks": [
+            8,
             6
+          ]
+        },
+        {
+          "id": "m-05",
+          "type": "multi_hop",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null,
+            2
+          ]
+        },
+        {
+          "id": "m-06",
+          "type": "multi_hop",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null,
+            null
+          ]
+        },
+        {
+          "id": "m-07",
+          "type": "multi_hop",
+          "hit_rank": 9,
+          "anchor_ranks": [
+            9,
+            1
+          ]
+        },
+        {
+          "id": "m-08",
+          "type": "multi_hop",
+          "hit_rank": null,
+          "anchor_ranks": [
+            null,
+            null
+          ]
+        },
+        {
+          "id": "m-09",
+          "type": "multi_hop",
+          "hit_rank": 5,
+          "anchor_ranks": [
+            3,
+            5
+          ]
+        },
+        {
+          "id": "m-10",
+          "type": "multi_hop",
+          "hit_rank": 5,
+          "anchor_ranks": [
+            3,
+            5
           ]
         },
         {
@@ -4485,16 +4470,16 @@
   "best": {
     "recursive": {
       "chunk_chars": 500,
-      "chunks": 1907,
-      "index_ms": 132.6,
-      "recall_at_5": 0.375,
+      "chunks": 1565,
+      "index_ms": 189.7,
+      "recall_at_5": 0.4,
       "recall_at_10": 0.425,
-      "mrr": 0.2352,
-      "sentence_rate": 0.1556,
+      "mrr": 0.2402,
+      "sentence_rate": 0.1545,
       "refusal": {
-        "refused_correctly": 2,
+        "refused_correctly": 4,
         "refusal_total": 10,
-        "refusal_accuracy": 0.2,
+        "refusal_accuracy": 0.4,
         "false_refusal": [
           "f-01",
           "f-03",
@@ -4508,10 +4493,8 @@
           "r-01",
           "r-03",
           "r-04",
-          "r-05",
           "r-06",
           "r-07",
-          "r-08",
           "r-09"
         ],
         "recall_miss": [
@@ -4539,19 +4522,19 @@
           "m-06",
           "m-08"
         ],
-        "overall_accuracy": 0.36,
+        "overall_accuracy": 0.4,
         "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
       },
       "by_type": {
         "fact": {
           "total": 30,
           "recall@5": 0.4333,
-          "mrr": 0.29
+          "mrr": 0.2956
         },
         "multi_hop": {
           "total": 10,
-          "recall@5": 0.2,
-          "mrr": 0.071
+          "recall@5": 0.3,
+          "mrr": 0.0743
         }
       },
       "recall": {
@@ -4566,9 +4549,9 @@
           "rate": 0.3
         },
         "recall@5": {
-          "hits": 15,
+          "hits": 16,
           "total": 40,
-          "rate": 0.375
+          "rate": 0.4
         },
         "recall@8": {
           "hits": 17,
@@ -4584,16 +4567,16 @@
     },
     "heading": {
       "chunk_chars": 800,
-      "chunks": 1787,
-      "index_ms": 133.6,
-      "recall_at_5": 0.35,
+      "chunks": 1471,
+      "index_ms": 199.1,
+      "recall_at_5": 0.375,
       "recall_at_10": 0.425,
-      "mrr": 0.2519,
-      "sentence_rate": 0.1581,
+      "mrr": 0.2532,
+      "sentence_rate": 0.1585,
       "refusal": {
-        "refused_correctly": 2,
+        "refused_correctly": 4,
         "refusal_total": 10,
-        "refusal_accuracy": 0.2,
+        "refusal_accuracy": 0.4,
         "false_refusal": [
           "f-01",
           "f-03",
@@ -4608,10 +4591,8 @@
           "r-01",
           "r-03",
           "r-04",
-          "r-05",
           "r-06",
           "r-07",
-          "r-08",
           "r-09"
         ],
         "recall_miss": [
@@ -4639,19 +4620,19 @@
           "m-07",
           "m-08"
         ],
-        "overall_accuracy": 0.34,
+        "overall_accuracy": 0.38,
         "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
       },
       "by_type": {
         "fact": {
           "total": 30,
           "recall@5": 0.4333,
-          "mrr": 0.3181
+          "mrr": 0.3187
         },
         "multi_hop": {
           "total": 10,
-          "recall@5": 0.1,
-          "mrr": 0.0533
+          "recall@5": 0.2,
+          "mrr": 0.0567
         }
       },
       "recall": {
@@ -4666,9 +4647,9 @@
           "rate": 0.3
         },
         "recall@5": {
-          "hits": 14,
+          "hits": 15,
           "total": 40,
-          "rate": 0.35
+          "rate": 0.375
         },
         "recall@8": {
           "hits": 17,
@@ -4684,16 +4665,16 @@
     },
     "semantic": {
       "chunk_chars": 800,
-      "chunks": 2083,
-      "index_ms": 660.4,
-      "recall_at_5": 0.35,
+      "chunks": 1710,
+      "index_ms": 936.3,
+      "recall_at_5": 0.375,
       "recall_at_10": 0.425,
-      "mrr": 0.2281,
-      "sentence_rate": 0.1444,
+      "mrr": 0.2326,
+      "sentence_rate": 0.1439,
       "refusal": {
-        "refused_correctly": 2,
+        "refused_correctly": 4,
         "refusal_total": 10,
-        "refusal_accuracy": 0.2,
+        "refusal_accuracy": 0.4,
         "false_refusal": [
           "f-01",
           "f-03",
@@ -4707,10 +4688,8 @@
           "r-01",
           "r-03",
           "r-04",
-          "r-05",
           "r-06",
           "r-07",
-          "r-08",
           "r-09"
         ],
         "recall_miss": [
@@ -4738,19 +4717,19 @@
           "m-06",
           "m-08"
         ],
-        "overall_accuracy": 0.36,
+        "overall_accuracy": 0.4,
         "note": "false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「没进 top_k」的条数，属于召回问题、不是拒答问题。overall_accuracy 把三者混在一起，仅作粗略参考"
       },
       "by_type": {
         "fact": {
           "total": 30,
           "recall@5": 0.4333,
-          "mrr": 0.2844
+          "mrr": 0.2889
         },
         "multi_hop": {
           "total": 10,
-          "recall@5": 0.1,
-          "mrr": 0.0589
+          "recall@5": 0.2,
+          "mrr": 0.0636
         }
       },
       "recall": {
@@ -4760,19 +4739,19 @@
           "rate": 0.15
         },
         "recall@3": {
-          "hits": 10,
+          "hits": 11,
           "total": 40,
-          "rate": 0.25
+          "rate": 0.275
         },
         "recall@5": {
-          "hits": 14,
-          "total": 40,
-          "rate": 0.35
-        },
-        "recall@8": {
           "hits": 15,
           "total": 40,
           "rate": 0.375
+        },
+        "recall@8": {
+          "hits": 16,
+          "total": 40,
+          "rate": 0.4
         },
         "recall@10": {
           "hits": 17,

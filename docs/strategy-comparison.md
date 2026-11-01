@@ -1,7 +1,7 @@
 # 三策略 × 最优参数全量对比（W5 主交付）
 
 > **周六 11/21**。本周主交付。
-> 前置：切分网格 [retrieval-tuning.md](retrieval-tuning.md) ·
+> 前置：切分网格 [retrieval-tuning-final.md](retrieval-tuning-final.md) ·
 > 参数定版 [retrieval-params.md](retrieval-params.md) ·
 > 50 条评测集 [eval-50.md](eval-50.md)。
 
@@ -340,7 +340,7 @@ semantic 的 top5 最省（少 10% token），但索引慢 5 倍。
 | --- | --- |
 | **semantic 切分** | Recall 无提升（35.0% ≤ 37.5%），索引慢 5 倍，且**当前语料上机制无从发挥**（70% 段短于 min_chars）。**不划算。** |
 | **heading 作为默认** | Recall 略低（不显著），索引持平。**没有理由换** —— 换默认值要重建全部索引，收益在噪声里。 |
-| **chunk_chars=800** | 周一已测：越界率 0.19% → **12.15%**（`retrieval-tuning.md` §1.4）。**代价确定，收益是噪声。** |
+| **chunk_chars=800** | 周一已测：越界率 0.19% → **12.15%**（`retrieval-tuning-final.md` §1.4）。**代价确定，收益是噪声。** |
 | **overlap=100** | 周四已测：零收益，块数 +11%，重复内容率 +3pp。**不划算。** |
 | **阈值 0.600** | 端到端最高，但误拒 4 条。**用 4 条真答案换 2 条拒答，不划算。** |
 

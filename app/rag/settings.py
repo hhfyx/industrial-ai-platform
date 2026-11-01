@@ -60,7 +60,7 @@ DEFAULT_TOP_K: int = 5
 5→8 掉到 0.63pp。再往上虽然还有收益（8→10 是 1.00pp），但 k=10 的
 上下文是 k=5 的 **2 倍**、噪音条数翻倍。
 
-**这条曲线在 20 条样本上是不显著的**（见 `docs/retrieval-tuning.md` §6 的教训：
+**这条曲线在 20 条样本上是不显著的**（见 `docs/retrieval-tuning-token-grid.md` §6 的教训：
 1 条翻转 = 5pp）。所以 5 不是"最优"，是**"在拐点上且维持现状成本最低"**：
 改成 8 要多付 60% 的上下文与 68% 的噪音，换来的 5pp 落在置信区间里。
 
@@ -109,7 +109,7 @@ DEFAULT_STRATEGY: Strategy = "recursive"
 """默认切分策略。**与 `chunking.factory.DEFAULT_STRATEGY` 必须一致**（测试守着）。"""
 
 DEFAULT_CHUNK_CHARS: int = 500
-"""目标块长（字符）。见 `docs/retrieval-tuning.md` §1：
+"""目标块长（字符）。见 `docs/retrieval-tuning-token-grid.md` §1：
 
 - 500 时 527 块里 1 块超 512 token（0.19%，安全）
 - 800 时 12.15%，1000 时 14.29% —— **调大块长会撞上 bge 的截断墙**
@@ -118,7 +118,7 @@ DEFAULT_CHUNK_CHARS: int = 500
 DEFAULT_OVERLAP_CHARS: int = 50
 """相邻块重叠字符数。
 
-`docs/retrieval-tuning.md` §4 的实测：0/50/100 三档命中率分不出差异
+`docs/retrieval-tuning-token-grid.md` §4 的实测：0/50/100 三档命中率分不出差异
 （McNemar p 全部 = 1.0），但重复内容率单调上升 5.5% → 8.0% → 11.0%。
 **overlap=100 是确定的零收益**（命中条数不变，块数 +11%）。
 维持 50 的理由是"没有证据说该改，而改它要重建索引"。

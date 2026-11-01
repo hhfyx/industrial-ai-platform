@@ -69,6 +69,19 @@ TASKS: dict[str, tuple[str, list[str]]] = {
     ),
     "threshold": ("阈值分布：命中 vs 未命中的分数", ["scripts/threshold_scan.py"]),
     "refusal-demo": ("拒答可演示（含已撤销方案的对照）", ["scripts/refusal_demo.py"]),
+    # ---- W5 周日收尾 ----
+    "export-errors": (
+        "导出错例上下文供人工归因（Markdown）",
+        ["scripts/export_error_cases.py"],
+    ),
+    "attribute-errors": (
+        "四类自动归因（切分断语义/术语/多跳/拒答误放）",
+        ["scripts/attribute_errors.py"],
+    ),
+    "improvement-ab": (
+        "小改进 A/B：相邻块扩展三档对比",
+        ["scripts/improvement_ablation.py"],
+    ),
     # ---- W5 周六主交付 ----
     "strategy-compare": (
         "三策略 × 各自最优参数的全量对比（主表）",

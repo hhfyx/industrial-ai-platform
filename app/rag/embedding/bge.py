@@ -27,7 +27,7 @@
 > 但尾部分布完全不同 —— `chunk_chars=500` 时 527 块里 1 块越界（**0.19%**，安全），
 > 而 `chunk_chars=800` 是 **12.15%**、`1000` 是 **14.29%**。
 > 也就是说：**平均值看不出越界，"块大一点"会在某个点突然撞墙且不报错。**
-> 详见 `docs/retrieval-tuning.md` §1。
+> 详见 `docs/retrieval-tuning-final.md` §1。
 
 ### 二、query 侧要加前缀，passage 侧不加
 

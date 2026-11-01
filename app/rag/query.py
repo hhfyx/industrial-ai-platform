@@ -48,7 +48,7 @@ from app.rag.generation import (
 )
 from app.rag.refusal import Refusal, RefusalKind, decide
 from app.rag.schema import Chunk
-from app.rag.settings import DEFAULT_SCORE_THRESHOLD, RagConfig, get_rag_config
+from app.rag.settings import RagConfig, get_rag_config
 from app.rag.stores import VectorStore
 
 logger = logging.getLogger(__name__)
@@ -180,22 +180,63 @@ class QAEngine:
         self.store = store
         self.top_k = self.config.top_k
         self.max_context_chars = self.config.max_context_chars
-        # 阈值默认从 embedder 取（见 `Embedder.recommended_min_score`），
-        # 但**显式配置优先**：`RAG_SCORE_THRESHOLD` 存在时用它。
+        # 阈值：显式参数 > 配置值。
         #
-        # 为什么 embedder 的值还算"默认"：它是按模型实测反推的
-        # （bge 0.40 / hashing 0.0），换 embedder 时阈值必须跟着换 ——
-        # 而配置里的单一数字做不到这件事。所以优先级是：
-        # 显式参数 > 配置里的非默认值 > embedder 推荐值 > 配置默认值。
-        self.min_score = (
-            min_score
-            if min_score is not None
-            else (
-                self.config.score_threshold
-                if self.config.score_threshold != DEFAULT_SCORE_THRESHOLD
-                else embedder.recommended_min_score
-            )
-        )
+        # ## 这里曾经有一个把精标结果吃掉的 bug（W5 周日发现）
+        #
+        # 原逻辑是"**配置值 ≠ 模块默认值时**才用配置"，本意是区分
+        # "用户设了 RAG_SCORE_THRESHOLD 还是没设"。但实际行为是：
+        #
+        #     精标把 DEFAULT_SCORE_THRESHOLD 从 0.40 改成 0.575
+        #     → `RagConfig()` 的 score_threshold 也是 0.575
+        #     → 两者相等 → 判定"用户没设过" → 回退 embedder 的 0.40
+        #
+        # 结果 **精标后的 0.575 完全没有生效**。实测
+        # `QAEngine(embedder=bge).min_score == 0.40`，而配置写的是 0.575。
+        #
+        # 根因是"用值相等推断意图"。改成只看**显式参数是否给**：
+        # 显式传 → 用它；否则 → 用 `config.score_threshold`
+        # （`get_rag_config()` 已处理环境变量覆盖与回退默认值）。
+        #
+        # **embedder 的推荐值不再自动生效**：它是"按模型反推的量级"，
+        # 不是可直接用于生产的阈值（bge 的 0.40 在 50 条集上拒答只有 0/10）。
+        # 想用它的人可以显式传 `min_score=embedder.recommended_min_score`。
+        self.min_score = min_score if min_score is not None else self.config.score_threshold
+
+        # ## 配置里的**单一数字**跨 embedder 不可移植 → 挡一道
+        #
+        # 实测：`hashing` 的相关分数落在 0~0.48（它与无关分布**重叠**，
+        # 见 `embedding/hashing.py`），而精标后的 bge 阈值是 0.575。
+        # 拿 0.575 去跑 hashing，**所有问题都会被拒** —— 而且是静默的。
+        #
+        # `recommended_min_score == 0.0` 是 hashing 的"分布无可分性"标记，
+        # 此时配置阈值对它没有意义，回退到 0.0。
+        #
+        # **只在"没显式传阈值"时挡**：显式传 `min_score` 是调用方的明确决定
+        # （测试要构造拒答场景、CLI 的 `--min-score` 也是），不该被这条保护覆盖。
+        # 第一版写成无条件覆盖，直接把 `min_score=0.99` 抹成 0.0，
+        # 导致三条拒答测试失败 —— 那是"保护"变成了"越权"。
+        if min_score is None:
+            if embedder.recommended_min_score == 0.0 and self.min_score > 0.0:
+                logger.warning(
+                    "%s 的分数分布无可分性（推荐阈值 0.0），忽略配置里的 %.3f 并关掉分数闸门",
+                    embedder.name,
+                    self.min_score,
+                )
+                self.min_score = 0.0
+            elif self.min_score > embedder.recommended_min_score + 0.3:
+                # **只在"差得离谱"时警告**：推荐值是模型级的量级参考
+                # （bge 0.40 来自 4+4 条标注对），配置值是在具体语料上精标的
+                # （0.575 来自 50 条集）。后者高于前者是**正常的**。
+                # 高出 0.3 以上才说明分数分布可能根本不匹配。
+                logger.warning(
+                    "阈值 %.3f 比 %s 的推荐值 %.3f 高出 %.2f，"
+                    "可能大量误拒；确认该 embedder 的分数分布与调阈值时用的模型一致",
+                    self.min_score,
+                    embedder.name,
+                    embedder.recommended_min_score,
+                    self.min_score - embedder.recommended_min_score,
+                )
 
     # ------------------------------------------------------------------ 检索（分阶段打点）
 

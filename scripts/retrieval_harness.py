@@ -118,11 +118,45 @@ CORPUS_SOURCES: tuple[str, ...] = (
 )
 
 
+ANALYSIS_DOCS: frozenset[str] = frozenset(
+    {
+        # 本周（W5）新增的分析报告 —— 它们在复述结论，是最强的语义竞争者
+        "retrieval-tuning-final.md",
+        "retrieval-params.md",
+        "eval-50.md",
+        "strategy-comparison.md",
+        # 历史周报与清单：同样是"对项目的描述"，不是被检索的业务文档
+        "w4-checklist.md",
+    }
+)
+"""**不进检索语料**的文档：分析报告、周报、清单。
+
+它们描述"这个项目做了什么"，而不是"用户要查的知识"。
+混进去的后果见 `full_corpus_sources` 的说明（17% 的 top5 被污染）。
+"""
+
+
 def full_corpus_sources() -> tuple[str, ...]:
-    """**全部** md 文档（docs/ 递归 + 根 README）。
+    """**全部** md 文档（docs/ 递归 + 根 README），**排除分析文档**。
 
     这是"线上的库"实际包含的东西 —— 用户上传什么就在库里，
     不会因为我们只关心 13 份就少放。用它做评测才和线上同构。
+
+    ## ⚠️ 为什么必须排除本项目的分析文档
+
+    W5 周日实测发现：`docs/retrieval-tuning-final.md`、`retrieval-params.md`、
+    `eval-50.md`、`strategy-comparison.md` 这些**我自己写的分析文档**
+    也在 `docs/` 下，于是它们进了检索库。
+
+    后果（实测）：34 条错例的 top5 共 170 个槽位里，**29 个（17%）**
+    来自这些分析文档。也就是说"检索失败"里有一批是**被我自己的总结文字干扰**的
+    —— 那些文档在复述同样的结论，语义上和所有问题都近，是最强的竞争者。
+
+    这是一个非常隐蔽的评测污染：不报错、让召回率**随我写文档的多少而下降**、
+    越努力写文档评测越差 —— 而人会去调参数。
+
+    判据用**文件名白名单**而不是"git 是否跟踪"：后者会把新加的文档漏进来，
+    而新文档同样会造成污染。
 
     **按名字排序**：保证不同机器、不同文件系统顺序下切出来的块序一致
     （块序影响 `store_id`，进而影响同分时的排序）。
@@ -130,6 +164,7 @@ def full_corpus_sources() -> tuple[str, ...]:
     docs = sorted(
         f"docs/{p.relative_to(PROJECT_ROOT / 'docs').as_posix()}"
         for p in (PROJECT_ROOT / "docs").rglob("*.md")
+        if p.name not in ANALYSIS_DOCS
     )
     return ("README.md", *docs)
 

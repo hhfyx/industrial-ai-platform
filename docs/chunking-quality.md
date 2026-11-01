@@ -149,7 +149,7 @@ w4-checklist.md          heading     0.95   0.90   0.95    孤儿标题已合并
 
 ### 2026-11-18 补充：冗余率与命中率的实测对照
 
-`docs/retrieval-tuning.md` 用 20 条检索金标跑了 chunk × overlap 网格，
+`docs/retrieval-tuning-token-grid.md` 用 20 条检索金标跑了 chunk × overlap 网格，
 第一次把"重叠的代价"与"重叠的收益"放在同一张表里：
 
 | overlap | chunk 数 | hit@5 | 重复内容率 | McNemar p |
@@ -170,7 +170,7 @@ w4-checklist.md          heading     0.95   0.90   0.95    孤儿标题已合并
 所以本文第 136 行那句"冗余是否换来了更好的边界"现在有了答案的一半：
 **在 20 条样本上，50 相对 0 的收益看不出来；而 100 相对 50 是确定的零收益。**
 维持 50 的理由不是"数据证明它最好"，是"没有证据说该改，而改它要重建索引"
-（完整推理见 [retrieval-tuning.md](retrieval-tuning.md) §4.3）。
+（完整推理见 [retrieval-tuning-final.md](retrieval-tuning-final.md) §4.3）。
 
 ---
 
@@ -178,7 +178,7 @@ w4-checklist.md          heading     0.95   0.90   0.95    孤儿标题已合并
 
 - [ ] 把判据二写成可执行的检查表（当前完全靠人读，**这是三条里最贵的**）
 - [x] 判据一/三部分自动化：半句率（`quality.py`）+ 标题孤儿检测（`_is_heading_only`）
-- [x] 重叠的代价与收益对照：见 [retrieval-tuning.md](retrieval-tuning.md) §4
+- [x] 重叠的代价与收益对照：见 [retrieval-tuning-final.md](retrieval-tuning-final.md) §4
 - [ ] **把 gold 从 20 条扩到 60-100 条** —— 当前置信区间宽达 ±18pp，
       任何参数差异都测不出来。这是所有后续调参的前置条件
 - [ ] 至少两份**非本项目样本**的文档（真实的合同 PDF、真实的制度 docx），

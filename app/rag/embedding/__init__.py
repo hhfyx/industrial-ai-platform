@@ -86,7 +86,7 @@ def get_cached_embedder(name: str = "hashing", **kwargs: object) -> Embedder:
     W5 的参数网格是典型：7 组参数、每组都要编码几百块，而
     `chunk_chars` 变化时**大部分块文本仍然是新的**，只有"同参数重跑"
     和"相邻参数档位之间"能命中。实测同参数重跑提速 **99.6%**
-    （`docs/retrieval-tuning.md` §5）。
+    （`docs/retrieval-tuning-final.md` §5）。
 
     ## 谁不该用它
 

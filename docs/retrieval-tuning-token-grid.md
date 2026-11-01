@@ -1,5 +1,10 @@
 # 检索参数调优：token 审计、chunk/overlap 网格、缓存验证
 
+> ⚠️ **本文只是分项记录（token 审计 + chunk/overlap 网格）。**
+> **总结论与模型选型看 [retrieval-tuning-final.md](retrieval-tuning-final.md)。**
+>
+
+
 > 本文是 **W5 周三**（2026-11-18）实测记录。所有数字都是跑出来的，
 > 复现命令写在每一节末尾。样本量的边界写在最后 —— **先看边界，再看结论**。
 

@@ -2,16 +2,16 @@
   "source": "strategy_compare.json",
   "intervals": {
     "recursive": [
+      0.2635,
+      0.554
+    ],
+    "heading": [
       0.2422,
       0.5297
     ],
-    "heading": [
-      0.2213,
-      0.5049
-    ],
     "semantic": [
-      0.2213,
-      0.5049
+      0.2422,
+      0.5297
     ]
   },
   "pairs": [
