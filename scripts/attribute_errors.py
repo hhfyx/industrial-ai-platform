@@ -1,25 +1,50 @@
 """逐条分析错例，按四类归因自动给出**候选判断**，人再复核。
 
-## 自动归因能到哪一步、不能到哪一步
+## ⚠ 这个脚本的判据在 W6 周六被重写了（原有的 ② 类标签是错的）
 
-自动能判的（有明确信号）：
+**旧判据的错**：`classify()` 里凡是"不是多跳、不是表格、不是明确断句"的，
+一律落到 `② 术语/同义词未命中` —— 那**本质上是默认分支**。
 
-- **③ 多跳需跨块**：`anchor_ranks` 里有 `None` → 确定是多跳缺一块
-- **① 切分断语义**：gold 块以半句结尾 / 开头是半句 → 强信号
-- **② 术语未命中**：gold 块在 top50 内但排位靠后，且分数接近 →
-  "能定位但排不上" 是排序/语义问题
+结果是 30 条错例里 15 条（50%）被标成"术语未命中"，而这个标签
+**在 W6 周一被数据推翻**：
 
-自动**不能**判的：
+| 检查项 | 结果 |
+| --- | --- |
+| 含稀有标识符（`INVALID_INPUT`、`bge-small-zh` 这类） | **0 条** |
+| 只共享「模型/输入/上限/文档」这类高频普通词 | 12 条 |
+| **连一个公共 token 都没有** | 3 条 |
 
-- **④ 问题本身模糊** —— 这要读语义，机器给不出
+"术语未命中"这个说法暗示"加个更好的分词器/词典就能解决"，
+而 **0 条含稀有标识符**说明那条路对这批题无效 —— 方向从一开始就错了。
 
-所以脚本输出"候选主类 + 支持它的原始数字"，人在 `error-cases.md` 里填最终判断。
-**不让脚本直接写结论**，因为归因表的价值在判断依据，不在分类标签。
+W6 周六的实测更直接：把混合检索（BM25 + RRF）接上去，
+**这 15 条救回 0 条**。W5 §5.2 预写的判据是"只救回 1~2 条 → 假设错了，
+要改归因表"，实测 0 条。
+
+## 新判据：按"字面锚点的稀有度"分类，而不是按"是不是术语"
+
+| 新类别 | 判据（可机判） | 该谁修 |
+| --- | --- | --- |
+| **① 切分断语义** | gold 块以半句结尾（保留原判据） | 切分器 |
+| **③ 多跳需跨块** | 多锚点且有缺失（保留原判据） | 跨块合并 / 两轮检索 |
+| **⑤ 长块被挤掉** | gold 块显著长于候选均值，且共享普通词 | 长块降权 / 表格路由 |
+| **⑥ 字面零交集** | query 与 gold 块**零公共 token** | 查询改写 / 向量侧 |
+| **⑦ 语义区分度不足** | 有公共 token 但都是高频词，排位靠后 | 更强 embedder / 精排 |
+| **② 术语未命中** | **仅当含稀有标识符且仍排在后面** | 分词器 / 词典 |
+
+**② 从"默认分支"变成了"稀有情形"** —— 这才符合实际分布。
+④（问题模糊）仍然机器判不了，留给人工。
+
+## 为什么这个改动值得
+
+旧标签让整周的改进方向偏了两天：W6 周一做 BM25 是为了救 ② 类，
+而 ② 类实际上不存在。**一个占 50% 的错误标签，比一个占 5% 的错误标签贵十倍。**
 """
 
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -38,15 +63,87 @@ DEFAULT_OUT: Path = PROJECT_ROOT / "scripts" / "error_attribution.json"
 # 半句结尾的信号：块末不是这些标点，且长度接近预算
 SENTENCE_END = "。！？；：…”』）)】` \n"
 
+#: 稀有标识符的判定：含 `_` `-` `.` 的 ASCII 串，或长度 ≥6 的纯英文/数字。
+#:
+#: **这就是 W6 周一推翻旧标签用的那条判据**，现在固化进脚本。
+#: 含这类 token 的 query 才是"BM25 该强"的题；不含的，加词典也没用。
+_RARE_TOKEN = re.compile(r"^[A-Za-z][A-Za-z0-9]*(?:[-._][A-Za-z0-9]+)+$|^[A-Za-z]{6,}$")
+
+#: 极简切词：英文按词、数字整体、**中文按单字**。
+#:
+#: ## ⚠ 中文那一支不能加 `+`
+#:
+#: 第一版写的是 `[一-鿿]+`，于是**整句中文被吃成一个 token** ——
+#: `"模型的输入长度上限是多少"` 会变成**一个** token，
+#: 与任何块都不可能有交集。实测：query 与 gold 块的公共 token 恒为 0。
+#:
+#: 后果：判据里的"零交集（⑥）"会吞掉所有中文错例，
+#: 而"术语未命中（②）"永远不可能触发 —— **判据整体失效**。
+#:
+#: 中文按单字切是**有意的粗糙**：本项目不需要分词精度（那要 jieba，
+#: 而部署精简版没有），只需要"这两个说法有没有共同的字"。
+#: 单字匹配对"同义改写"是合理的近似 —— 「首字延迟」vs「TTFT」
+#: 共享 0 字（判 ⑥ 零交集，正确）；「模型」vs「模型的」共享「模/型」（判 ⑦，正确）。
+_WORD = re.compile(r"[A-Za-z][A-Za-z0-9_]*(?:[-.][A-Za-z0-9_]+)*|[0-9]+|[一-鿿]")
+
+#: 判"是否有字面交集"时要忽略的虚词/单字。
+#:
+#: 中文按字切之后，几乎任意两句都会共享「的/是/在/个」这类字。
+#: 不剔掉它们，"零交集（⑥）"判不出来 —— 实测「首字延迟这个指标的口径」
+#: 与「TTFT 指从发起请求……的时间」共享 `{个, 指, 的}`，
+#: 而**这三字没有任何区分信息**。
+#:
+#: 这与 `bm25.tokenize.STOPWORDS` 是同一个道理，但**那份带 jieba 依赖**，
+#: 这里要能在无 jieba 环境跑，所以单列一份小的。
+_STOPCHARS: frozenset[str] = frozenset(
+    "的了是在和与或而及等也都就还把被让给对从到为以于之其这那个些有没不很会能要该着过得地吗呢啊吧"
+    "上中下前后里外时个种条次"
+)
+"""**单字**停用表（只用于本模块的交集判定）。"""
+
+
+def _tokens(text: str) -> set[str]:
+    """切出用于"有没有字面交集"判断的 token。
+
+    规则：英文按词、数字整体、中文按字，**并剔除虚词单字**。
+    """
+    return {
+        token
+        for token in (match.group(0).lower() for match in _WORD.finditer(text))
+        if token not in _STOPCHARS
+    }
+
+
+def _is_rare(token: str) -> bool:
+    return bool(_RARE_TOKEN.match(token))
+
+
+#: 块尾的 Markdown 装饰性内容。**判"断句"之前必须先剥掉它们。**
+#:
+#: 实测（W6 周日重写归因时发现）：f-08 / f-10 的 gold 块尾是 `\n\n---`
+#: （Markdown 分隔线），f-27 是 `\n\n---`。第一版把这些判成"① 切分断语义"，
+#: 于是 ① 类从 2 条虚增到 4 条 —— **其中 2 条是误判**。
+#:
+#: 分隔线不是句子的一部分，块尾落在分隔线上**恰恰说明切分器工作正常**
+#: （它在段落边界切开了）。
+_MD_TAIL_DECORATION = re.compile(r"(?:\s*(?:---+|\*\*\*+|___+)\s*)+$")
+
 
 def looks_truncated(text: str) -> bool:
     """块尾是不是落在半句/半个词上。
 
     这是"切分断语义"的**直接证据**：如果 gold 块的结尾没有句末标点，
     那它多半是从一句话中间切出来的。
+
+    ## 先剥 Markdown 装饰，再判
+
+    块尾常见 `\\n\\n---` 这种分隔线。它不是句子内容，
+    落在分隔线上说明**切在段落边界上**，那是正确行为。
+    不剥掉会把"切得好"判成"切断了"。
     """
-    stripped = text.rstrip()
+    stripped = _MD_TAIL_DECORATION.sub("", text.rstrip()).rstrip()
     if not stripped:
+        # 整块只有分隔线与空白 —— 这种块没有语义内容，不算"断句"
         return False
     return stripped[-1] not in SENTENCE_END
 
@@ -60,9 +157,19 @@ def classify(
     top1_score: float | None,
     threshold: float,
 ) -> dict[str, Any]:
-    """给一条错例打**候选中**的归因，并附判断依据。"""
+    """给一条错例打**候选中**的归因，并附判断依据。
+
+    ## 判据顺序（**顺序本身就是设计**）
+
+    1. 拒答误放 —— 单独一类，与检索无关
+    2. ③ 多跳缺锚点 —— 有硬信号（`anchor_ranks` 里有 `None`）
+    3. ① 真断句 —— 块尾/块首落在半句上（**表格块先排除**，它不是句子）
+    4. **字面交集分析** —— 决定 ⑤/⑥/⑦/② 中的哪一类
+
+    第 4 步是 W6 周六新增的核心。旧版在这里直接给 `② 术语未命中`，
+    而那是个**默认分支**，不是判断。
+    """
     signals: list[str] = []
-    candidate: str | None = None
 
     # ---- 拒答题误放：单独一类
     if item.is_refusal:
@@ -94,45 +201,94 @@ def classify(
     #
     # 第一版把所有"以非句末标点结尾"的 gold 块都判成 ①，结果 7 条里 5 条
     # 是表格（结尾是 `|`）。**表格不以句号结尾是正常的** —— 它不是句子。
-    # 把它们算成"切分断语义"会导向错误的改进方向（去调切分器），
-    # 而真正该做的是"长块降权"或"表格单独路由"。
     table_chunks = [chunk for chunk in gold_chunks if chunk.metadata.get("block") == "table"]
-    if table_chunks:
-        signals.append(
-            f"gold 块是**表格**（{len(table_chunks)} 个，长度 "
-            f"{[len(c.text) for c in table_chunks]}）—— 整块不切是契约"
-        )
-        if top50_rank is None:
-            signals.append("表格块在 top50 里找不到 → 表格通常很长，被更短更聚焦的正文块挤掉")
-            signals.append("修法不是改切分，而是「长块降权」或「表格单独路由」")
-            candidate = "② 术语/同义词未命中"
-        else:
-            signals.append(f"表格块在 top50 第 {top50_rank} 位 → 排序问题")
-            candidate = "② 术语/同义词未命中"
-        return {"candidate": candidate, "signals": signals, "auto_confidence": "medium"}
 
-    # ---- ①②：gold 块在库里的状态
-    if top50_rank is None:
-        signals.append("gold 块在 top50 里都没有 → 检索完全没定位到")
-        # 看 gold 块本身是否被切断
+    # ---- ④ 真断句（表格已排除）
+    if not table_chunks:
         truncated = [looks_truncated(chunk.text) for chunk in gold_chunks]
         if any(truncated):
             signals.append(f"gold 块以非句末标点结尾（{truncated}）→ 强信号：切分断了语义")
-            candidate = "① 切分断语义"
-        else:
-            signals.append("gold 块结尾正常 → 更可能是术语/表述差异")
-            candidate = "② 术语/同义词未命中"
-        return {"candidate": candidate, "signals": signals, "auto_confidence": "medium"}
+            return {
+                "candidate": "① 切分断语义",
+                "signals": signals,
+                "auto_confidence": "medium",
+            }
 
-    if top50_rank > 20:
-        signals.append(f"gold 块在 top50 的第 {top50_rank} 位 → 能定位但排得很后")
-        candidate = "② 术语/同义词未命中"
-        signals.append("分数相近但排位靠后 → 语义区分度不足，不是切分问题")
-        return {"candidate": candidate, "signals": signals, "auto_confidence": "medium"}
+    # ---- 以下是 W6 周六新增的**字面交集分析**
+    query_tokens = _tokens(item.question)
+    gold_tokens: set[str] = set()
+    for chunk in gold_chunks:
+        gold_tokens |= _tokens(chunk.text)
+    shared = query_tokens & gold_tokens
+    rare_shared = {token for token in shared if _is_rare(token)}
 
-    signals.append(f"gold 块在 top50 的第 {top50_rank} 位（top5 外）→ 排序问题而非定位问题")
-    candidate = "② 术语/同义词未命中"
-    return {"candidate": candidate, "signals": signals, "auto_confidence": "low"}
+    signals.append(f"query 有 {len(query_tokens)} 个 token，gold 块有 {len(gold_tokens)} 个")
+    signals.append(f"公共 token {len(shared)} 个：{sorted(shared)[:8]}")
+    if rare_shared:
+        signals.append(f"其中**稀有标识符** {sorted(rare_shared)} → BM25/分词器该强")
+
+    # ⑤ 长块被挤掉：表格块，或显著长于中位
+    lengths = sorted(len(chunk.text) for chunk in gold_chunks)
+    if table_chunks:
+        signals.append(
+            f"gold 块是**表格**（{len(table_chunks)} 个，长度 {lengths}）—— 整块不切是契约"
+        )
+        signals.append("表格块通常很长，会被更短更聚焦的正文块挤掉")
+        # **表格块常常同时"零交集"**（实测 8 条表格里有 6 条公共 token = 0）。
+        # 两类标签重叠时必须选一个，这里选 ⑤ 而不是 ⑥，理由是**修法不同且更具体**：
+        #
+        #   ⑤ → 长块降权 / 表格单独路由（针对块结构）
+        #   ⑥ → 查询改写 / 换 embedder（针对表达差异）
+        #
+        # 表格块的根因是"它是表格且长"，不是"用户表述不同" ——
+        # 同一条 query 换成正文块就能命中。所以 ⑤ 更接近真因。
+        #
+        # 但如果表格块**不是**最长的那些候选，那"长"这个解释就不成立，
+        # 该看表达差异（⑥）。这里把两种可能都写进 signals，让人复核。
+        signals.append("修法不是改切分，而是「长块降权」或「表格单独路由」")
+        if top50_rank is None:
+            signals.append("⚠ 另：该 query 与表格块公共 token 极少（可能同时是 ⑥ 字面零交集）")
+        return {
+            "candidate": "⑤ 长块被挤掉",
+            "signals": signals,
+            "auto_confidence": "high" if top50_rank is None else "medium",
+        }
+    if max(lengths) >= 400 and top50_rank is None:
+        signals.append(f"gold 块很长（最长 {max(lengths)} 字）且不在 top50 → 被短块挤掉")
+        return {
+            "candidate": "⑤ 长块被挤掉",
+            "signals": signals,
+            "auto_confidence": "medium",
+        }
+
+    # ⑥ 字面零交集：query 与 gold 一个字面 token 都不共享
+    if not shared:
+        signals.append("**零公共 token** → 字面完全没对上，BM25/词典再强也没用")
+        signals.append("这是查询表述与文档表述不一致（同义/换述）")
+        return {
+            "candidate": "⑥ 字面零交集",
+            "signals": signals,
+            "auto_confidence": "high",
+        }
+
+    # ② 术语未命中：**只有真的含稀有标识符才算**
+    if rare_shared:
+        signals.append(f"含稀有标识符 {sorted(rare_shared)} 却仍排不上 → 分词/词典或权重问题")
+        return {
+            "candidate": "② 术语未命中",
+            "signals": signals,
+            "auto_confidence": "high",
+        }
+
+    # ⑦ 语义区分度不足：有公共 token，但全是高频普通词
+    signals.append("公共 token 都是高频普通词（无稀有标识符）→ 字面匹配无区分度")
+    signals.append("BM25/词典无从发挥：这些词在库里到处都是，IDF 低")
+    signals.append("该修的是 embedding 表达力或加精排，不是分词器")
+    return {
+        "candidate": "⑦ 语义区分度不足",
+        "signals": signals,
+        "auto_confidence": "medium",
+    }
 
 
 def main() -> int:
