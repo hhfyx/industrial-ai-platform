@@ -66,13 +66,49 @@ def _ms(started: float) -> int:
 
 @dataclass
 class QATiming:
-    """一次问答的分阶段耗时。**必答题的答案就在这个对象里。**"""
+    """一次问答的分阶段耗时。**必答题的答案就在这个对象里。**
+
+    ## W6 周日加了三段（BM25 / 精排 / 压缩）
+
+    原来的四段（embed / search / context / ttft）只覆盖"纯向量"链路。
+    W6 加了 BM25、精排、压缩三层之后，那三段成了**必须单独计量**的部分 ——
+    否则"检索变慢了"会变成一个无法归因的整体。
+
+    W6 周四实测过一个数字：**精排单 query 17.7 秒**。
+    如果它被算进 `search_ms`，那 `search_ms` 会从 1 ms 变成 17700 ms，
+    而人只会看到"检索变慢了 1 万倍"，看不出是精排。
+
+    ## 各段占谁的比
+
+    | 段 | 归属 | 说明 |
+    | --- | --- | --- |
+    | `embed_ms` + `search_ms` | **向量路** | 原口径不变 |
+    | `bm25_ms` | **字面路** | W6 周一新增 |
+    | `rerank_ms` | **精排** | W6 周三新增，CPU 上是主要成本 |
+    | `compress_ms` | **压缩** | W6 周五新增（当前不启用） |
+
+    `retrieval_ms` **仍然只算向量两段** —— 保持与历史数字可比。
+    要看"检索全链路"用 `recall_chain_ms`。
+    """
 
     embed_ms: int = 0
     """query 向量化耗时。"""
 
     search_ms: int = 0
     """相似度计算 + TopK 耗时。"""
+
+    bm25_ms: int = 0
+    """BM25 字面检索耗时（W6 周一加）。不开混合时为 0。"""
+
+    rerank_ms: int = 0
+    """Cross-Encoder 精排耗时（W6 周三加）。不开精排时为 0。
+
+    **CPU 上它是压倒性的**：W6 周四实测单 query 17.7 秒（候选 20）。
+    单列一项就是为了让这个数字无处可藏。
+    """
+
+    compress_ms: int = 0
+    """上下文压缩耗时（W6 周五加）。不启用压缩时为 0。"""
 
     build_context_ms: int = 0
     """拼上下文 + 分配编号耗时。"""
@@ -85,12 +121,34 @@ class QATiming:
 
     @property
     def retrieval_ms(self) -> int:
-        """检索段总耗时 = 向量化 + 相似度。
+        """**向量路**检索耗时 = 向量化 + 相似度。
 
-        **这是必答题的分子**。它单独算，而不是从 `total_ms` 里减，
-        因为"减法得到的数"会把所有没归类的开销都算进检索里。
+        **口径保持不变**（W4 起就是这个定义），理由是历史数字要与它对得上。
+        要看含 BM25/精排/压缩的全链路，用 `recall_chain_ms`。
         """
         return self.embed_ms + self.search_ms
+
+    @property
+    def recall_chain_ms(self) -> int:
+        """**检索全链路**耗时 = 向量 + BM25 + 精排 + 压缩。
+
+        这是 W6 之后"检索到底花多久"的正确口径。
+        与 `retrieval_ms` 并存是刻意的：
+        前者用于和历史比，后者用于回答"现在慢在哪"。
+        """
+        return self.embed_ms + self.search_ms + self.bm25_ms + self.rerank_ms + self.compress_ms
+
+    @property
+    def rerank_share(self) -> float | None:
+        """精排占检索全链路的比例。
+
+        **这个数是"该不该开精排"的直接依据**：
+        W6 周四实测它约 99%（17.7s / 17.9s）——
+        看这个比例比看绝对秒数更能说明问题。
+        """
+        if self.recall_chain_ms <= 0:
+            return None
+        return self.rerank_ms / self.recall_chain_ms
 
     @property
     def retrieval_share(self) -> float | None:
@@ -111,12 +169,19 @@ class QATiming:
             "embed_ms": self.embed_ms,
             "search_ms": self.search_ms,
             "retrieval_ms": self.retrieval_ms,
+            "bm25_ms": self.bm25_ms,
+            "rerank_ms": self.rerank_ms,
+            "compress_ms": self.compress_ms,
+            "recall_chain_ms": self.recall_chain_ms,
             "build_context_ms": self.build_context_ms,
             "ttft_ms": self.ttft_ms,
             "total_ms": self.total_ms,
             # 保留 4 位小数：1% 量级的比例用两位小数会显示成 0.01，看不出差异
             "retrieval_share": (
                 round(self.retrieval_share, 4) if self.retrieval_share is not None else None
+            ),
+            "rerank_share": (
+                round(self.rerank_share, 4) if self.rerank_share is not None else None
             ),
         }
 

@@ -150,6 +150,11 @@ TASKS: dict[str, tuple[str, list[str]]] = {
         "四配置消融：纯向量 → +混合 → +精排 → +压缩（约 12 分钟）",
         ["scripts/ablation_four.py"],
     ),
+    # ---- W6 周日：延迟打点与优化 ----
+    "latency-profile": (
+        "延迟打点：四段占比 + P50/P95 + 三档配置对比（约 10 分钟）",
+        ["scripts/latency_profile.py"],
+    ),
 }
 
 

@@ -112,9 +112,21 @@ POST /api/v1/extract
 │                     ⚠ **已实现但不启用**：预算只用掉 17.7%            │
 │                       （见 docs/context-compression.md）              │
 │                                                                     │
-│   ② 检索段（每次）   query→向量→cosine→TopK → 阈值闸门                │
+│   ② 检索段（每次）   **四段流水线（三层可选，默认只开第一段）**       │
+│                      query→向量→cosine→TopK → 阈值闸门                │
+│                      ├ ② 多路召回  向量 ∥ BM25（RRF 融合）  ❌ 默认关  │
+│                      ├ ③ 精排      Cross-Encoder             ❌ 默认关 │
+│                      └ ④ 压缩      句子级（只改 prompt 文本）❌ 默认关 │
+│                                                                     │
+│      ⚠ **四配置消融的结论：三层全关**（见 docs/ablation-four.md）     │
+│        Recall@5：40.0% → 35.0% → 50.0% → 50.0%（+混合/−精排/+压缩）   │
+│        精排 +15pp 但 p=0.0703 未达显著，且 P50 延迟 138ms → 16781ms    │
+│        混合 −5.0pp（它的价值在候选广度，不在 top5）                    │
+│        压缩零 Recall 收益，且预算只用掉 17.7%                          │
+│                                                                     │
 │   ③ 生成段（每次）   拼上下文[1][2]… → 流式调模型 → 解析[n] → 引用    │
-│                     query.py  QATiming：embed/search/context/ttft    │
+│                     query.py  QATiming：embed/search/bm25/rerank/     │
+│                               compress/context/ttft（W6 周日加三段）  │
 └────────────────────────────┬────────────────────────────────────────┘
                              │  ExtractorDep / get_llm_client
 ┌────────────────────────────▼────────────────────────────────────────┐

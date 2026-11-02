@@ -68,6 +68,13 @@ from app.rag.settings import get_rag_config  # noqa: E402
 OUT_JSON: Path = PROJECT_ROOT / "scripts" / "rerank_pipeline.json"
 OUT_MD: Path = PROJECT_ROOT / "scripts" / "rerank_pipeline.md"
 
+#: `--recall-only` 的产物**另存**，绝不覆盖上面那两份完整产物。
+#:
+#: 见 `main()` 里 `--recall-only` 分支的说明：第一版写同一个文件，
+#: 导致跑一次 `make recall-ceiling` 就把 `n_sweep`/`route_compare` 覆盖成空。
+OUT_JSON_RECALL_ONLY: Path = PROJECT_ROOT / "scripts" / "recall_ceiling.json"
+OUT_MD_RECALL_ONLY: Path = PROJECT_ROOT / "scripts" / "recall_ceiling.md"
+
 #: 要评估的候选窗口。任务书点名 20/30/50。
 CANDIDATES: tuple[int, ...] = (20, 30, 50)
 
@@ -233,7 +240,20 @@ def main(argv: list[str] | None = None) -> int:
             model_dir=args.model_dir,
             limited=bool(args.limit),
         )
-        return _finish(payload, args.no_write)
+        # ## `--recall-only` 必须写**另一个文件**
+        #
+        # 第一版写同一个 `rerank_pipeline.json`，于是跑一次 `make recall-ceiling`
+        # （它带 `--recall-only`）就把完整产物里的 `n_sweep` 与 `route_compare`
+        # 两节**覆盖成空**。
+        #
+        # 这个 bug 的隐蔽处：文件还在、还是合法 JSON、其余字段都对 ——
+        # 只有那两节悄悄没了。而 `docs/rerank-pipeline.md` 引用的正是那两节。
+        #
+        # 实测踩到过（W6 周日在回归时发现产物被改写）。
+        # 修法：轻量模式写独立文件，绝不覆盖完整产物。
+        return _finish(
+            payload, args.no_write, out_json=OUT_JSON_RECALL_ONLY, out_md=OUT_MD_RECALL_ONLY
+        )
 
     # ---- ② N ∈ {20,30,50} × K=5：效果 vs 延迟 ----
     reranker = Reranker(model_path=args.model_dir)
@@ -398,7 +418,18 @@ def _build_payload(
     }
 
 
-def _finish(payload: dict[str, Any], no_write: bool) -> int:
+def _finish(
+    payload: dict[str, Any],
+    no_write: bool,
+    *,
+    out_json: Path | None = None,
+    out_md: Path | None = None,
+) -> int:
+    """打印结论并落盘。`out_*` 为 `None` 时用完整产物的默认路径。
+
+    **`--recall-only` 必须传自定义路径** —— 否则会覆盖完整产物的
+    `n_sweep` / `route_compare` 两节（见过这个 bug，见 main() 里的说明）。
+    """
     ceilings = payload["ceilings"]
     print()
     print("=" * 78)
@@ -436,10 +467,12 @@ def _finish(payload: dict[str, Any], no_write: bool) -> int:
             print("    → 天花板够高、差距不大 → 精排已接近饱和，需看逐条归因")
     if no_write:
         return 0
-    OUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    OUT_MD.write_text(_render_markdown(payload), encoding="utf-8")
-    print(f"\n落盘：{OUT_JSON.relative_to(PROJECT_ROOT)}")
-    print(f"      {OUT_MD.relative_to(PROJECT_ROOT)}")
+    target_json = out_json or OUT_JSON
+    target_md = out_md or OUT_MD
+    target_json.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    target_md.write_text(_render_markdown(payload), encoding="utf-8")
+    print(f"\n落盘：{target_json.relative_to(PROJECT_ROOT)}")
+    print(f"      {target_md.relative_to(PROJECT_ROOT)}")
     return 0
 
 

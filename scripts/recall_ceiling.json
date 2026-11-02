@@ -1,0 +1,101 @@
+{
+  "meta": {
+    "generated_at": "2026-11-02 17:48:28",
+    "corpus_docs": 1288,
+    "chunks": 1365,
+    "chunk_chars": 500,
+    "overlap": 50,
+    "strategy": "recursive",
+    "questions": 40,
+    "model": "d:\\cache\\modelscope\\bge-reranker-v2-m3",
+    "device": "cpu",
+    "limited_run": false
+  },
+  "ceilings": {
+    "pure_vec": {
+      "5": {
+        "hits": 16,
+        "total": 40,
+        "rate": 0.4
+      },
+      "10": {
+        "hits": 17,
+        "total": 40,
+        "rate": 0.425
+      },
+      "20": {
+        "hits": 20,
+        "total": 40,
+        "rate": 0.5
+      },
+      "30": {
+        "hits": 24,
+        "total": 40,
+        "rate": 0.6
+      },
+      "50": {
+        "hits": 25,
+        "total": 40,
+        "rate": 0.625
+      },
+      "100": {
+        "hits": 29,
+        "total": 40,
+        "rate": 0.725
+      }
+    },
+    "hybrid_rrf": {
+      "5": {
+        "hits": 15,
+        "total": 40,
+        "rate": 0.375
+      },
+      "10": {
+        "hits": 21,
+        "total": 40,
+        "rate": 0.525
+      },
+      "20": {
+        "hits": 25,
+        "total": 40,
+        "rate": 0.625
+      },
+      "30": {
+        "hits": 29,
+        "total": 40,
+        "rate": 0.725
+      },
+      "50": {
+        "hits": 31,
+        "total": 40,
+        "rate": 0.775
+      },
+      "100": {
+        "hits": 33,
+        "total": 40,
+        "rate": 0.825
+      }
+    }
+  },
+  "n_sweep": {},
+  "route_compare": {},
+  "bm25_stats": {
+    "chunks": 1365,
+    "tokens": 40260,
+    "avgdl": 29.49,
+    "avg_tokens_per_chunk": 29.49,
+    "params": {
+      "k1": 1.5,
+      "b": 0.75
+    },
+    "tokenizer": {
+      "tokenizer": "jieba",
+      "dict_path": "domain_dict.txt",
+      "dict_words": 31,
+      "stopwords": 68
+    },
+    "build_ms": 752,
+    "built_at": "2026-11-02 17:39:31",
+    "version": 1
+  }
+}
