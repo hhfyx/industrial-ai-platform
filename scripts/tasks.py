@@ -131,6 +131,15 @@ TASKS: dict[str, tuple[str, list[str]]] = {
         "从 ModelScope 拉 bge-reranker-v2-m3（2.3 GB，本机 HF 不可达）",
         ["scripts/fetch_reranker.py"],
     ),
+    # ---- W6 周四：两段式工程化 + 召回上限 ----
+    "recall-ceiling": (
+        "只算 Recall@N（精排天花板，秒级）—— 判断该修召回层还是精排层",
+        ["scripts/rerank_pipeline.py", "--recall-only"],
+    ),
+    "rerank-pipeline": (
+        "N∈{20,30,50}×K=5 权衡 + 混合vs纯向量→精排（**很慢，全量约 40~60 分钟**）",
+        ["scripts/rerank_pipeline.py"],
+    ),
 }
 
 

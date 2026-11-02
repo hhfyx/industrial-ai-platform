@@ -199,3 +199,97 @@ def test_sort_by_length_can_be_disabled_for_ab_compare() -> None:
     """保留 `sort_by_length=False` 是为了做 A/B —— 它不该被悄悄删掉，
     否则"优化到底值多少"就再也测不出来了。"""
     assert Reranker(sort_by_length=False).sort_by_length is False
+
+
+# ------------------------------------------------- 边界：参数校验（W6 周四补）
+
+
+def test_truncation_accepts_enum_value_string() -> None:
+    """`truncation="tail"` 应当在**构造时**被规整成枚举，而不是等到 rerank 才炸。
+
+    第一版不校验，于是字符串能构造成功，直到 `rerank()` 里
+    `self.truncation.value` 才抛 `AttributeError: 'str' object has no attribute 'value'`
+    —— **错误发生在离现场很远的地方，报的还是 attribute 而不是"参数类型错了"。**
+    """
+    reranker = Reranker(truncation="tail")  # type: ignore[arg-type]
+    assert reranker.truncation is Truncation.TAIL
+    assert isinstance(reranker.truncation, Truncation)
+
+
+def test_truncation_rejects_unknown_value() -> None:
+    """非法值**立刻抛**，并且把可用取值列出来。"""
+    with pytest.raises(ValueError, match="truncation 取值非法"):
+        Reranker(truncation="bogus")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    "kwargs,message",
+    [
+        ({"max_length": 0}, "max_length 必须为正数"),
+        ({"batch_size": 0}, "batch_size 必须为正数"),
+    ],
+)
+def test_invalid_model_params_are_rejected(kwargs: dict[str, object], message: str) -> None:
+    """模型参数写错必须在构造时抛 —— 否则会一路跑到前向才出问题。"""
+    with pytest.raises(ValueError, match=message):
+        Reranker(**kwargs)  # type: ignore[arg-type]
+
+
+# ------------------------------------------------- 边界：长 doc 截断系统性排后
+
+
+def test_truncation_drops_offwindow_content_entirely() -> None:
+    """**被截掉的内容完全不参与打分**，而且是"归零"不是"略低"。
+
+    这不是靠模型跑的测试（那要 12 秒），而是把 `_truncate_ids` 的语义钉住：
+    `TAIL` 保留开头，所以**末尾那段内容在编码阶段就消失了**。
+
+    模型层面的实测数字（`docs/reranker.md` §六）：
+
+        答案在开头 → 0.9235 | 答案居中 → 0.0003 | 答案在末尾 → 0.0003
+
+    也就是说：一条"答案在块尾"的长块会被压到数值噪声水平，
+    **被系统性排到后面**。这是 `max_length` 不能乱设的原因。
+    """
+    ids = list(range(1000))
+    reranker = Reranker(truncation=Truncation.TAIL, max_length=100)
+    kept = reranker._truncate_ids(ids, 100)
+    assert kept == list(range(100)), "TAIL 必须保留开头 100 个"
+    assert 900 not in kept, "末尾内容必须被彻底丢弃，而不是降权"
+
+
+def test_each_truncation_policy_covers_a_different_position() -> None:
+    """**没有任何单一策略能覆盖全部位置** —— 这是选默认值的依据。
+
+    实测矩阵（`docs/reranker.md` §六）：
+
+        TAIL   覆盖"答案在开头"（0.92），居中和末尾都归零
+        HEAD   覆盖"答案在末尾"（0.65），开头和居中归零
+        MIDDLE 覆盖"答案居中"（0.78），开头和末尾归零
+
+    默认选 TAIL 的理由：切分器保证块首是完整句首，**答案在块首的概率最高**；
+    且 TAIL 的峰值分（0.92）是三者里最高的。
+    """
+    ids = list(range(300))
+    budget = 100
+    tail = Reranker(truncation=Truncation.TAIL)._truncate_ids(ids, budget)
+    head = Reranker(truncation=Truncation.HEAD)._truncate_ids(ids, budget)
+    middle = Reranker(truncation=Truncation.MIDDLE)._truncate_ids(ids, budget)
+
+    assert tail[0] == 0 and head[-1] == 299, "TAIL/HEAD 应分别覆盖两头"
+    assert middle[0] > 0 and middle[-1] < 299, "MIDDLE 应两头都丢"
+    # 三个覆盖区间不能相同 —— 否则"三种策略"是假的
+    assert set(tail) != set(head) != set(middle)
+    assert not (set(tail) & set(head)), "TAIL 与 HEAD 的保留区间不该重叠"
+
+
+def test_default_max_length_does_not_truncate_typical_chunks() -> None:
+    """默认 `max_length=512` 对**本项目常见块长**不该触发截断。
+
+    实测：语料 1404 块里中位 77 token、只有 3 块超过 512。
+    所以"三种截断策略"的差异在默认配置下**几乎观察不到** ——
+    这也是为什么产物里要记 `truncated_pairs`：它才是"这个话题今天相不相关"的判据。
+    """
+    assert Reranker().max_length == 512
+    # 一个典型 500 字中文块 ≈ 350 token，加上 query 后仍在 512 内
+    assert Reranker().max_length > 400

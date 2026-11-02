@@ -99,18 +99,44 @@ DEFAULT_BATCH_SIZE: int = 16
 
 
 class Truncation(StrEnum):
-    """长 doc 的截断策略。**三种各自会让不同的块受益**，所以要实测。"""
+    """长 doc 的截断策略。**被截掉的部分完全不参与打分。**
+
+    ## 实测：这不是"分数偏低一点"，是"从相关直接归零"
+
+    同一句 golden 答案（「正文超长返回 422 INVALID_INPUT」）放在长文档的三个位置，
+    用三种策略各打一次分（`max_length=512`）：
+
+    | 策略 | 答案在开头 | 答案居中 | 答案在末尾 |
+    | --- | ---: | ---: | ---: |
+    | `TAIL`（保留开头） | **0.9235** | 0.0003 | 0.0003 |
+    | `HEAD`（保留结尾） | 0.0003 | 0.0003 | **0.6463** |
+    | `MIDDLE`（保留中段） | 0.0003 | **0.7796** | 0.0003 |
+
+    **每一行只有自己覆盖的那一段有分，其余两段全部跌到 0.0003** ——
+    那是"sigmoid 之后的数值噪声"，等价于"判为无关"。
+
+    ## 所以：没有单一策略能覆盖所有位置
+
+    这也是为什么 `max_length` 不能设得太小。若 `max_length` 足够大（本项目 512
+    相对块长 500 字已经够用），**根本不会触发截断**，这个风险就不存在。
+    实测语料里只有 3/1404 块超过 512 token。
+
+    真正会踩这个坑的是：块长调大、语料换成 PDF 长页、或 `max_length` 被调小。
+    产物里的 `truncated_pairs` 字段就是为了让这个风险**可见** ——
+    它是 0 时，三种策略的讨论就没有实际意义。
+    """
 
     TAIL = "tail"
     """保留**开头**、丢结尾。默认。理由：块的开头通常是块首句（切分器的边界保证），
-    信息密度最高。"""
+    信息密度最高。实测答案在开头时得分 0.92。"""
 
     HEAD = "head"
-    """保留**结尾**、丢开头。适合"答案在段末"的场景（结论句、表格最后一行）。"""
+    """保留**结尾**、丢开头。适合"答案在段末"的场景（结论句、表格最后一行）。
+    实测答案在末尾时得分 0.65（比 TAIL 的 0.92 低，因为块首的上下文也丢了）。"""
 
     MIDDLE = "middle"
-    """保留**中段**、两头都丢。覆盖"重点在中间"的块 —— 但风险最大：
-    它会同时丢掉块首（上下文）与块尾（结论）。"""
+    """保留**中段**、两头都丢。实测答案居中时得分 0.78 ——
+    三种策略里对"居中"位置效果最好的，但它同时丢掉块首与块尾。"""
 
 
 def sigmoid(x: float) -> float:
@@ -247,6 +273,34 @@ class Reranker:
     _model: object | None = field(default=None, repr=False)
     _tokenizer: object | None = field(default=None, repr=False)
     _load_ms: int = field(default=0, repr=False)
+
+    def __post_init__(self) -> None:
+        """**把 `truncation` 规整成枚举，错误立刻抛。**
+
+        第一版不校验，于是 `Reranker(truncation="tail")` 这种写法能构造成功，
+        直到第一次 `rerank()` 才在 `self.truncation.value` 上炸出
+        `AttributeError: 'str' object has no attribute 'value'` ——
+        **错误发生在离现场很远的地方，且报的是 attribute 而不是"参数类型错了"。**
+
+        `Truncation` 是 `StrEnum`，所以字符串 `"tail"` 在构造时能直接匹配，
+        这里顺手接住它（便利），但同时保证内部状态一定是枚举（正确性）。
+        """
+        if isinstance(self.truncation, str) and not isinstance(self.truncation, Truncation):
+            try:
+                self.truncation = Truncation(self.truncation)
+            except ValueError as exc:
+                valid = "、".join(item.value for item in Truncation)
+                raise ValueError(
+                    f"truncation 取值非法：{self.truncation!r}（可用：{valid}）"
+                ) from exc
+        if not isinstance(self.truncation, Truncation):
+            raise TypeError(
+                f"truncation 必须是 Truncation 或它的字符串值，收到 {type(self.truncation).__name__}"
+            )
+        if self.max_length <= 0:
+            raise ValueError(f"max_length 必须为正数，收到 {self.max_length}")
+        if self.batch_size <= 0:
+            raise ValueError(f"batch_size 必须为正数，收到 {self.batch_size}")
 
     def is_loaded(self) -> bool:
         return self._model is not None

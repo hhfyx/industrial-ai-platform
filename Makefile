@@ -95,3 +95,10 @@ rerank-probe:  ## 精排延迟/批量/截断/分数跨度（很慢，约 10 分�
 
 rerank-eval:  ## 10 条 query 精排前后 top5（约 4 分钟）
 	@$(PY) $(UTF8) scripts/tasks.py rerank-eval
+
+# ------------------------------------------------------------------ W6 周四：两段式 + 召回上限
+recall-ceiling:  ## 只算 Recall@N（精排天花板，秒级）
+	@$(PY) $(UTF8) scripts/tasks.py recall-ceiling
+
+rerank-pipeline:  ## N×K 权衡 + 混合vs纯向量→精排（很慢，40~60 分钟）
+	@$(PY) $(UTF8) scripts/tasks.py rerank-pipeline

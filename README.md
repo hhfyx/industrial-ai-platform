@@ -106,6 +106,8 @@ POST /api/v1/extract
 │                   rerank.py：Cross-Encoder 精排（bge-reranker-v2-m3）│
 │                   ⚠ **CPU 上 Top20 要 8.9 s、Top50 要 16.4 s**        │
 │                     → 精排不进在线链路（见 docs/reranker.md）          │
+│                   ⚠ 召回天花板：纯向量 R@20=50% / 混合 RRF=68%        │
+│                     → **主瓶颈在召回层**（见 docs/rerank-pipeline.md）│
 │                                                                     │
 │   ② 检索段（每次）   query→向量→cosine→TopK → 阈值闸门                │
 │   ③ 生成段（每次）   拼上下文[1][2]… → 流式调模型 → 解析[n] → 引用    │
