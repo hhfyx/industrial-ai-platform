@@ -139,15 +139,114 @@ def test_legacy_doc_list_is_covered_by_the_name_rule() -> None:
     """历史名单 `ANALYSIS_DOCS` 里每一条都必须**同时**被名字规则命中。
 
     这条不是检查名单本身有用（它已经不是判据了），而是查一个回归：
-    如果有人往里加了一份名字不符合模式的文件，说明**有人还在按感觉手工加白名单**
-    —— 那正是三轮都漏的原因。发现这种就该补 `ANALYSIS_NAME_PATTERNS`，
-    而不是继续往名单里塞。
+    如果有人往里加了一份名字不符合模式的文件，说明**有人还在按感觉手工加名单**
+    —— 那正是四轮都漏的原因。
     """
     unexplained = sorted(name for name in rh.ANALYSIS_DOCS if not rh._is_analysis_name(name))
     assert unexplained == [], (
         "ANALYSIS_DOCS 里有名字不符合任何名字模式的条目 ——"
-        f"说明有人还在手工加白名单（那就一定会再漏）：{unexplained}"
+        f"说明有人还在手工加名单（那就一定会再漏）：{unexplained}"
     )
+
+
+# ------------------------------------------------- 白名单判据（W6 周六反转）
+
+
+def test_corpus_is_derived_from_allowlist_not_blacklist() -> None:
+    """**语料必须来自 `KNOWLEDGE_DOCS` 白名单，不是"全扫再排除"。**
+
+    这是 W6 周六的判据反转。黑名单被同一个坑咬了四次：
+
+    | 轮次 | 漏了什么 |
+    | --- | --- |
+    | W5 周日 | `retrieval-tuning-token-grid.md` |
+    | W6 周一 | `bm25.md` + `weekly/w6.md`（当天新写，正文里写着 Recall@5 40.0%） |
+    | W6 周三 | `hybrid-retrieval.md`（昨天新写） |
+    | W6 周六 | `context-compression.md`（昨天新写） |
+
+    判定方式：语料里的每一项都必须**在 `KNOWLEDGE_DOCS` 里**（README 除外）。
+    如果哪天有人把判据改回黑名单，新写的分析文档会重新出现在语料里，这条就红。
+    """
+    sources = set(rh.full_corpus_sources())
+    allowlist = set(rh.KNOWLEDGE_DOCS) | {"README.md"}
+    leaked = sorted(sources - allowlist)
+    assert leaked == [], (
+        "语料里出现了白名单之外的文件 —— 判据可能被改回黑名单了：\n  "
+        + "\n  ".join(leaked)
+        + "\n应当只收 KNOWLEDGE_DOCS 里明确列出的知识文档"
+    )
+
+
+def test_every_allowlisted_doc_actually_exists() -> None:
+    """白名单里不能有失效路径 —— 否则"写了但没进语料"是无声的失真。"""
+    missing = [rel for rel in rh.KNOWLEDGE_DOCS if not (rh.PROJECT_ROOT / rel).exists()]
+    assert missing == [], f"白名单里有 {len(missing)} 份文件不存在：{missing}"
+
+
+def test_corpus_size_matches_the_historical_baseline() -> None:
+    """**语料规模必须与 W5/W6 的历史基线一致（26 份）。**
+
+    为什么锁死这个数：W5、W6 的全部历史数字（Recall@5=40.0%、天花板 50%…）
+    都在这个库上算的（1288 段 / 1364 块）。换了集合，消融表与历史就不可比 ——
+    而"数字对不上"会被归因到算法改动，查起来极费时间。
+
+    如果这条红了，先问：**是不是新增/删除了知识文档？**
+    如果是，那所有历史数字都要重新标注口径，而不只是改这个断言。
+    """
+    sources = rh.full_corpus_sources()
+    assert len(sources) == 26, f"语料份数从 26 变成了 {len(sources)}"
+    assert "README.md" in sources
+
+
+def test_newly_written_doc_does_not_enter_corpus_automatically() -> None:
+    """**任何新写的 md 默认都不进语料** —— 除非显式加进白名单。
+
+    这是反转判据的核心收益。用**还不存在**的文件名验证：
+
+        ablation-four.md        ← 今天写的（消融脚本配的文档）
+        answer-quality-w6.md   ← 明天可能写的
+        w7-plan.md             ← 下周一定写的
+        cost-analysis.md
+        notes.md
+
+    **黑名单判据对这 5 个全部漏判**（`_is_analysis_name` 都返回 False，
+    也就是说它们会进语料）。白名单判据全部正确排除 —— 这才是这条测试的价值：
+    它测的是"将来会写的那份"，不是"仓库里现有的那份"。
+    """
+    hypothetical = [
+        "ablation-four.md",
+        "answer-quality-w6.md",
+        "w7-plan.md",
+        "cost-analysis.md",
+        "notes.md",
+    ]
+    # 白名单判据：不在名单里 = 不进语料
+    allowlist = set(rh.KNOWLEDGE_DOCS)
+    wrongly_allowed = [name for name in hypothetical if f"docs/{name}" in allowlist]
+    assert wrongly_allowed == [], f"这些新文档名在白名单里（不该）：{wrongly_allowed}"
+    # 反向证据：黑名单判据对它们全部失效（这正是反转的理由）
+    blacklist_catches = [name for name in hypothetical if rh._is_analysis_name(name)]
+    assert len(blacklist_catches) < len(hypothetical), (
+        "如果黑名单能抓住全部假设文档，那反转判据就没有必要了 ——请重新评估这次改动"
+    )
+
+
+def test_corpus_is_not_built_by_scanning_all_docs() -> None:
+    """**语料不能"全扫 docs 再排除"** —— 判据必须是白名单。
+
+    判定方式：磁盘上的 md 数量明显多于语料份数（说明确实在筛选），
+    且语料里每一项都在白名单内。如果哪天有人改回 `rglob("*.md")`，
+    新写的分析文档会重新混进来，而这条断言的前半部分不会变
+    （磁盘数一直比语料多），所以还要靠
+    `test_newly_written_doc_does_not_enter_corpus_automatically`
+    去测"将来的文件"。
+    """
+    on_disk = list((rh.PROJECT_ROOT / "docs").rglob("*.md"))
+    sources = rh.full_corpus_sources()
+    assert len(sources) < len(on_disk) + 1, (
+        f"语料 {len(sources)} 份 vs 磁盘 {len(on_disk)} 份 md —— 筛选没生效？"
+    )
+    assert set(sources) <= (set(rh.KNOWLEDGE_DOCS) | {"README.md"})
 
 
 def test_corpus_covers_docs_and_readme_only() -> None:

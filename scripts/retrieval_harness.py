@@ -118,22 +118,33 @@ CORPUS_SOURCES: tuple[str, ...] = (
 )
 
 
-#: 文档名命中这些**模式**就不进检索语料。**这才是判据，`ANALYSIS_DOCS` 只是历史遗留。**
+#: 文档名命中这些**模式**就不进检索语料。
 #:
-#: 为什么必须是模式而不是名单：前三轮，名单每次都漏，因为**漏的那份是当天新写的**。
+#: ## 为什么是黑名单？这是本文件里最该被批评的设计
+#:
+#: 黑名单的宿命是**永远追不上新文档**，而这个坑已经咬了四次：
 #:
 #: | 轮次 | 漏了什么 | 后果 |
 #: | --- | --- | --- |
 #: | W5 周日 | `retrieval-tuning-token-grid.md` | 1678 块 vs 1592 块 |
 #: | W6 周一 | `bm25.md` + `weekly/w6.md`（当天新写） | 1650 块，且 w6.md 里写着「Recall@5 40.0%」 |
 #: | W6 周三 | `hybrid-retrieval.md`（昨天新写） | 1404 块 vs 1363 块 |
+#: | **W6 周六** | **`context-compression.md`（昨天新写）** | **1408 块 vs 1364 块** |
 #:
-#: 三次全都是"**我在写分析文档，然后在用它污染评测**"这个循环。
-#: 名单是事后补的，而新文档是事前写的 —— 顺序上就赢不了。
+#: 四次全都是"**我在写分析文档，然后在用它污染评测**"。每次的修法都是
+#: "把新漏的那份加进名单" —— 那只是把下一次漏的时间推后。
 #:
-#: 判据是**名字长什么样**：本项目的分析报告都以 `retrieval-*` / `bm25` /
-#: `hybrid-*` / `eval-*` / `strategy-*` 打头，或叫 `*-checklist`。
-#: 判据收紧了宁可多排（多排只是少了点语料，误排进库是**污染评测**）。
+#: ## 所以现在改成**白名单**（`CORPUS_ALLOWLIST`）
+#:
+#: 判据反转：**只有明确列出的知识文档进语料，其余一律不进。**
+#:
+#: 代价：新写一份**真正的知识文档**（比如新的 API 说明）要显式加进白名单。
+#: 收益：新写一份**分析文档**时，它自动不进语料 —— 而"漏排"的后果（污染评测、
+#: 数字虚高、且**没有任何症状**）远比"漏加一份知识文档"严重。
+#:
+#: 这个 trade-off 是刻意选的：**宁可漏收一份知识文档（人能发现，
+#: 因为检索结果里根本没有它），也不要漏排一份分析报告（发现不了，
+#: 因为数字看起来"正常偏好"）。**
 ANALYSIS_NAME_PATTERNS: tuple[str, ...] = (
     "retrieval-",
     "bm25",
@@ -141,14 +152,100 @@ ANALYSIS_NAME_PATTERNS: tuple[str, ...] = (
     "eval-",
     "strategy-",
     "rerank",
+    "context-",
 )
+
+
+#: **进检索语料的知识文档白名单。** 只有这里列出的才会被检索到。
+#:
+#: ## 为什么从"黑名单"反转成"白名单"（W6 周六的决定）
+#:
+#: 黑名单被同一个坑咬了四次，每次的修法都是"把新漏的那份加进去" ——
+#: 那只是把下一次漏的时间推后。详见 `ANALYSIS_NAME_PATTERNS` 上方的表格。
+#:
+#: 反转判据的**代价与收益**：
+#:
+#: | | 漏收一份知识文档 | 漏排一份分析报告 |
+#: | --- | --- | --- |
+#: | 症状 | **有**：检索结果里根本没有它，人一问就发现 | **没有**：数字看起来正常偏好 |
+#: | 修法 | 加进白名单（显式、一次） | 调参数、怀疑模型、改切分 |
+#:
+#: **没有症状的那种错更贵。** 所以宁可漏收知识文档。
+#:
+#: ## 什么时候该往这里加
+#:
+#: 新增一份"给用户查的知识"文档时（API 说明、部署手册、协议文档…）。
+#: 判断标准就一条：**它是"用户要查的东西"，不是"这个项目做了什么"。**
+KNOWLEDGE_DOCS: tuple[str, ...] = (
+    "docs/SETUP.md",
+    "docs/ab-scaffold.md",
+    "docs/api-spec.md",
+    "docs/chroma-store.md",
+    "docs/chunking-boundaries.md",
+    "docs/chunking-predictions.md",
+    "docs/chunking-quality.md",
+    "docs/container-networking.md",
+    "docs/cost.md",
+    "docs/deploy-notes.md",
+    "docs/design-decisions.md",
+    "docs/document-parsing.md",
+    "docs/embedding.md",
+    "docs/prompt-ab.md",
+    "docs/prompt-patterns.md",
+    "docs/prompt-templates.md",
+    "docs/rag-architecture.md",
+    "docs/rag-query-chain.md",
+    "docs/release-notes-v0.3.0.md",
+    "docs/release-notes-v0.3.1.md",
+    "docs/sse.md",
+    "docs/streamlit-ui.md",
+    "docs/structured-output.md",
+    "docs/system-prompt.md",
+    "docs/why-i-use-langchain.md",
+)
+"""进检索语料的知识文档。**只有这里列出的才会被检索到。**
+
+## 这份名单 = "W5/W6 历史基线实际收录的那批"（25 份 + README）
+
+它不是"所有知识文档"的理想集合，而是**能复现 1364 块那个库的精确集合**。
+理由：W5、W6 的全部历史数字（Recall@5=40.0%、天花板 50%…）都是在这个库上算的。
+换集合会让所有历史数字失去可比性，而 W6 周六的消融表**必须与它们对齐**。
+
+**已知污染（记账，不修）**：
+`docs/release-notes-v0.3.0.md` / `v0.3.1.md` 其实是"复盘/发布说明"，
+性质接近分析报告，但历史上一直在库里，且被锚点引用过。保留它们是为了可比性。
+
+## 为什么从"黑名单"反转成"白名单"
+
+黑名单被同一个坑咬了四次（详见 `ANALYSIS_NAME_PATTERNS` 上方的表格），
+每次的修法都是"把新漏的那份加进去"——那只是把下一次漏的时间推后。
+
+| | 漏收一份知识文档 | 漏排一份分析报告 |
+| --- | --- | --- |
+| 症状 | **有**：检索结果里根本没有它 | **没有**：数字看起来正常偏好 |
+| 修法 | 加进白名单（显式、一次） | 调参数、怀疑模型、改切分 |
+
+**没有症状的那种错更贵。** 所以反转判据。
+
+## 新增知识文档时
+
+1. 加进这个元组
+2. 跑 `make bm25-audit`（会报告索引与语料是否同步）
+3. 跑一次 `recall-ceiling` 确认块数变化符合预期
+
+## W7 出 200 条新题时该怎么办
+
+**换一份完全不含本项目分析报告的语料**，从源头避开这个问题。
+现在这份债是"为了与 W5/W6 可比"而背的，不该带进 W7。
+"""
 
 
 def _is_analysis_name(name: str) -> bool:
     """文档名是否属于"分析报告"这一类。
 
-    `*-checklist.md` 也排除（w4-checklist.md 是这类），
-    它的性质是"对项目的描述"，与周报相同。
+    保留这个函数是因为测试仍在用它做**反向检查**
+    （"真正的知识文档不该被误伤"）。但**它已不再是语料的判据** ——
+    判据是 `KNOWLEDGE_DOCS` 白名单。
     """
     stem = name.removesuffix(".md")
     return stem.endswith("-checklist") or any(
@@ -223,15 +320,19 @@ def full_corpus_sources() -> tuple[str, ...]:
     **按名字排序**：保证不同机器、不同文件系统顺序下切出来的块序一致
     （块序影响 `store_id`，进而影响同分时的排序）。
     """
-    docs = sorted(
-        f"docs/{p.relative_to(PROJECT_ROOT / 'docs').as_posix()}"
-        for p in (PROJECT_ROOT / "docs").rglob("*.md")
-        if not _is_analysis_name(p.name)
-        and not any(
-            f"docs/{p.relative_to(PROJECT_ROOT / 'docs').as_posix()}".startswith(prefix)
-            for prefix in ANALYSIS_DIRS
+    # **白名单判据**：只收 `KNOWLEDGE_DOCS` 里明确列出的，且文件确实存在。
+    # 新写的分析文档自动不进语料 —— 这是第四次漏排之后的判据反转。
+    docs = sorted(relative for relative in KNOWLEDGE_DOCS if (PROJECT_ROOT / relative).exists())
+    missing = [relative for relative in KNOWLEDGE_DOCS if not (PROJECT_ROOT / relative).exists()]
+    if missing:
+        # 白名单里有不存在的文件 → **报出来而不是静默跳过**。
+        # 静默跳过会让"白名单写了但语料没进去"变成无声的失真。
+        import warnings
+
+        warnings.warn(
+            f"KNOWLEDGE_DOCS 里有 {len(missing)} 份文件不存在（已跳过）：{missing}",
+            stacklevel=2,
         )
-    )
     return ("README.md", *docs)
 
 
@@ -486,6 +587,7 @@ __all__ = [
     "CORPUS_SOURCES",
     "GOLD_PATH",
     "INDEX_STRATEGY",
+    "KNOWLEDGE_DOCS",
     "Chunk",
     "Corpus",
     "GoldItem",

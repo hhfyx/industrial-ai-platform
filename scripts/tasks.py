@@ -145,6 +145,11 @@ TASKS: dict[str, tuple[str, list[str]]] = {
         "上下文压缩：成本 + 检索 + 答案质量三张表（抽检 20 条）",
         ["scripts/compress_eval.py"],
     ),
+    # ---- W6 周六：四配置消融（主交付）----
+    "ablation-four": (
+        "四配置消融：纯向量 → +混合 → +精排 → +压缩（约 12 分钟）",
+        ["scripts/ablation_four.py"],
+    ),
 }
 
 
