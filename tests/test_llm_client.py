@@ -140,3 +140,36 @@ def test_import_does_not_build_client(monkeypatch: pytest.MonkeyPatch) -> None:
     assert hasattr(module, "get_llm_client")
     # 缓存里没有任何 client 实例 = 没有在 import 阶段构造
     assert _build_client.cache_info().currsize == 0
+
+
+def test_client_does_not_trust_system_proxy(llm_settings: Settings) -> None:
+    """**P0 阻断的回归测试**：client 必须显式 `trust_env=False`。
+
+    背景（W6 周日）：本机装了 Clash，系统代理是 `127.0.0.1:7897`。
+    openai SDK 底层 httpx 默认 `trust_env=True`，会把**本地回环请求**
+    （`http://127.0.0.1:8326`）也扔进代理，网关返回：
+
+        502 {"message": "未配置凭据，请先登录"}
+
+    这个错误信息把排查带偏了整整一周 —— 看起来是账号问题，实际是
+    本地回环地址走了系统代理。修法是 `_build_client` 显式传
+    `http_client=httpx.AsyncClient(trust_env=False)`。
+
+    这条测试锁住它：如果哪天有人把 `trust_env=False` 去掉，
+    `_client._client`（httpx 底层）的 `trust_env` 会变回 True，这里就红。
+    """
+    _build_client.cache_clear()
+    client = _build_client(
+        base_url="http://127.0.0.1:8326/v1",
+        api_key="sk-x",
+        timeout=10.0,
+        max_retries=1,
+    )
+    # AsyncOpenAI 把 httpx 客户端挂在 `_client` 上；直接断言它的 trust_env。
+    # 只测"构造时到底有没有注入 trust_env=False"，不发起任何网络请求。
+    inner = getattr(client, "_client", None)
+    assert inner is not None, "AsyncOpenAI 内部没有 _client（SDK 结构变了？）"
+    assert inner.trust_env is False, (
+        "client 的 trust_env 必须是 False —— 否则本地回环请求会走系统代理，"
+        "复现 W6 周日的「502 未配置凭据」假象"
+    )

@@ -64,12 +64,39 @@ def _build_client(
     注意 `timeout` 只约束**单次 HTTP 往返**；`max_retries` 次重试的
     最坏总耗时约是它的 `1 + max_retries` 倍。要约束"整个调用"必须在业务层
     套 `asyncio.timeout(...)`，这一点 W2 的流式接口会踩到。
+
+    ## ⚠ 必须绕过系统代理（W6 周日修的 P0 阻断）
+
+    `httpx`（openai SDK 的底层）默认 `trust_env=True` —— 它会读系统代理设置。
+    本机装了 Clash 之类的工具，注册表里配了 `127.0.0.1:7897` 的代理：
+
+    | 客户端 | 走代理吗 | 打本地网关的结果 |
+    | --- | :---: | --- |
+    | `httpx` / openai SDK | **走**（默认） | **502** |
+    | `urllib` | localhost 例外 | 200 |
+    | `http.client` | 不走 | 200 |
+
+    于是 `AsyncOpenAI` 对 `http://127.0.0.1:8326` 的每个请求都被扔进代理，
+    代理再转发回来时被网关拒掉 —— **返回的错误却是「未配置凭据，请先登录」**。
+
+    这个错误信息把排查完全带偏了：看起来是账号问题，实际是**本地回环地址走了代理**。
+    P0「真模型问答未跑通」就因为这个假象卡了整整一周。
+
+    修法：显式传一个 `trust_env=False` 的 `http_client`。
+    **不给 `http_client` 而是靠环境变量的 `NO_PROXY`** 不行 —— 那要求每个
+    启动入口（CLI / Streamlit / pytest / docker）都设对，而漏一个就复现同样的假象。
     """
+    import httpx
+
     client = AsyncOpenAI(
         api_key=api_key,
         base_url=base_url,
         timeout=timeout,
         max_retries=max_retries,
+        # `trust_env=False`：不读 HTTP_PROXY / HTTPS_PROXY / 系统代理设置。
+        # 本项目打的是本地网关或明确的 API 域名，没有"必须走系统代理"的场景；
+        # 真要设代理，应该在这个 client 上显式配 proxies，而不是靠环境变量碰运气。
+        http_client=httpx.AsyncClient(trust_env=False, timeout=timeout),
     )
     _OPEN_CLIENTS.add(client)
     return client

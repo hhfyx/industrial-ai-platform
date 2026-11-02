@@ -1,0 +1,974 @@
+{
+  "meta": {
+    "generated_at": "2026-11-02 19:32:17",
+    "strategy": "recursive",
+    "chunk_chars": 500,
+    "top_k": 5,
+    "threshold": 0.575,
+    "model": "buddy-pool/glm-5.3",
+    "seed": 20261121,
+    "strata": {
+      "fact_hit": 8,
+      "fact_miss": 4,
+      "multi_hop": 4,
+      "refusal": 4
+    },
+    "verdicts": [
+      "correct",
+      "partially_correct",
+      "wrong",
+      "refused_correctly",
+      "should_refuse_but_answered"
+    ],
+    "judgement_rule": "invalid_refs 非空一律记 wrong；correct 要求结论与 gold_answer 一致且引用支持它",
+    "summary": {
+      "model": "buddy-pool/glm-5.3",
+      "n": 20,
+      "correct": 15,
+      "partially_correct": 2,
+      "wrong": 3,
+      "strict_accuracy": 0.75,
+      "lenient_accuracy": 0.85
+    }
+  },
+  "summary": {
+    "total": 20,
+    "judged": 3,
+    "pending": 17,
+    "counts": {
+      "correct": 2,
+      "partially_correct": 1,
+      "wrong": 0,
+      "refused_correctly": 0,
+      "should_refuse_but_answered": 0
+    },
+    "correct": 2,
+    "accuracy": 0.6667,
+    "invalid_refs_rows": [],
+    "errors": [],
+    "note": "accuracy 的分母是**已判定**行数，不是 20；未判定的 pending 单列。没有判定就不报准确率"
+  },
+  "rows": [
+    {
+      "id": "f-17",
+      "type": "fact",
+      "question": "归一化之后点积与余弦的实测差是多少？",
+      "gold_answer": "1.7e-17，属纯浮点噪声",
+      "answer": "根据材料，归一化之后点积与余弦的实测差的绝对值是 **1.7e-17**，属于纯浮点噪声 [5]。实测依据来自 `tests/test_embedding.py::test_normalized_dot_equals_cosine` [5]。",
+      "refused": false,
+      "citations": [
+        5
+      ],
+      "invalid_refs": [],
+      "top_score": 0.6405,
+      "context_chunks": 5,
+      "context_chars": 1086,
+      "llm_ms": 3436,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "embedding.md",
+          "head": "``` 余弦相似度 cos(θ) = (a·b) / (|a| × |b|)  L2 归一化后 |a| = |b| = 1 所以 cos(θ) = a·b ← "
+        },
+        {
+          "index": 2,
+          "source": "README.md",
+          "head": "为何单独成块且必须从文字流摘掉、 扫描件的两档判据、以及\"清洗不许改写正文\"这条可被测试断言的红线 - [docs/embedding.md](docs/emb"
+        },
+        {
+          "index": 3,
+          "source": "embedding.md",
+          "head": "- 按**内积**排 → **B 胜**（长向量把\"相关度低\"完全盖住） - 按**余弦**排 → **A 胜**（方向更接近的那个）  **同一个候选集、同一"
+        },
+        {
+          "index": 4,
+          "source": "chroma-store.md",
+          "head": "| 实现 | 底层的数值 | 对外 `score` | | --- | --- | --- | | `ChromaStore` | distance（越小越像）"
+        },
+        {
+          "index": 5,
+          "source": "embedding.md",
+          "head": "实测（`tests/test_embedding.py::test_normalized_dot_equals_cosine`）： 两者差的绝对值是 **1.7"
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "1.7e-17 与 gold 一致"
+    },
+    {
+      "id": "f-28",
+      "type": "fact",
+      "question": "事后按平均每页字数折算页码，为什么一定出错？",
+      "gold_answer": "页密度不均匀：封面 3 字、密集表格页 2000 字",
+      "answer": "# 事后按平均每页字数折算页码，为什么一定出错？\n\n**根本原因：页密度不均匀，平均字数假设从一开始就不成立。** 第 1 页是封面（3 个字），第 7 页是密集表格（2000 字），平均 1200 字/页的假设一进来就崩 [2]；design-decisions 中也明确指出“页密度不均匀：封面 3 字、密集表格 2000 字\" [1]。\n\n**其次是误差累积。** 按顺序累加（第 1 块到第 2 块 = 第 1 页）时，只要有任何一页的字符数不整除块长，误差就会累积，50 页之后可以偏出好几页 [2]；design-decisions 中同样指出“任何一页字符数不整除块长，误差就累积；50 页后能偏出好几页\" [1]。\n\n**更隐蔽的问题：页眉页脚已被剔除。** 每页实际字符数被人为削掉一截（页眉 14 字 + 页码 14 字），折算基准整体漂移；在折算时无论用“原始字数”还是“清洗后字数”都错，因为真实的页边界信息在切分前的第 ① 步就已经被销毁了 [3]。\n\n**归根结底，页码错位的原因是：你在切分之后才去猜页码** [4]。这也是为什么最终方案选择在切分时就为每个 chunk 记录 `page` / `pages` / `chunk_index` 元数据，跨页段落必须记 `pages` 元组，而不能只记起始页 [5]。",
+      "refused": false,
+      "citations": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "invalid_refs": [],
+      "top_score": 0.7207,
+      "context_chunks": 5,
+      "context_chars": 1148,
+      "llm_ms": 5784,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "design-decisions.md",
+          "head": "| 猜法 | 为什么错 | | --- | --- | | 按\"平均每页多少字\"折算 | 页密度不均匀：封面 3 字、密集表格 2000 字 | | 按顺序累加"
+        },
+        {
+          "index": 2,
+          "source": "document-parsing.md",
+          "head": "| 猜法 | 为什么错 | | --- | --- | | **按\"平均每页多少字\"折算** | 页密度根本不均匀。第 1 页是封面（3 个字），第 7 页是密"
+        },
+        {
+          "index": 3,
+          "source": "document-parsing.md",
+          "head": "更隐蔽的是：**页眉页脚被剔除过**。每页实际字符数被人为削掉一截（页眉 14 字 + 页码 14 字）， 折算基准整体漂移，而你在第 ③ 步用的是\"原始字数\""
+        },
+        {
+          "index": 4,
+          "source": "document-parsing.md",
+          "head": "## 0. 必答题：页码为什么会错位？  **因为你在切分之后才去猜页码。**  这是本格唯一一个\"写错了会在 demo 现场被点穿\"的问题，所以放在最前面。"
+        },
+        {
+          "index": 5,
+          "source": "design-decisions.md",
+          "head": "1. **元数据体积**：每个 chunk 多 3 个字段（`page` / `pages` / `chunk_index`）。 15000 条 × 约 30 "
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "页边界信息在切分前已销毁，与页密度不均同源"
+    },
+    {
+      "id": "f-13",
+      "type": "fact",
+      "question": "Chroma 的数据目录默认落在哪，而不是用户缓存目录？",
+      "gold_answer": "项目内的 data/chroma，不是 ~/.cache/chroma",
+      "answer": "Chroma 的数据目录应落在相对项目根的 `data/chroma` 目录，而不是用户缓存目录 `~/.cache/chroma` [1]。\n\n具体做法是：Chroma 默认写到用户目录，而这会导致“换台机器数据就没了”的问题 [1]；因此选择相对项目根（`data/chroma`）作为存储路径，这样备份脚本会带上该目录，换机器时用 `cp -r` 就够 [1]。在实现上，路径应使用 `Path(__file__).parents[3]` 而不是 `Path.cwd()` 来定位项目根，因为 cwd 取决于 uvicorn 的启动位置（项目根 / tests / Docker 的 `/app`），用 cwd 拼相对路径会让“数据在哪个目录”随启动方式变化 [1]。",
+      "refused": false,
+      "citations": [
+        1,
+        3
+      ],
+      "invalid_refs": [],
+      "top_score": 0.6754,
+      "context_chunks": 5,
+      "context_chars": 1074,
+      "llm_ms": 7160,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "chroma-store.md",
+          "head": "| 决定 | 理由 | | --- | --- | | 相对项目根（`data/chroma`），**不是 `~/.cache/chroma`** | 备份脚本"
+        },
+        {
+          "index": 2,
+          "source": "chroma-store.md",
+          "head": "```python chromadb.Client() # ❌ 内存/临时，进程退出就没了 chromadb.PersistentClient(path=\"da"
+        },
+        {
+          "index": 3,
+          "source": "chroma-store.md",
+          "head": "这不是文档里显眼的地方，是实测踩到的。所以接口上把它做成**独立方法** （`search_in_pages`）而不是往 `search` 里塞 kwargs："
+        },
+        {
+          "index": 4,
+          "source": "ab-scaffold.md",
+          "head": "`_request()` 在每次真实调用后把 `{prompt_tokens, completion_tokens}` 递给 sink。 **签名一字未动。**"
+        },
+        {
+          "index": 5,
+          "source": "chroma-store.md",
+          "head": "# ChromaDB 持久化向量库  > 代码：`app/rag/stores/chroma.py` · 测试：`tests/test_chroma_store"
+        }
+      ],
+      "verdict": "partially_correct",
+      "verdict_note": "答对 data/chroma，但误述默认落在 ~/.cache/chroma"
+    },
+    {
+      "id": "f-24",
+      "type": "fact",
+      "question": "四类提示范式里哪个胜出，成绩多少？",
+      "gold_answer": "Few-shot（示例逆序），整条 80%、字段级 93.3%",
+      "answer": "在四类提示范式（Self-Consistency 四范式）的实测中，胜出的是 **Few-shot（示例集 X 逆序）**，成绩为 **16/20 = 80%，字段级 93.3%** [1]。",
+      "refused": false,
+      "citations": [
+        1
+      ],
+      "invalid_refs": [],
+      "top_score": 0.5755,
+      "context_chunks": 5,
+      "context_chars": 899,
+      "llm_ms": 2270,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "prompt-patterns.md",
+          "head": "## 四、哪个范式赢，赢多少  **Winner：Few-shot（示例集 X 逆序），16/20 = 80%，字段级 93.3%。**"
+        },
+        {
+          "index": 2,
+          "source": "README.md",
+          "head": "Self-Consistency 四范式实测：哪个赢、赢多少、为什么推理模型不该再加 CoT 提示 - [docs/system-prompt.md](docs"
+        },
+        {
+          "index": 3,
+          "source": "prompt-templates.md",
+          "head": "> `tests/test_prompts.py::test_template_docstring_has_five_sections` > 会对四个模板逐一检"
+        },
+        {
+          "index": 4,
+          "source": "prompt-ab.md",
+          "head": "**模型的失败模式是把\"意图\"当成\"现象\"来判。** 而用户写咨询时， 往往先描述现象再提问题 —— 现象在前，意图在后，模型读到前半句就做判断了。"
+        },
+        {
+          "index": 5,
+          "source": "chunking-boundaries.md",
+          "head": "## 实测打穿的五个错（按发现顺序）  这五个都是**跑样本时当场失效**，不是事后靠人工读出来的。 它们的共同点是：**不报错，只让结果变差**。"
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "Few-shot 逆序 / 80% / 93.3% 全对"
+    },
+    {
+      "id": "f-29",
+      "type": "fact",
+      "question": "跨页段落只记起始页，为什么反而更危险？",
+      "gold_answer": "两页都只能看到半句，且比没页码更易被点穿",
+      "answer": "跨页段落只记起始页（如只记 `page=1`），属于“半个真话” [1][4]。用户点进 p1 找不到那句话的后半截，点进 p2 又找不到前半截 [1][4]。只记 `page=6` 时，用户点进 p6 找不到后半截，点进 p7 又找不到前半截 [4]。这正是 demo 现场最容易被点穿的地方——半个真话在 demo 现场比完全没页码更容易被点穿 [1]。因此跨页段落必须记 `pages` 元组（如 `pages=(1,2)`），不能只记起始页，代价是多一个字段、多一点扁平化复杂度 [4]。",
+      "refused": false,
+      "citations": [
+        1,
+        4
+      ],
+      "invalid_refs": [],
+      "top_score": 0.5882,
+      "context_chunks": 5,
+      "context_chars": 1406,
+      "llm_ms": 3900,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "document-parsing.md",
+          "head": "**为什么跨页那段要 `pages=(1,2)` 而不只是 `page=1`**： 用户点进 p1 找不到那句的后半截，点进 p2 又找不到前半截。 \"起始页\""
+        },
+        {
+          "index": 2,
+          "source": "document-parsing.md",
+          "head": "更隐蔽的是：**页眉页脚被剔除过**。每页实际字符数被人为削掉一截（页眉 14 字 + 页码 14 字）， 折算基准整体漂移，而你在第 ③ 步用的是\"原始字数\""
+        },
+        {
+          "index": 3,
+          "source": "design-decisions.md",
+          "head": "**溯源这一条是硬的**：页码信息只存在于切分那一刻。事后想补，只能全量重新解析 + 重新切分 + 重新向量化 —— 这就是本骨架把 `page` 放进 `Do"
+        },
+        {
+          "index": 4,
+          "source": "design-decisions.md",
+          "head": "1. **元数据体积**：每个 chunk 多 3 个字段（`page` / `pages` / `chunk_index`）。 15000 条 × 约 30 "
+        },
+        {
+          "index": 5,
+          "source": "document-parsing.md",
+          "head": "第二档比第一档更危险：那页**有内容**，看起来正常，只是信息大量缺失。 不打 warning，用户永远不知道那页的 90% 查不到。  判据取 20 是因为："
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "半个真话、两页各看不到一半"
+    },
+    {
+      "id": "f-16",
+      "type": "fact",
+      "question": "多出来的三个元数据字段大概带来多少体积？",
+      "gold_answer": "约 450 KB，可忽略",
+      "answer": "多出来的三个元数据字段（`page` / `pages` / `chunk_index`）带来的体积约为：每个 chunk 多约 30 字节，15000 条 chunk 合计约 450 KB，可以忽略 [1]。",
+      "refused": false,
+      "citations": [
+        1
+      ],
+      "invalid_refs": [],
+      "top_score": 0.5769,
+      "context_chunks": 5,
+      "context_chars": 1083,
+      "llm_ms": 1709,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "design-decisions.md",
+          "head": "1. **元数据体积**：每个 chunk 多 3 个字段（`page` / `pages` / `chunk_index`）。 15000 条 × 约 30 "
+        },
+        {
+          "index": 2,
+          "source": "chunking-quality.md",
+          "head": "| 数字 | 它能说明什么 | 它不能说明什么 | | --- | --- | --- | | 块数 | 是否切碎（块数接近段数 = 没合并） | 块内容是否完"
+        },
+        {
+          "index": 3,
+          "source": "chroma-store.md",
+          "head": "### 实测（三个构造向量，查询为 `[1,0,0]`）"
+        },
+        {
+          "index": 4,
+          "source": "prompt-templates.md",
+          "head": "**这是最该担心的一项，结果反而最好**：`1,240 万元`、`18%`、`HX-300`、`4,200 台` 全部逐字保留，**没有一个数字被改写成\"约 1"
+        },
+        {
+          "index": 5,
+          "source": "streamlit-ui.md",
+          "head": "## 3. 流式：TTFT 与检索耗时**分开显示**  界面上三个数字并列，**不合并**："
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "450 KB 一致"
+    },
+    {
+      "id": "f-06",
+      "type": "fact",
+      "question": "流式请求漏掉 include_usage 会怎样？",
+      "gold_answer": "usage 不返回，成本算不出来",
+      "answer": "流式下如果漏掉 include_usage 参数，usage 永远不会返回，导致成本无法计算 [1][2]。这是流式最主要的“静默坑”：token 一样会被消耗，只是拿不到数字 [2]。",
+      "refused": false,
+      "citations": [
+        1,
+        2
+      ],
+      "invalid_refs": [],
+      "top_score": 0.6691,
+      "context_chunks": 5,
+      "context_chars": 875,
+      "llm_ms": 2491,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "sse.md",
+          "head": "### 1.2 `usage` 默认不回来，必须显式要  流式下只要最后一块带 usage，且需要："
+        },
+        {
+          "index": 2,
+          "source": "sse.md",
+          "head": "**不加这个参数，usage 永远不会来** —— 成本就算不出来。这是流式最主要的 \"静默坑\"：token 一样烧，只是你拿不到数字。  且**带 usage"
+        },
+        {
+          "index": 3,
+          "source": "prompt-ab.md",
+          "head": "| 条目 | 问题 | | --- | --- | | ex-01 | 路径给 `.local/bin`，gold 是完整 `%USERPROFILE%\\\\.l"
+        },
+        {
+          "index": 4,
+          "source": "ab-scaffold.md",
+          "head": "`_request()` 在每次真实调用后把 `{prompt_tokens, completion_tokens}` 递给 sink。 **签名一字未动。**"
+        },
+        {
+          "index": 5,
+          "source": "ab-scaffold.md",
+          "head": "| 条目 | v2 得分 | 问题 | | --- | ---: | --- | | ex-01 | 0.67 | 路径给 `.local/bin`，gold "
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "usage 不返回、成本算不出"
+    },
+    {
+      "id": "f-23",
+      "type": "fact",
+      "question": "周四验收里，被判没命中的样本分数反而怎样？",
+      "gold_answer": "0.5087 / 0.6514，高于命中者最低分 0.466",
+      "answer": "周四验收里，被判未命中的两条的最高分是 **0.5087** 和 **0.6514**，而命中者的最低分是 **0.466**——也就是说，未命中的分数比命中者的最低分还高 [2]。因此分数不能区分命中与未命中 [2]。",
+      "refused": false,
+      "citations": [
+        2
+      ],
+      "invalid_refs": [],
+      "top_score": 0.614,
+      "context_chunks": 5,
+      "context_chars": 2677,
+      "llm_ms": 5446,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "chroma-store.md",
+          "head": "### 两条\"未命中\"的真实原因（人工判断）  **① \"验收不合格怎么办\"** —— top1 命中\"验收不通过：乙方须在十个工作日内完成整改\"。 **语义上"
+        },
+        {
+          "index": 2,
+          "source": "rag-query-chain.md",
+          "head": "### 阈值不负责提高准确率  周四的 10 条验收里：  - 命中者的**最低分**是 **0.466** - 未命中的两条最高分是 **0.5087** 和"
+        },
+        {
+          "index": 3,
+          "source": "rag-query-chain.md",
+          "head": "### 一个真实的坑：全局阈值把正确命中的答案拒了  我先写了全局 `DEFAULT_MIN_SCORE = 0.35`。结果 `test_rag_skelet"
+        },
+        {
+          "index": 4,
+          "source": "chunking-boundaries.md",
+          "head": "## 实测打穿的五个错（按发现顺序）  这五个都是**跑样本时当场失效**，不是事后靠人工读出来的。 它们的共同点是：**不报错，只让结果变差**。"
+        },
+        {
+          "index": 5,
+          "source": "README.md",
+          "head": "| # | 问题 | 现状 | 为什么 | 怎么修 | | --- | --- | --- | --- | --- | | ~~4~~ | ~~**召回率没有基"
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "0.5087 / 0.6514 / 0.466 全对"
+    },
+    {
+      "id": "f-03",
+      "type": "fact",
+      "question": "容器里的运行时栈和运行身份是什么？",
+      "gold_answer": "非 root（uid 10001），Python 3.11 运行时",
+      "answer": "知识库中未找到相关内容。\n\n我没有在你的知识库里找到能回答这个问题的内容，因此不作回答。如果这个问题确实应该有答案，请确认相关文档已经导入。",
+      "refused": true,
+      "citations": [],
+      "invalid_refs": [],
+      "top_score": 0.5311,
+      "context_chunks": 5,
+      "context_chars": 1093,
+      "llm_ms": 0,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "container-networking.md",
+          "head": "### 原因 1：`127.0.0.1` 在容器里指的是容器自己  `.env` 里的 `LLM_BASE_URL=http://127.0.0.1:8326/"
+        },
+        {
+          "index": 2,
+          "source": "container-networking.md",
+          "head": "## 四、已做的改动（只改文档，不改行为）  - [`.env.example`](../.env.example) 里 `LLM_BASE_URL` 上方补了"
+        },
+        {
+          "index": 3,
+          "source": "container-networking.md",
+          "head": "**本机网关（端口 8326）是 DeepSeek Harness 进程内起的**， 它的鉴权跟着宿主进程的登录态走。容器是另一个进程、另一种身份， 即使网络可"
+        },
+        {
+          "index": 4,
+          "source": "container-networking.md",
+          "head": "# 容器化验收记录（W3 收尾）  > 2026-11-08。`docker compose up --build` 后的实测结果。 > **这份记录存在的理由"
+        },
+        {
+          "index": 5,
+          "source": "container-networking.md",
+          "head": "## 六、本周这条验收的诚实边界  **我验到的是**：\"容器能起、健康、接口 200、降级契约字段正确出现、规则版结果正确\"。  **我没验到的是**：\"容器"
+        }
+      ],
+      "verdict": "wrong",
+      "verdict_note": "阈值误拒，gold 在库但没答"
+    },
+    {
+      "id": "f-05",
+      "type": "fact",
+      "question": "首字延迟这个指标的口径是怎么定的？",
+      "gold_answer": "从发起请求到第一个非空 content 的时间",
+      "answer": "材料中没有明确定义“首字延迟”这一指标的具体口径。\n\n材料中与之相关的信息只有以下几点：\n\n- 文件 rag-architecture.md 指出，索引慢不等于 RAG 慢，不应把索引耗时算进“问答延迟”，否则会为追求“首字快”去砍块数，而真正该优化的是检索的 top_k 与生成段的上下文长度 [1]。\n- README.md 中提到了“延迟打点的四段占比”这一小节标题，但材料中没有给出四段具体是哪四段、各段如何打点的内容 [4]。\n\n也就是说，“首字延迟”应从哪一段打点开始、到哪一刻结束（即口径的准确定义），在给定材料中没有提到。",
+      "refused": false,
+      "citations": [
+        1,
+        4
+      ],
+      "invalid_refs": [],
+      "top_score": 0.6025,
+      "context_chunks": 5,
+      "context_chars": 746,
+      "llm_ms": 4786,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "rag-architecture.md",
+          "head": "**这张表最重要的一列是最后一列**。索引慢不等于 RAG 慢： 把索引耗时算进\"问答延迟\"，就会为\"首字快\"去砍块数， 而真正该优化的是检索的 top_k 与"
+        },
+        {
+          "index": 2,
+          "source": "embedding.md",
+          "head": "所以上表里 API 的\"单条延迟 / 批量吞吐\"两格写的是**未能实测**，不是\"大概多少\"。 **编一个\"约 100ms\"填上去，比留白糟得多** —— 那个"
+        },
+        {
+          "index": 3,
+          "source": "chunking-quality.md",
+          "head": "| 现象 | 判定 | | --- | --- | | 块首是一个完整的句子开头（或标题、或续接标记） | ✅ | | 块首是半句（开头就是从主语中间断出来的，"
+        },
+        {
+          "index": 4,
+          "source": "README.md",
+          "head": "### 延迟打点的四段占比"
+        },
+        {
+          "index": 5,
+          "source": "chunking-boundaries.md",
+          "head": "| 块首 | 判定 | 为什么 | | --- | --- | --- | | 句末标点开头 | 可疑 | 标点属于上一句，出现在块首说明上一块被切在标点之前 "
+        }
+      ],
+      "verdict": "wrong",
+      "verdict_note": "答非所问，没给 TTFT 口径定义"
+    },
+    {
+      "id": "f-10",
+      "type": "fact",
+      "question": "三条人工判据里哪一条可以自动化到九成？",
+      "gold_answer": "判据一（块首块尾是否完整），能自动判定 90%",
+      "answer": "根据材料，**「标题与内容是否分离」**这一判据可以自动化到（约）九成。\n\n依据是：在三个评分维度中，预判「标题与内容是否分离」会自动分出高下，因为它能从块首字符直接判定，几乎零成本 [2]。\n\n与此对比，另外两条人工判据难以自动化：\n- 「段落是否被拦腰切」最需要人工，机器只能近似判断（块首是否以半个句子开头），而「半句话」在人眼里是语义判断，在正则里只是「结尾没有句号」[2]。\n- 「这两块是不是一个论述单元」也是语义判断，机器只能近似（判断块首是否以半个句子开头），因此必须有人读样本；且其后果比判据一更严重——模型会自信地给出错答案 [3]。\n\n材料中未直接出现「九成」这一具体数字，但「几乎零成本」「直接判定」的表述 [2] 所指的即是最接近完全自动化的那一条。",
+      "refused": false,
+      "citations": [
+        2,
+        3
+      ],
+      "invalid_refs": [],
+      "top_score": 0.5964,
+      "context_chunks": 5,
+      "context_chars": 786,
+      "llm_ms": 4816,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "chroma-store.md",
+          "head": "## 4. 检索验证：10 条已知答案  **本周不做量化**，所以判断是人工的：看 top3 里有没有对应原文。"
+        },
+        {
+          "index": 2,
+          "source": "chunking-predictions.md",
+          "head": "## 附带一个更小的预判（关于\"评分维度\"本身）  我预判三个维度里，**\"标题与内容是否分离\"会自动分高下**（能从块首字符直接判定，几乎零成本）， 而 **"
+        },
+        {
+          "index": 3,
+          "source": "chunking-quality.md",
+          "head": "**这条最需要人工**：机器只能近似（\"块首是否以半个句子开头\"）， 而\"这两块是不是一个论述单元\"是语义判断。**这就是为什么必须有人读样本。**  **为什"
+        },
+        {
+          "index": 4,
+          "source": "embedding.md",
+          "head": "> 第三条看起来多余（两个实现都归一化了），但它是**保险**： > 第三个 embedder 未必。除一次模长成本 O(d)，bug 成本是几天。  ---"
+        },
+        {
+          "index": 5,
+          "source": "system-prompt.md",
+          "head": "| | A | B | | --- | ---: | ---: | | 正常工单里出现「无法判断」的条数 | **3 / 20** | **3 / 20** |"
+        }
+      ],
+      "verdict": "wrong",
+      "verdict_note": "选错判据：答'标题与内容分离'，gold 是'块首块尾完整'"
+    },
+    {
+      "id": "f-19",
+      "type": "fact",
+      "question": "多进程部署时，本地模型该怎么避免每个进程各加载一份？",
+      "gold_answer": "启动时 warmup 一次，多 worker 用独立 embedding 服务",
+      "answer": "材料中没有提到多进程部署时如何避免每个进程各加载一份本地模型的相关内容。",
+      "refused": false,
+      "citations": [],
+      "invalid_refs": [],
+      "top_score": 0.6257,
+      "context_chunks": 5,
+      "context_chars": 1205,
+      "llm_ms": 1519,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "embedding.md",
+          "head": "只写在模型 README 里，**代码层不强制**。忘了加不会有任何报错。  所以本项目把它做成**接口级**的事："
+        },
+        {
+          "index": 2,
+          "source": "design-decisions.md",
+          "head": "四个模型名全部 404）。**如果当初选了 API，今天的整条 RAG 链路一行都跑不起来。**  **③ 重新索引不该被外部限额决定节奏**。5000 页 ≈"
+        },
+        {
+          "index": 3,
+          "source": "prompt-patterns.md",
+          "head": "## 五、复用到别的任务时，先验什么  这套结论**只在\"值域封闭的单步分类\"上成立**。换任务时按这个顺序验：  1. **先测 zero-shot**，拿它"
+        },
+        {
+          "index": 4,
+          "source": "streamlit-ui.md",
+          "head": "**领域层不 import streamlit**。`on_stage=None` 时 CLI 照常工作， 测试传一个假回调 —— 三者都不用改领域代码。  两"
+        },
+        {
+          "index": 5,
+          "source": "prompt-templates.md",
+          "head": "版本机制有测试覆盖（环境变量切换、显式传参）， 但\"真正新增一个 v2 并切换\"的完整流程没走过。 - `load_schema` 靠模块里固定属性名（`QAA"
+        }
+      ],
+      "verdict": "partially_correct",
+      "verdict_note": "诚实说未覆盖，但 gold 其实在库里"
+    },
+    {
+      "id": "m-10",
+      "type": "multi_hop",
+      "question": "500 字块长与 50 字重叠这两个默认值，各自的依据是什么？",
+      "gold_answer": "500 有条款长度依据；50 只是直觉，无数据支撑",
+      "answer": "# 500 字块长与 50 字重叠的依据\n\n## 500 字块长的依据\n\n500 字块长有三个依据：\n\n**① 让“一个条款”整块落在一个 chunk 里。** 一份 A4 中文合同的一个条款段通常 200–600 字（tests/fixtures 的合成样本每页 108 字，真实文档约 1200 字/页），取 500 让大多数条款不被切断，切断条款是检索质量最直接的下水道：命中的块只有半个条件句，模型只能猜 [4]。rag-architecture.md 中也提到，块长 500 字符 ≈ 一段完整论述（中文 ≈ 350 token），500 让大多数条款整块落在一个块里 [3]。\n\n**② 与 bge 的 512 token 上限留出余量。** 500 字 × 0.676 tok/字 ≈ 338 token，远低于 512，不会被静默截断 [4]。\n\n**③ 与 top_k=5 的上下文预算匹配。** 5 × 500 = 2500 字 ≈ 1690 token，加系统提示词与输出仍安全（上限 6000 字）[4]。\n\n## 50 字重叠的依据\n\n50 重叠的核心论证是：**防止关键信息正好被切在边界上断开** [2]。50 字 ≈ 半句话的量级 —— 足够让下一块看到“若甲方未按期付款”这个条件，又不至于让两块内容大面积重复 [2]。rag-architecture.md 中将重叠取值定为 50 字符（10%），理由是跨块断句只能靠重叠缓解，存储涨 10% 是必须付的钱 [3]。\n\n## 需要注意的限定\n\n50 这个取值本身**没有数据支持**，50 只是“半句话的量级”这个直觉；W5 要用数据回答，在那之前它是个未经检验的默认值，不是“调好的参数” [5]。此外，50 重叠还存在一个隐蔽问题：不报错，只是让上下文窗口被重复内容占掉 [5]。",
+      "refused": false,
+      "citations": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "invalid_refs": [],
+      "top_score": 0.694,
+      "context_chunks": 5,
+      "context_chars": 1105,
+      "llm_ms": 6475,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "design-decisions.md",
+          "head": "## 4. 决策四：为什么是 500 字 + 50 重叠"
+        },
+        {
+          "index": 2,
+          "source": "design-decisions.md",
+          "head": "### 为什么是 50 重叠  必答题的完整论证在 [rag-query-chain.md §0](rag-query-chain.md)： **防止关键信息正"
+        },
+        {
+          "index": 3,
+          "source": "rag-architecture.md",
+          "head": "| 规则 | 取值 | 为什么 | | --- | --- | --- | | 块长 | 500 字符 | ≈ 一段完整论述（中文 ≈ 350 token）；A"
+        },
+        {
+          "index": 4,
+          "source": "design-decisions.md",
+          "head": "### 为什么是 500  **① 让\"一个条款\"整块落在一个 chunk 里。** 一份 A4 中文合同的一个条款段通常 **200–600 字**（`tes"
+        },
+        {
+          "index": 5,
+          "source": "rag-query-chain.md",
+          "head": "第三条最隐蔽：**不报错**，只是让上下文窗口被重复内容占掉。  > **50 该不该留，现在没有数据支持任何一个取值。** 50 只是\"半句话的量级\"这个直觉"
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "500 有依据、50 无数据，两半都对"
+    },
+    {
+      "id": "m-05",
+      "type": "multi_hop",
+      "question": "跨页段落的页码信息为什么必须在解析阶段就记下来？",
+      "gold_answer": "解析时记 span→pages(1,2)；页码只在切分那一刻存在",
+      "answer": "# 跨页段落的页码信息为什么必须在解析阶段就记下来\n\n**核心原因：页码信息只存在于切分那一刻，事后无法补录。** 如果事后想补页码，只能全量重新解析 + 重新切分 + 重新向量化，代价极高 [1]。\n\n## 具体原因\n\n1. **结构里没有位置放页码时，解析器再准也存不下来。** 这也是为什么 `page` 在 W4 周一的 `schema.py` 里就被定死——就是为了后面使用时结构里有位置可放 [2]。\n\n2. **跨页段落只记起始页是“半个真话”。** 跨页段落若只记 `page=1` 而不是 `pages=(1,2)`，用户点进 p1 找不到那句的后半截，点进 p2 又找不到前半截；而半个真话在 demo 现场比完全没页码更容易被点穿 [2]。同理，只记 `page=6` 时，用户点进 p6 找不到后半截，点进 p7 又找不到前半截，这正是 demo 现场最容易被点穿的地方 [5]。\n\n## 具体做法\n\n- `Document(page, pages)` 与 `Chunk(page, pages)` 从**解析阶段**就带页码 [4]。\n- `to_payload()` 把页码压成扁平标量写进向量库元数据（`page` 用 `-1` 编码 `None`），检索回来时用 `restore_location()` 还原；**切分只继承，不重新推断** [4]。\n- 编解码只允许各出现一次（`to_payload` / `restore_location`），否则两边会各自漂移，由 `tests/test_rag_skeleton.py::test_metadata_roundtrip_through_store_encoding` 守护 [5]。",
+      "refused": false,
+      "citations": [
+        1,
+        2,
+        4,
+        5
+      ],
+      "invalid_refs": [],
+      "top_score": 0.6757,
+      "context_chunks": 5,
+      "context_chars": 1428,
+      "llm_ms": 6387,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "design-decisions.md",
+          "head": "**溯源这一条是硬的**：页码信息只存在于切分那一刻。事后想补，只能全量重新解析 + 重新切分 + 重新向量化 —— 这就是本骨架把 `page` 放进 `Do"
+        },
+        {
+          "index": 2,
+          "source": "document-parsing.md",
+          "head": "**为什么跨页那段要 `pages=(1,2)` 而不只是 `page=1`**： 用户点进 p1 找不到那句的后半截，点进 p2 又找不到前半截。 \"起始页\""
+        },
+        {
+          "index": 3,
+          "source": "chunking-boundaries.md",
+          "head": "在长合同、技术规格书这类文档里，章节名比页码有用得多 —— 页码是\"排版坐标\"，章节才是\"读者的坐标\"。  **③ 二次切分的每一片都能自报家门。**  一条 "
+        },
+        {
+          "index": 4,
+          "source": "design-decisions.md",
+          "head": "### 选了什么  `Document(page, pages)` 与 `Chunk(page, pages)` 从**解析阶段**就带页码； `to_payl"
+        },
+        {
+          "index": 5,
+          "source": "design-decisions.md",
+          "head": "1. **元数据体积**：每个 chunk 多 3 个字段（`page` / `pages` / `chunk_index`）。 15000 条 × 约 30 "
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "页码只在切分那一刻存在"
+    },
+    {
+      "id": "m-06",
+      "type": "multi_hop",
+      "question": "换 embedding 模型导致维度变化要付什么代价，库侧支持到哪？",
+      "gold_answer": "需全量重建索引；迁移未做，只能 clear 重建",
+      "answer": "**换 embedder 的直接代价（维度变化场景）**\n\n1. 必须清空向量库、重建索引：改了 embedder 之后如果不清理，新旧向量会混在同一个库里 [2]。\n2. 维度不同时库会直接报错——这是“还好”的情况，失败是显性的 [2]。\n3. 真正麻烦的是维度相同的场景：不会报错，而是**静默返回无法解释的结果** [2]。\n4. 重建是整库级别的：切分参数这类改动会让整库 id 失效（`Chunk.id` 含正文），必须重建索引 [1]。\n\n**库侧支持到哪**\n\n- 库侧只在“维度不同”这一种失败模式下有保护，即直接报错 [2]。\n- 对“维度相同但模型不同”的混库污染，库侧**没有**任何检测或拦截手段，结果是静默的坏结果 [2]。\n- 材料中没有提到库侧是否提供向量迁移、维度自动适配或混库检测工具。\n\n**附带说明**\n\n- 归一化检查被保留是给“第三个 embedder”留的保险，因为 bug 成本是几天，而归一化成本只有 O(d) 除一次模长 [3]——但这针对的是归一化问题，不是维度变化本身。\n- 接真模型后每次提问还会多一次 query 向量化的 embed 调用（硬成本） [1]，但材料中没有说明这与换模型/维度变化的关系。",
+      "refused": false,
+      "citations": [
+        1,
+        2,
+        3
+      ],
+      "invalid_refs": [],
+      "top_score": 0.662,
+      "context_chunks": 5,
+      "context_chars": 1059,
+      "llm_ms": 9478,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "design-decisions.md",
+          "head": "### 代价是什么  1. **多了一整条链路要维护**：解析 → 切分 → 向量化 → 入库 → 检索 → 生成。 六个环节，每个都可能坏，而且**坏了不报错"
+        },
+        {
+          "index": 2,
+          "source": "streamlit-ui.md",
+          "head": "**「重建索引」必须清向量库**：改了 embedder 之后不清理， 新旧向量会混在一个库里。维度不同会直接报错（还好）， 维度相同时更糟 —— **静默返回"
+        },
+        {
+          "index": 3,
+          "source": "embedding.md",
+          "head": "> 第三条看起来多余（两个实现都归一化了），但它是**保险**： > 第三个 embedder 未必。除一次模长成本 O(d)，bug 成本是几天。  ---"
+        },
+        {
+          "index": 4,
+          "source": "prompt-ab.md",
+          "head": "现，复盘时才查出来。 原因是被迫在修复轮里来回试 —— 它知道信息在，\"时间\"填不对，就一直改。  > **归因结论：+63pp 的差距绝大部分来自\"v2 支持"
+        },
+        {
+          "index": 5,
+          "source": "prompt-templates.md",
+          "head": "版本机制有测试覆盖（环境变量切换、显式传参）， 但\"真正新增一个 v2 并切换\"的完整流程没走过。 - `load_schema` 靠模块里固定属性名（`QAA"
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "维度不同报错/相同静默"
+    },
+    {
+      "id": "m-08",
+      "type": "multi_hop",
+      "question": "用什么证据说明契约冻结、实现可换？",
+      "gold_answer": "两版实现跑同一套 test_api.py，567 个测试离线全绿",
+      "answer": "# 证据说明：契约冻结、实现可换\n\n## 核心证据：测试一行不改而全绿\n\n规则 6 是契约的落地方式：**测试一行不改而全绿**，才算实现真的可替换 [2]。项目里最重要的一条测试在 `tests/test_api.py` [1]。\n\n## 具体实证\n\n**1. W2 替换实现时的实证**\n- W2 把 `app/services/extractor.py` 的正则换成 LLM 调用时，`docs/api-spec.md` 一个字都不用改，路由、schema、测试也一行不用动——测试全绿才叫「API 稳定、实现可换」[5]。\n- 契约中路径、请求体、响应体、错误码含义冻结在 `v1`；「怎么抽」是可替换的实现 [5]。\n\n**2. 后续演进不破坏已有契约**\n- W4 加检索、W9 加工具、W12 加缓存，都不会破坏已有契约——因为契约被**离线**测试锁住了 [3]。\n- 如果测试依赖真实模型，那它测的就不是你的代码，而是供应商的可用性 [3]。这行命令能证明实现真的可替换 [3]。\n\n**3. 流式端点采用新增路径而非修改已有端点**\n- 因为 `docs/api-spec.md` §4 明确写了契约冻结，把已有端点改成流式 = 破坏所有现有调用方（他们拿到的不再是 JSON）[4]。\n- 所以流式是**新路径**，`/extract` 一字未动，`tests/test_api.py` 仍全绿——这是「契约冻住」的又一次实证 [4]。\n\n## 契约纯净性的自检标准\n\n契约文件里出现 `正则`、`prompt`、`模型参数` 之类的实现细节 = 契约被污染了 [5]。这份文档（`docs/api-spec.md`）是本项目唯一不能动的东西 [5]。",
+      "refused": false,
+      "citations": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "invalid_refs": [],
+      "top_score": 0.6666,
+      "context_chunks": 5,
+      "context_chars": 758,
+      "llm_ms": 6906,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "README.md",
+          "head": "## 契约冻住了吗？—— 这是最硬的证据  项目里最重要的一条测试在 `tests/test_api.py`："
+        },
+        {
+          "index": 2,
+          "source": "api-spec.md",
+          "head": "> 规则 6 是本契约的落地方式：**测试一行不改而全绿**，才算实现真的可换。  ---"
+        },
+        {
+          "index": 3,
+          "source": "README.md",
+          "head": "这 行命令为什么值得单独一节：**它能证明实现真的可替换**。 如果测试依赖真实模型，那它测的就不是你的代码，而是供应商的可用性。 W4 加检索、W9 加工具、"
+        },
+        {
+          "index": 4,
+          "source": "sse.md",
+          "head": "### 4.1 为什么是新增端点，而不是把 `/extract` 改成流式  `docs/api-spec.md` §4 明确写了契约冻结。把已有端点改成流式 "
+        },
+        {
+          "index": 5,
+          "source": "api-spec.md",
+          "head": "﻿# 结构化抽取 API 契约（docs/api-spec.md）  > **这份文档是本项目唯一不能动的东西。** > 路径、请求体、响应体、错误码含义冻结在"
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "测试一行不改而全绿"
+    },
+    {
+      "id": "r-01",
+      "type": "refusal",
+      "question": "换成 Qdrant 或 pgvector 时，向量索引的量化配置该怎么选？",
+      "gold_answer": "资料未覆盖，应拒答并说明无依据",
+      "answer": "材料中没有提到 Qdrant 或 pgvector 的向量索引量化配置相关信息。\n\n提供的材料仅涉及以下内容：向量化接口的输入输出类型定义 [1]、检索段的耗时数据（query 向量化 6 ms、相似度 + TopK 3 ms、合计 9 ms）[2]、检索流程架构（query 向量化 → store.search(vector, k) → List[SearchHit]）[3]、向量库选型决定（先 ChromaDB 嵌入式，InMemoryVectorStore 作为第二实现保留）[4]，以及「重建索引」必须清向量库、否则新旧向量会混库的要求 [5]。\n\n材料中未出现任何关于 Qdrant、pgvector 或量化（quantization）配置的内容，因此无法回答该问题。",
+      "refused": false,
+      "citations": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "invalid_refs": [],
+      "top_score": 0.6288,
+      "context_chunks": 5,
+      "context_chars": 1228,
+      "llm_ms": 4654,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "rag-architecture.md",
+          "head": "### ③ 向量化：`List[str]` → `List[List[float]]`"
+        },
+        {
+          "index": 2,
+          "source": "streamlit-ui.md",
+          "head": "| 检索段 | 耗时（5 次中位数） | | --- | ---: | | query 向量化（bge 单条） | **6 ms** | | 相似度 + Top"
+        },
+        {
+          "index": 3,
+          "source": "rag-architecture.md",
+          "head": "``` │ │ │ └───────────────────────────────────────────┼─────────────────────────"
+        },
+        {
+          "index": 4,
+          "source": "design-decisions.md",
+          "head": "### 选了什么  **先 ChromaDB（嵌入式）**。W4 周四已真正实现并验证（`app/rag/stores/chroma.py`）： `Persis"
+        },
+        {
+          "index": 5,
+          "source": "streamlit-ui.md",
+          "head": "**「重建索引」必须清向量库**：改了 embedder 之后不清理， 新旧向量会混在一个库里。维度不同会直接报错（还好）， 维度相同时更糟 —— **静默返回"
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "正确说明材料未覆盖（等效拒答）"
+    },
+    {
+      "id": "r-10",
+      "type": "refusal",
+      "question": "在 MTEB 或 BEIR 榜单上刷分，和自建金标集结论会一致吗？",
+      "gold_answer": "资料未覆盖，应拒答并说明无依据",
+      "answer": "知识库中未找到相关内容。\n\n我没有在你的知识库里找到能回答这个问题的内容，因此不作回答。如果这个问题确实应该有答案，请确认相关文档已经导入。",
+      "refused": true,
+      "citations": [],
+      "invalid_refs": [],
+      "top_score": 0.5478,
+      "context_chunks": 5,
+      "context_chars": 1023,
+      "llm_ms": 0,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "prompt-ab.md",
+          "head": "| 问题 | 影响 | | --- | --- | | `qa-08`（问 degraded 字段用途）gold 要 3 个要点，实际答案只能覆盖 1-2 个 "
+        },
+        {
+          "index": 2,
+          "source": "prompt-ab.md",
+          "head": "**两次独立运行，得分与差值完全一致，v1 的得分也完全一致（0.1333）。**  这说明： 1. **v1.1 确实是胜出版本**（不是挑出来的那次偏差） "
+        },
+        {
+          "index": 3,
+          "source": "README.md",
+          "head": "摘要质量：准确抓出\"违约金自第 1 期 1‰ 逐期递增至第 50 期 50‰\"这条规律， 并指出了\"50 项条款结构完全一致\"。  ---"
+        },
+        {
+          "index": 4,
+          "source": "chunking-quality.md",
+          "head": "### 一个必须承认的边界  **分数不是跨文档可比的。** 一份\"每页 108 字的合成 PDF\"与\"44 段的多级标题 md\" 本身难度不同：后者的判据二天"
+        },
+        {
+          "index": 5,
+          "source": "chunking-predictions.md",
+          "head": "## 附带一个更小的预判（关于\"评分维度\"本身）  我预判三个维度里，**\"标题与内容是否分离\"会自动分高下**（能从块首字符直接判定，几乎零成本）， 而 **"
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "正确拒答"
+    },
+    {
+      "id": "r-02",
+      "type": "refusal",
+      "question": "jina-embeddings 和 gte- 系列相比，长文本截断策略该怎么配？",
+      "gold_answer": "资料未覆盖，应拒答并说明无依据",
+      "answer": "知识库中未找到相关内容。\n\n我没有在你的知识库里找到能回答这个问题的内容，因此不作回答。如果这个问题确实应该有答案，请确认相关文档已经导入。",
+      "refused": true,
+      "citations": [],
+      "invalid_refs": [],
+      "top_score": 0.5748,
+      "context_chunks": 5,
+      "context_chars": 930,
+      "llm_ms": 0,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "chunking-quality.md",
+          "head": "### 一个必须承认的边界  **分数不是跨文档可比的。** 一份\"每页 108 字的合成 PDF\"与\"44 段的多级标题 md\" 本身难度不同：后者的判据二天"
+        },
+        {
+          "index": 2,
+          "source": "README.md",
+          "head": "\"正在总结第 3/9 段\"，体感完全不同 4. 换更快的模型 —— 收益最低，因为单次本来就不慢  > 这个打点习惯是后续优化延迟的核心武器：**先分层测量，再"
+        },
+        {
+          "index": 3,
+          "source": "prompt-patterns.md",
+          "head": "**一句话读法：本任务上赢的是 few-shot（尤其示例排序），不是 CoT。**  ---"
+        },
+        {
+          "index": 4,
+          "source": "why-i-use-langchain.md",
+          "head": "**关键差异不是\"谁对\"**：是我的场景里 `max_repair` 必须可控（线上延迟与成本预算）， 而框架把它埋在内部。  > **注意这个差异与 sche"
+        },
+        {
+          "index": 5,
+          "source": "ab-scaffold.md",
+          "head": "#### 这个结果要怎么读（重要）  **v1 输得这么惨，不是因为模型差，是契约不匹配。**  v1 的 schema 把槽位写死成 `主体` / `时间`（"
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "正确拒答"
+    },
+    {
+      "id": "r-07",
+      "type": "refusal",
+      "question": "把这条链路改写成 LangGraph 或 AutoGen 的多智能体编排，要注意什么？",
+      "gold_answer": "资料未覆盖，应拒答并说明无依据",
+      "answer": "# 回答\n\n**关于「把这条链路改写成 LangGraph 或 AutoGen 多智能体编排要注意什么」，材料中没有提到。**\n\n所给上下文仅涉及以下内容：\n\n- LangChain 抽象了 prompt 模板、链式编排、输出解析三层，但在结构化输出可靠性这层，错误处理藏在框架内部，且作者的场景需要自己写回灌逻辑，可观测性不足 [2]。\n- `with_structured_output` 的签名里有四个 `method` 选项和一个 `strict` 开关，说明结构化输出有多种实现路线 [1]。\n- 该网关明确表示只支持 `tool_choice=auto` 和 `none`，而 `with_structured_output(method=\"function_calling\")` 必须用 `tool_choice` 指向具体函数才能强制结构化输出，因此这条路在该网关上是死路，与 prompt 写法无关 [4]。\n- `json_mode` 的情况下，模型输出了正确的内容，但结构不是 schema 要的 [4]。\n- `Runnable` 接口统一覆盖同步/异步/批量/流式（invoke / batch / stream / ainvoke / astream），`|` 用于组合，这是 LangChain 真正的价值 [5]。\n- 检索时可按章节过滤，`section_path` 是扁平字符串，可直接进 Chroma 的 `where` [3]。\n\n材料中没有出现 LangGraph 或 AutoGen 的任何信息，也没有讨论多智能体编排的注意事项，因此无法回答该问题。",
+      "refused": false,
+      "citations": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "invalid_refs": [],
+      "top_score": 0.5976,
+      "context_chunks": 5,
+      "context_chars": 1113,
+      "llm_ms": 6710,
+      "snippet": [
+        {
+          "index": 1,
+          "source": "why-i-use-langchain.md",
+          "head": "签名里有四个 `method` 选项和一个 `strict` 开关，这本身就是\"结构化输出有多种实现路线\"的 知识封装："
+        },
+        {
+          "index": 2,
+          "source": "why-i-use-langchain.md",
+          "head": "## 一句话版本  **LangChain 替我抽象了「prompt 模板 / 链式编排 / 输出解析」三层； 但在「结构化输出的可靠性」这一层，它把错误处理全"
+        },
+        {
+          "index": 3,
+          "source": "chunking-boundaries.md",
+          "head": "### 具体它能做什么（三条，都要有可验证的落点）  **① 检索时按章节过滤。**  `section_path` 是扁平字符串，直接进 Chroma 的 `"
+        },
+        {
+          "index": 4,
+          "source": "why-i-use-langchain.md",
+          "head": "**关键在 `only tool_choice auto and none are supported`** —— 网关明确表示它 **只支持 `tool_ch"
+        },
+        {
+          "index": 5,
+          "source": "why-i-use-langchain.md",
+          "head": "`Runnable` 的 docstring 写得很清楚：*\"A unit of work that can be invoked, batched, stre"
+        }
+      ],
+      "verdict": "correct",
+      "verdict_note": "说明无 LangGraph/AutoGen 内容（等效拒答）"
+    }
+  ]
+}

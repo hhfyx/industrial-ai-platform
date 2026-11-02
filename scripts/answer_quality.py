@@ -349,6 +349,34 @@ def main(argv: list[str] | None = None) -> int:
         return results
 
     rows = asyncio.run(run_all())
+
+    # ## 保留已有的人工判定（W6 周日踩的坑）
+    #
+    # 第一版每次运行都重新生成 `rows`，于是**重跑只为"汇总"会把人工判定全清空**。
+    # 实测：我判完 20 条（15 correct / 2 partial / 3 wrong），
+    # 为了看汇总又跑了一遍，判定字段全变回 `None` —— 白判一次。
+    #
+    # 这个设计错误很典型：把"重新采样"和"重新汇总"混成了一个命令。
+    # 修法：输出文件已存在时，按 `id` 把**人工填过的** `verdict`/`verdict_note`
+    # 搬过来。只搬人工列，不搬答案 —— 答案必须是这一次真实跑出来的。
+    if args.out.exists():
+        try:
+            previous = {
+                row["id"]: row
+                for row in json.loads(args.out.read_text(encoding="utf-8")).get("rows", [])
+            }
+        except (json.JSONDecodeError, KeyError):
+            previous = {}
+        carried = 0
+        for row in rows:
+            old = previous.get(row["id"])
+            if old and old.get("verdict") in VERDICTS:
+                row["verdict"] = old["verdict"]
+                row["verdict_note"] = old.get("verdict_note", "")
+                carried += 1
+        if carried:
+            print(f"  沿用已有判定：{carried} 条（按 id 匹配）", file=sys.stderr)
+
     summary = summarize(rows)
 
     payload = {
