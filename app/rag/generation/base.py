@@ -44,7 +44,7 @@ W3 的 `qa/v2.jinja2` 已经做了三件事，这里直接复用而不重写：
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Final
 
@@ -235,6 +235,7 @@ def build_context(
     chunks: Sequence[Chunk],
     *,
     max_chars: int = DEFAULT_CONTEXT_CHARS,
+    texts: Mapping[str, str] | None = None,
 ) -> tuple[str, list[Citation]]:
     """把块拼成带编号的上下文，返回 `(上下文文本, 引用列表)`。
 
@@ -243,6 +244,24 @@ def build_context(
 
     超预算时**整块丢弃而不是截断块**：截断一半的块会让模型读到残句，
     然后照着残句给出一个看起来有依据的错答案 —— 比少给一块糟得多。
+
+    ## `texts`：上下文压缩的**唯一注入点**（W6 周五加）
+
+    `{chunk_id: 压缩后文本}`。给了就用压缩文本拼上下文，否则用 `chunk.text`。
+
+    **为什么用"id → 文本"的映射，而不是传一批压缩后的 `Chunk`：**
+
+    如果 `compress_for_prompt()` 返回新的 `Chunk`（换了 text），那么
+    `Chunk.id` 会跟着变（它是 `sha256(source+page+正文)` 派生的）——
+    于是**引用就指向不了原文**了，UI 点 `[n]` 回查会落空。
+
+    用映射的话：`chunks` 仍是**检索层给的那批原块**，
+    `id` / `pages` / `location` 全部不变，只有"贴进 prompt 的那段字"被替换。
+    引用回查走的是原块，所以"压缩后仍能点开看原文"这件事自动成立。
+
+    > 这是任务书点名的那条设计决定：
+    > **压缩不改变 chunk 的可检索身份，只改变送进 LLM 的文本。**
+    > 结构上落实在"这里只换文本，不换 Chunk"。
     """
     if max_chars <= 0:
         raise ValueError("max_chars 必须为正数")
@@ -254,7 +273,8 @@ def build_context(
         # 编号用 len(citations)+1 而不是 enumerate：被预算挡掉的块不占编号，
         # 否则答案里会出现 [3] 但引用列表里没有 3 —— 前端只能显示一个断链接。
         index = len(citations) + 1
-        block = f"[{index}] 来源：{chunk.location}\n{chunk.text}"
+        body = texts.get(chunk.id, chunk.text) if texts else chunk.text
+        block = f"[{index}] 来源：{chunk.location}\n{body}"
         if used + len(block) > max_chars:
             if not citations:
                 # 一条都没放进去就超预算：说明单块就比预算大。

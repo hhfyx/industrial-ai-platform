@@ -140,6 +140,11 @@ TASKS: dict[str, tuple[str, list[str]]] = {
         "N∈{20,30,50}×K=5 权衡 + 混合vs纯向量→精排（**很慢，全量约 40~60 分钟**）",
         ["scripts/rerank_pipeline.py"],
     ),
+    # ---- W6 周五：上下文压缩 ----
+    "compress-eval": (
+        "上下文压缩：成本 + 检索 + 答案质量三张表（抽检 20 条）",
+        ["scripts/compress_eval.py"],
+    ),
 }
 
 

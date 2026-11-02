@@ -102,3 +102,7 @@ recall-ceiling:  ## 只算 Recall@N（精排天花板，秒级）
 
 rerank-pipeline:  ## N×K 权衡 + 混合vs纯向量→精排（很慢，40~60 分钟）
 	@$(PY) $(UTF8) scripts/tasks.py rerank-pipeline
+
+# ------------------------------------------------------------------ W6 周五：上下文压缩
+compress-eval:  ## 压缩：成本 + 检索 + 答案质量三张表
+	@$(PY) $(UTF8) scripts/tasks.py compress-eval
