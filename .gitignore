@@ -47,6 +47,20 @@ data/
 .env.*
 !.env.example
 
+# Streamlit 的 secrets（**Streamlit 官方文档教你在本地建这个文件放凭据**）
+#
+# ⚠️ 这条是 W7 周一补的，补之前它没被挡住 —— 而这是一个**公开仓库**：
+#   `docs/deploy-notes.md` 让读者把 LLM key 写进 `.streamlit/secrets.toml`（本地开发），
+#   一旦照做而这里没挡，`git add .` 就会把 key 推到 GitHub 上。
+#
+# 注意 `.streamlit/config.toml` **必须继续入库**（它不含凭据，
+# 且 Cloud 靠它识别应用配置）。所以只挡 secrets，不挡整个目录。
+.streamlit/secrets.toml
+# 万一有人用别的位置（Streamlit 也支持全局与项目级）：
+**/.streamlit/secrets.toml
+# 但示例文件要入库（给读者一个可复制的模板）：
+!.streamlit/secrets.toml.example
+
 # IDE
 .idea/
 .vscode/

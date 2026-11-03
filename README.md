@@ -56,7 +56,9 @@
 > **✅ P0 已解决（W6 周日）**：真模型问答路径已跑通，端到端答案正确率 **75%（n=20）**，
 > 幻觉引用 0 个（见 [answer-quality.md](docs/answer-quality.md)）。
 > 根因不是"凭据过期"，是**本地回环请求走了系统代理** + **模型名写错**，两个坑都返回同一个误导性的 502。
-> **唯一剩下的 P0 是"线上链接未创建"**（需要 GitHub 账号授权）。
+> **唯一剩下的 P0 是"线上链接未创建"。** 它需要**两样我做不了的东西**：
+> ① GitHub 账号授权（网页操作）② 一个**公网可达的 LLM 端点**（本地那个 `127.0.0.1:8326` 部署后指向 Cloud 容器自己）。
+> **仓库侧我已经准备到"点一下就能部署"** —— 见 [deploy-notes.md §部署步骤](docs/deploy-notes.md)。
 
 ---
 
@@ -429,8 +431,10 @@ W5 把 15 条错例（50%）判成「② 术语/同义词未命中」。W6 两�
 | # | 问题 | 现状 | 为什么 | 怎么修 |
 | --- | --- | --- | --- | --- |
 | ~~1~~ | ~~**真模型问答路径一次都没跑过**~~ | ✅ **W6 周日已解决**：跑通 20 条，答案正确率 **75%**、幻觉引用 0 个 | 根因不是凭据，是**本地回环走了系统代理**（httpx 默认 `trust_env=True`）+ **模型名写错**（`buddy/glm-5.3` 少了 `-pool`）。两个坑都返回误导性的 `502 未配置凭据` | 已修：`_build_client` 传 `trust_env=False`；模型名改 `buddy-pool/glm-5.3`。见 [answer-quality.md](docs/answer-quality.md) |
-| 2 | **线上链接未创建** | Streamlit Cloud 需要 GitHub 账号授权，我这边只有本地 git | 没有账号级凭据 | 手动在 share.streamlit.io 新建 app，入口填 `app/ui/streamlit_app.py` |
+| 2 | **线上链接未创建** | **仓库侧已就绪**（见下），只差网页侧几步操作 | 需要 GitHub 账号授权，我这边只有本地 git | 见 [deploy-notes.md §部署步骤](docs/deploy-notes.md)：填 `hhfyx/industrial-ai-platform` + `main` + **`app/ui/streamlit_app.py`** |
+| **2.1** | **线上还需要一个公网 LLM 端点** | 本地 `LLM_BASE_URL=http://127.0.0.1:8326/v1` 是**我机器上的网关**；部署后 `127.0.0.1` 指 Cloud 容器自己，那里什么都没有 | 没有端点不是"app 起不来"，而是**上传/检索/引用都正常、只有生成报 502** —— 这种状态比彻底失败更难解释 | 三条路见 [deploy-notes.md §线上可用的三条路](docs/deploy-notes.md)。**推荐**：官方 API + 几元充值 |
 | 3 | **免费层语义检索降级** | 线上默认 `hashing`（只有字面相似）。**注意：那跑的不是评测的那套** | bge 实测占 **528 MB**，加框架开销撞 1 GB 上限 | ONNX 量化版（未验证）/ 付费层 / 换 API embedding。**折中**：部署侧装 BM25（纯 Python，~20 MB），它恰好补上"无 torch 时"的字面检索能力 |
+| ~~2.2~~ | ~~**部署依赖文件 Cloud 根本不会读**~~ | ✅ **W7 周一已修**：文件原来叫 `requirements-deploy.txt`（Cloud 不认这个名字），且计划"在 Advanced settings 里指定"（**没有这个选项**）。实际会命中根目录的 `uv.lock` → 装 900 MB 的 torch | 根目录有 `uv.lock`，它的优先级**高于** `requirements.txt`，所以"放根目录"这条路是堵死的 | 已挪到 **`app/ui/requirements.txt`**（入口目录先被搜）。`test_deploy_manifest_is_where_cloud_actually_looks` 守着 |
 
 > **P0-1 解决后，剩下的"能不能说它能问答"的缺口**（不再阻断，但还没"好"）：
 > - 端到端正确率 75%（n=20，单次，单人判定）—— 有数字了，但样本小

@@ -4,7 +4,7 @@
 
 `docs/deploy-notes.md` 里写了"免费层内存不够，用 hashing 降级"。
 但**文档会被忘掉，代码不会**。如果降级只存在于文档：
-下一个人（或三个月后的我）直接改 `requirements-deploy.txt` 加回 torch，
+下一个人（或三个月后的我）直接改 `app/ui/requirements.txt` 加回 torch，
 应用会在线上静默 OOM —— 而 OOM 的表现是"应用隔几分钟重启一次"，
 不是一条能看懂的错误。
 
@@ -118,7 +118,7 @@ def test_bge_missing_dependency_raises_readable_error() -> None:
     """**缺 sentence-transformers 时必须报人话**。
 
     在子进程里屏蔽 torch / sentence_transformers，模拟 Streamlit Cloud
-    按 `requirements-deploy.txt` 装依赖（故意不含 torch）。
+    按 `app/ui/requirements.txt` 装依赖（故意不含 torch）。
 
     裸 `ModuleNotFoundError: No module named 'sentence_transformers'`
     会让运维去查"是不是包冲突"，而真相是"你选了一个这个环境装不下的模型"——
@@ -197,29 +197,95 @@ print("OK chunks=", report.chunks, "hits=", len(hits))
 
 # ============================================================ 3. 部署文件自洽
 
+#: Cloud **实际会读**的部署清单。
+#:
+#: 路径不是随意的 —— 见下面 `test_deploy_manifest_is_where_cloud_actually_looks`
+#: 的说明：Streamlit Cloud 只认固定的文件名，且**先搜入口文件所在目录**。
+DEPLOY_MANIFEST = PROJECT_ROOT / "app" / "ui" / "requirements.txt"
+
+
+def test_deploy_manifest_is_where_cloud_actually_looks() -> None:
+    """**部署清单必须在入口目录里、且叫 `requirements.txt`**（W7 周一修正）。
+
+    这条测试守的是一个**没有任何症状的错误**：文件名/位置写对之前，
+    部署计划会静默地做另一件事。
+
+    ## Cloud 的实际检索规则（官方文档原文）
+
+    > Community Cloud will use the first dependency file it finds.
+    > Community Cloud will search the directory where your entrypoint file is,
+    > **then** it will search the root of your repository. In each location,
+    > dependency files are prioritized in this order:
+    >   `uv.lock` > `Pipfile` > `environment.yml` > `requirements.txt` > `pyproject.toml`
+    >
+    > Warning: You should only use one dependency file for your app.
+
+    ## 为什么根目录修不好
+
+    本仓库根有 **`uv.lock`（1.1 MB）**，它在根目录的优先级**高于**
+    `requirements.txt`。所以"把精简依赖放到根目录"这条路是堵死的：
+
+        根目录只有 requirements.txt -> 命中 uv.lock -> 装完整依赖（含 torch 900MB）
+        入口目录 app/ui/requirements.txt -> 命中它 -> 只装 12 个包
+
+    ## 曾经错在哪
+
+    这个文件原来叫 `requirements-deploy.txt`，而文档写着"在 Advanced settings 里指定"。
+    **Advanced settings 里只有 Secrets 和 Python version，没有这个选项。**
+    `requirements-deploy.txt` 也不在 Cloud 认识的文件名列表里 —— 它从来没被读过。
+
+    当时实际会发生的事：Cloud 命中根目录的 `uv.lock`，装 900 MB 的 torch，
+    然后超时或 OOM。**在真正部署之前，这个错误不会有任何信号。**
+    """
+    # ① 必须叫 Cloud 认识的名字
+    assert DEPLOY_MANIFEST.exists(), (
+        f"Cloud 读的部署清单不在 {DEPLOY_MANIFEST.relative_to(PROJECT_ROOT)}。\n"
+        "它必须叫 requirements.txt —— 其他名字（如 requirements-deploy.txt）"
+        "不在 Cloud 认识的文件名列表里。"
+    )
+    assert DEPLOY_MANIFEST.name == "requirements.txt"
+
+    # ② 必须在入口文件所在目录（不能只在根目录）
+    entrypoint = PROJECT_ROOT / "app" / "ui" / "streamlit_app.py"
+    assert entrypoint.exists()
+    assert DEPLOY_MANIFEST.parent == entrypoint.parent, (
+        "部署清单必须和入口文件同目录 —— Cloud 先搜入口目录，再搜仓库根"
+    )
+
+    # ③ 反证：根目录确实存在会抢占的 uv.lock（说明"放根目录"这条路不通）
+    root_lock = PROJECT_ROOT / "uv.lock"
+    assert root_lock.exists(), (
+        "根目录不再有 uv.lock —— 那 '放根目录' 可能又能用了，"
+        "请重新评估这个部署方案（而不是默默删掉这条测试）"
+    )
+
+    # ④ 旧的错误文件名不应复活（否则又会有人以为它被读了）
+    assert not (PROJECT_ROOT / "requirements-deploy.txt").exists(), (
+        "requirements-deploy.txt 复活了 —— Cloud 不会读它，"
+        "两个清单还会互相漂移。部署清单只有 app/ui/requirements.txt 一份。"
+    )
+
 
 def test_deploy_requirements_excludes_torch() -> None:
-    """`requirements-deploy.txt` **不能含 torch / sentence-transformers**。
+    """部署清单**不能含 torch / sentence-transformers**。
 
     这是免费层能装完、能跑起来的前提。有人"顺手补上缺的包"会让线上 OOM ——
     而那份文件里已经写了理由，这条测试是给"不读注释的人"看的。
     """
-    content = (PROJECT_ROOT / "requirements-deploy.txt").read_text(encoding="utf-8")
+    content = DEPLOY_MANIFEST.read_text(encoding="utf-8")
     # 只看非注释行
     lines = [
         ln.strip() for ln in content.splitlines() if ln.strip() and not ln.lstrip().startswith("#")
     ]
     package_names = {ln.split("==")[0].split(">=")[0].lower() for ln in lines}
 
-    assert "torch" not in package_names, (
-        "requirements-deploy.txt 不能含 torch —— 免费层装不下（详见文件头注释）"
-    )
+    assert "torch" not in package_names, "部署清单不能含 torch —— 免费层装不下（详见文件头注释）"
     assert "sentence-transformers" not in package_names
 
 
 def test_deploy_requirements_has_the_core_stack() -> None:
     """部署依赖必须覆盖 UI 与 RAG 核心，否则线上直接 ImportError。"""
-    content = (PROJECT_ROOT / "requirements-deploy.txt").read_text(encoding="utf-8")
+    content = DEPLOY_MANIFEST.read_text(encoding="utf-8")
     lines = [
         ln.strip() for ln in content.splitlines() if ln.strip() and not ln.lstrip().startswith("#")
     ]
@@ -238,6 +304,23 @@ def test_deploy_requirements_has_the_core_stack() -> None:
     }
     missing = required - names
     assert not missing, f"部署依赖缺少：{missing}"
+
+
+def test_deploy_requirements_includes_bm25_stack() -> None:
+    """部署清单要含 BM25 那两个包（W6 加的，有理由）。
+
+    免费层因无 torch 而降级成「字面检索」，**BM25 恰好是字面检索里最强的那个** ——
+    这两行补上的正是降级后的缺口。如果哪天有人把它们删了，
+    线上就只剩最弱的字面匹配。
+    """
+    content = DEPLOY_MANIFEST.read_text(encoding="utf-8")
+    lines = [
+        ln.strip() for ln in content.splitlines() if ln.strip() and not ln.lstrip().startswith("#")
+    ]
+    names = {ln.split("==")[0].split(">=")[0].lower() for ln in lines}
+
+    assert "jieba" in names, "部署清单缺 jieba（BM25 分词）"
+    assert "rank-bm25" in names, "部署清单缺 rank-bm25"
 
 
 def test_streamlit_cloud_config_exists() -> None:
@@ -286,3 +369,99 @@ def test_memory_measure_script_is_documented() -> None:
     assert "measure_memory.py" in notes.read_text(encoding="utf-8"), (
         "deploy-notes.md 必须指向那个可复跑的测内存脚本"
     )
+
+
+# ============================================================ 5. 凭据不被提交
+
+
+def _is_git_ignored(relative: str) -> bool:
+    """问 git 这个路径是否被忽略。
+
+    **不看 `.gitignore` 的文本，而是问 git 本身** —— 规则写了不等于生效
+    （顺序、否定、`**` 的作用域都可能让规则失效），
+    而这个项目要防的是"key 真的被提交"，不是"规则看起来写了"。
+    """
+    result = subprocess.run(
+        ["git", "check-ignore", "-q", relative],
+        cwd=str(PROJECT_ROOT),
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode == 0
+
+
+def test_secrets_toml_must_be_gitignored() -> None:
+    """**`.streamlit/secrets.toml` 必须被 git 忽略**（W7 周一补的安全缺口）。
+
+    ## 为什么这条是安全问题而不是整洁问题
+
+    Streamlit 官方文档教开发者在本地建 `.streamlit/secrets.toml` 放凭据
+    （`docs/deploy-notes.md` 也照抄了这个流程）。而本仓库是 **public** 的
+    （免费层部署的前提）。
+
+    补这条之前，`.gitignore` 只挡了 `.env` / `.env.*`
+    —— **`.streamlit/secrets.toml` 没挡**。于是"照文档做"的读者
+    执行 `git add .` 就会把 **LLM API key 推到公开的 GitHub 上**。
+
+    key 泄露的后果不是"重新生成一个"那么轻：它是可直接计费的凭据。
+
+    ## 反向要求
+
+    `.streamlit/config.toml` **必须继续入库**（它不含凭据，且 Cloud 靠它识别配置），
+    所以不能图省事忽略整个 `.streamlit/` 目录。
+    """
+    assert _is_git_ignored(".streamlit/secrets.toml"), (
+        "`.streamlit/secrets.toml` 没被 git 忽略 —— 这是公开仓库，"
+        "照文档本地建了这个文件的人会把 LLM key 提交上去。"
+        "请检查 .gitignore 里的 `.streamlit/secrets.toml` 规则。"
+    )
+
+
+def test_streamlit_config_toml_must_stay_tracked() -> None:
+    """`.streamlit/config.toml` **不能**被忽略 —— Cloud 靠它识别应用配置。
+
+    这是上面那条的边界：只挡 `secrets.toml`，不能把整个 `.streamlit/` 挡掉。
+    """
+    assert not _is_git_ignored(".streamlit/config.toml"), (
+        ".streamlit/config.toml 被忽略了 —— 它必须入库（不含凭据，且部署需要它）"
+    )
+
+
+def test_secrets_example_must_stay_tracked() -> None:
+    """秘密的**模板**要入库，否则读者不知道键名该怎么写。
+
+    而且它必须示范"键放在根级"（section 里的键不会变成环境变量）——
+    所以模板里不该出现 `[section]` 包裹 `LLM_*` 的写法。
+    """
+    example = PROJECT_ROOT / ".streamlit" / "secrets.toml.example"
+    assert example.exists(), "缺 .streamlit/secrets.toml.example（读者没有可复制的模板）"
+    assert not _is_git_ignored(".streamlit/secrets.toml.example"), "示例文件被忽略了 —— 它必须入库"
+
+    content = example.read_text(encoding="utf-8")
+    # 示例里必须出现这三个键（放在根级）
+    for key in ("LLM_API_KEY", "LLM_BASE_URL", "LLM_MODEL"):
+        assert (
+            f"\n{key} =" in content or content.startswith(f"{key} =") or f"\n{key}=" in content
+        ), f"示例缺 {key}"
+
+
+def test_secrets_example_has_no_real_key() -> None:
+    """**示例文件不能含真 key**（它是入库的，等于公开）。
+
+    真 key 的形态是 `sk-` 后跟长串；示例里必须是明显的占位符。
+    """
+    import re
+
+    content = (PROJECT_ROOT / ".streamlit" / "secrets.toml.example").read_text(encoding="utf-8")
+    for line in content.splitlines():
+        if line.lstrip().startswith("#") or "=" not in line:
+            continue  # 跳过注释与说明
+        if "LLM_API_KEY" not in line:
+            continue
+        value = line.split("=", 1)[1].strip().strip('"').strip("'")
+        assert "replace" in value.lower() or value == "", (
+            f"示例里 LLM_API_KEY 看起来是真值（{value[:6]}…）—— 它会被提交到公开仓库"
+        )
+        assert not re.fullmatch(r"sk-[A-Za-z0-9_\-]{16,}", value), (
+            "示例里的 LLM_API_KEY 是真实 key 的形态，必须换成占位符"
+        )

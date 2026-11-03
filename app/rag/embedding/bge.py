@@ -153,7 +153,7 @@ class BGEEmbedder:
         started = time.perf_counter()
         # **import 失败要给一句人话，不能让 ModuleNotFoundError 裸奔**。
         #
-        # 场景是真实的：Streamlit Cloud 免费层按 `requirements-deploy.txt` 装依赖
+        # 场景是真实的：Streamlit Cloud 免费层按 `app/ui/requirements.txt` 装依赖
         # （故意不含 torch），此时 `get_embedder("bge-small-zh")` 会在构造上成功
         # （构造不加载模型，见 `__init__`），但第一次 `embed` 才炸。
         #
