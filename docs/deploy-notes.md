@@ -202,6 +202,36 @@ ONNX 量化版可能省下 300 MB，但需要我先验证它能装、能跑、�
 > **为什么 Main file path 要手填**：Cloud 默认找仓库根的 `app.py` / `streamlit_app.py`，
 > 而本仓库根有 `app/` **包** —— 在根放一个 `app.py` 会遮蔽它，import 直接坏掉。
 
+### ②·5 拿到 key 后，**先跑自检再部署**（省一次 3 分钟的等待）
+
+```bash
+python -X utf8 scripts/check_llm_endpoint.py \
+    --base-url https://api.deepseek.com/v1 \
+    --api-key sk-xxxx \
+    --model deepseek-chat
+```
+
+或者用 make（读 `.env` 里的配置，适合本地验证）：
+
+```bash
+make check-llm
+```
+
+它检查五件事，**约 5 秒、近乎免费**（只发 3 次最小调用）：
+
+| # | 检查 | 失败的典型原因 |
+| --- | --- | --- |
+| 1 | 连通性 / 鉴权 | key 错、base_url 少了 `/v1`、国内需代理 |
+| 2 | 模型名在可用列表里 | 名字写错（会**列出相似的名字**给你选） |
+| 3 | 能否出字 | `max_tokens` 太小被推理吃光（返回 200 但 content 为空） |
+| 4 | 能否带材料作答 | 模型不读上下文 —— **这是最接近线上的检查** |
+| 5 | 代理判断一致 | 脚本与应用的 `trust_env` 判据相同，避免"脚本能通、应用不通" |
+
+**为什么要先跑这个**：`make answer-quality` 要跑 20 条真实问答（几元钱、几分钟）。
+先花 5 秒确认 key 能用，再花钱测质量 —— 否则可能花了钱才发现 key 是错的。
+
+> 脚本打印 key 时只显示后 4 位（`********E5Ro`），不会把 key 泄露到日志里。
+
 ### ③ Secrets（**如果不填，提问会 502**）
 
 在 Advanced settings 的 **Secrets** 框里粘贴（**根级，不要放进 `[section]`**）：

@@ -35,11 +35,45 @@ from __future__ import annotations
 
 from functools import lru_cache
 from typing import Annotated
+from urllib.parse import urlparse
 
 from fastapi import Depends
 from openai import AsyncOpenAI
 
 from app.core.config import Settings, get_settings
+
+#: 本地回环的常用主机名（小写比较）。
+#:
+#: **不只判断 `127.0.0.1`**：`localhost` / `::1` / `0.0.0.0` 一样是本地，
+#: 只认带点的那个写法会漏掉 `http://localhost:8326/v1` 这种配置。
+_LOOPBACK_HOSTS: frozenset[str] = frozenset({"127.0.0.1", "localhost", "::1", "0.0.0.0", "[::1]"})
+
+
+def is_loopback_base(base_url: str) -> bool:
+    """这个 base_url 是否指向**本机**。
+
+    ## 为什么要区分本地/公网（这决定代理行为）
+
+    | 目标 | 该不该走系统代理 | 全局关掉 `trust_env` 的后果 |
+    | --- | :---: | --- |
+    | `127.0.0.1:8326`（DSH 网关） | **不该** | ✅ 正好 |
+    | 公网 API（国内 + 科学上网） | **该** | ❌ 连不上（超时 / 连接重置） |
+
+    所以判据不是"要不要代理"，是"目标是本地还是公网"。
+
+    解析失败（比如用户把 base_url 写成 `api.deepseek.com` 没带协议）时
+    按**公网**处理 —— 因为"误判成公网"只是多走一次代理（通常无害），
+    而"误判成本地"会让公网请求绕过代理、直接失败。
+    """
+    try:
+        host = (urlparse(base_url).hostname or "").lower()
+    except ValueError:
+        return False
+    if not host:
+        # 没有 host 说明 base_url 不规范 -> 当公网处理（见 docstring 的取舍）
+        return False
+    return host in _LOOPBACK_HOSTS
+
 
 # 已创建的 client 登记表：`aclose_llm_client()` 要拿到实例才能真正关连接池。
 # lru_cache 不提供"列出所有缓存值"的接口，所以必须自己登记。
@@ -65,38 +99,54 @@ def _build_client(
     最坏总耗时约是它的 `1 + max_retries` 倍。要约束"整个调用"必须在业务层
     套 `asyncio.timeout(...)`，这一点 W2 的流式接口会踩到。
 
-    ## ⚠ 必须绕过系统代理（W6 周日修的 P0 阻断）
+    ## ⚠ 本地回环必须绕过系统代理（W6 周日修的 P0 阻断）
 
     `httpx`（openai SDK 的底层）默认 `trust_env=True` —— 它会读系统代理设置。
-    本机装了 Clash 之类的工具，注册表里配了 `127.0.0.1:7897` 的代理：
+    本机装了 Clash 之类的工具，系统里配了 `127.0.0.1:7897` 的代理：
 
-    | 客户端 | 走代理吗 | 打本地网关的结果 |
+    | 客户端 | 走代理吗 | 打本地网关 `127.0.0.1:8326` |
     | --- | :---: | --- |
     | `httpx` / openai SDK | **走**（默认） | **502** |
     | `urllib` | localhost 例外 | 200 |
     | `http.client` | 不走 | 200 |
 
-    于是 `AsyncOpenAI` 对 `http://127.0.0.1:8326` 的每个请求都被扔进代理，
+    于是 `AsyncOpenAI` 对本地网关的每个请求都被扔进代理，
     代理再转发回来时被网关拒掉 —— **返回的错误却是「未配置凭据，请先登录」**。
 
     这个错误信息把排查完全带偏了：看起来是账号问题，实际是**本地回环地址走了代理**。
     P0「真模型问答未跑通」就因为这个假象卡了整整一周。
 
-    修法：显式传一个 `trust_env=False` 的 `http_client`。
-    **不给 `http_client` 而是靠环境变量的 `NO_PROXY`** 不行 —— 那要求每个
-    启动入口（CLI / Streamlit / pytest / docker）都设对，而漏一个就复现同样的假象。
+    ## ⚠ 但公网端点**必须**尊重系统代理（W7 补充）
+
+    第一版对**所有** base_url 都关掉了 `trust_env`。那在本地是对的，
+    对公网却是错的：
+
+    | 场景 | 需要走代理吗 | 全局关掉 trust_env 的后果 |
+    | --- | :---: | --- |
+    | 本地网关 `127.0.0.1:8326` | **不能走** | ✅ 正确 |
+    | 公网 API（国内网络 + 科学上网） | **要走** | ❌ 连不上，报超时/连接重置 |
+
+    所以判据不是"要不要代理"，而是**"目标是本地还是公网"**：
+
+        is_loopback(base_url)  ->  trust_env=False（绕过代理）
+        否则                   ->  trust_env=True （尊重 HTTP(S)_PROXY）
+
+    这样两种部署形态（本机网关 / 线上官方 API）都不需要额外设环境变量。
     """
     import httpx
 
+    # **按目标地址决定是否信任环境里的代理设置。**
+    # 用 `is_loopback_base` 而不是字符串判断 `127.0.0.1` —— 后者会漏掉
+    # `localhost` / `::1` / `0.0.0.0`，而那些一样是本地。
+    loopback = is_loopback_base(base_url)
     client = AsyncOpenAI(
         api_key=api_key,
         base_url=base_url,
         timeout=timeout,
         max_retries=max_retries,
-        # `trust_env=False`：不读 HTTP_PROXY / HTTPS_PROXY / 系统代理设置。
-        # 本项目打的是本地网关或明确的 API 域名，没有"必须走系统代理"的场景；
-        # 真要设代理，应该在这个 client 上显式配 proxies，而不是靠环境变量碰运气。
-        http_client=httpx.AsyncClient(trust_env=False, timeout=timeout),
+        # 本地目标：`trust_env=False` 绕开系统代理（否则复现「502 未配置凭据」）
+        # 公网目标：`trust_env=True` 让 HTTP(S)_PROXY 生效（否则国内连不上）
+        http_client=httpx.AsyncClient(trust_env=not loopback, timeout=timeout),
     )
     _OPEN_CLIENTS.add(client)
     return client

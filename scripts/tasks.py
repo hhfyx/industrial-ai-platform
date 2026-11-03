@@ -155,6 +155,11 @@ TASKS: dict[str, tuple[str, list[str]]] = {
         "延迟打点：四段占比 + P50/P95 + 三档配置对比（约 10 分钟）",
         ["scripts/latency_profile.py"],
     ),
+    # ---- W7 周一：部署前自检 ----
+    "check-llm": (
+        "LLM 端点自检：连通/鉴权/模型名/能否出字/能否带材料作答（约 5 秒，近乎免费）",
+        ["scripts/check_llm_endpoint.py"],
+    ),
 }
 
 

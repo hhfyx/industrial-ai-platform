@@ -142,8 +142,22 @@ def test_import_does_not_build_client(monkeypatch: pytest.MonkeyPatch) -> None:
     assert _build_client.cache_info().currsize == 0
 
 
-def test_client_does_not_trust_system_proxy(llm_settings: Settings) -> None:
-    """**P0 阻断的回归测试**：client 必须显式 `trust_env=False`。
+def _trust_env_of(base_url: str) -> bool | None:
+    """构造一个 client，读它底层 httpx 的 `trust_env`。**不发任何请求。**"""
+    _build_client.cache_clear()
+    client = _build_client(
+        base_url=base_url,
+        api_key="sk-x",
+        timeout=10.0,
+        max_retries=1,
+    )
+    inner = getattr(client, "_client", None)
+    assert inner is not None, "AsyncOpenAI 内部没有 _client（SDK 结构变了？）"
+    return inner.trust_env
+
+
+def test_local_base_url_bypasses_system_proxy() -> None:
+    """**P0 阻断的回归测试**：本地 base_url 必须 `trust_env=False`。
 
     背景（W6 周日）：本机装了 Clash，系统代理是 `127.0.0.1:7897`。
     openai SDK 底层 httpx 默认 `trust_env=True`，会把**本地回环请求**
@@ -152,24 +166,60 @@ def test_client_does_not_trust_system_proxy(llm_settings: Settings) -> None:
         502 {"message": "未配置凭据，请先登录"}
 
     这个错误信息把排查带偏了整整一周 —— 看起来是账号问题，实际是
-    本地回环地址走了系统代理。修法是 `_build_client` 显式传
-    `http_client=httpx.AsyncClient(trust_env=False)`。
+    本地回环地址走了系统代理。
 
-    这条测试锁住它：如果哪天有人把 `trust_env=False` 去掉，
-    `_client._client`（httpx 底层）的 `trust_env` 会变回 True，这里就红。
+    这条测试锁住它：如果哪天有人去掉这个判断，
+    `_client.trust_env` 会变回 True，这里就红。
     """
-    _build_client.cache_clear()
-    client = _build_client(
-        base_url="http://127.0.0.1:8326/v1",
-        api_key="sk-x",
-        timeout=10.0,
-        max_retries=1,
-    )
-    # AsyncOpenAI 把 httpx 客户端挂在 `_client` 上；直接断言它的 trust_env。
-    # 只测"构造时到底有没有注入 trust_env=False"，不发起任何网络请求。
-    inner = getattr(client, "_client", None)
-    assert inner is not None, "AsyncOpenAI 内部没有 _client（SDK 结构变了？）"
-    assert inner.trust_env is False, (
-        "client 的 trust_env 必须是 False —— 否则本地回环请求会走系统代理，"
+    assert _trust_env_of("http://127.0.0.1:8326/v1") is False, (
+        "本地 base_url 的 trust_env 必须是 False —— 否则会走系统代理，"
         "复现 W6 周日的「502 未配置凭据」假象"
     )
+
+
+def test_public_base_url_respects_system_proxy() -> None:
+    """**公网 base_url 必须 `trust_env=True`**（W7 补充，与上面那条是一对）。
+
+    ## 为什么这条不能省
+
+    第一版对**所有** base_url 都关了 `trust_env`。那在本地是对的，
+    但线上用官方 API（DeepSeek 等）时，国内网络需要走代理 ——
+    全局关掉会让公网请求**直连失败**（超时 / 连接重置）。
+
+    这种 bug 的症状是"本机好好的，一部署就连不上模型"，
+    而排查的人会先怀疑 key、怀疑额度、怀疑网络，很少想到是代码里
+    把代理信任关掉了。**两条测试一起才描述完整的行为**：
+
+        本地 -> 绕过代理（防 502 假象）
+        公网 -> 尊重代理（防部署后连不上）
+    """
+    assert _trust_env_of("https://api.deepseek.com/v1") is True, (
+        "公网 base_url 必须尊重系统代理 —— 否则国内网络直连会失败，"
+        "表现为「本机能跑、线上连不上模型」"
+    )
+
+
+def test_loopback_detection_covers_all_local_forms() -> None:
+    """本地判断要覆盖 `localhost` / `::1` / `0.0.0.0`，不能只认 `127.0.0.1`。
+
+    只认带点的那个写法，会让 `LLM_BASE_URL=http://localhost:8326/v1`
+    这种同样合法的配置走**代理**分支 —— 于是又回到 502 假象。
+    """
+    from app.core.llm.client import is_loopback_base
+
+    for local in (
+        "http://127.0.0.1:8326/v1",
+        "http://localhost:8326/v1",
+        "http://[::1]:8326/v1",
+        "http://0.0.0.0:8326/v1",
+        "https://127.0.0.1/v1",
+    ):
+        assert is_loopback_base(local) is True, f"{local} 应当判为本地"
+
+    for public in (
+        "https://api.deepseek.com/v1",
+        "https://api.openai.com/v1",
+        "http://192.168.1.5:8000/v1",  # 局域网但不是本机
+        "api.deepseek.com",  # 不规范写法 -> 按公网
+    ):
+        assert is_loopback_base(public) is False, f"{public} 应当判为公网"
