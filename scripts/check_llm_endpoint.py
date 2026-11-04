@@ -296,7 +296,34 @@ async def main(argv: list[str] | None = None) -> int:
         help="交互式输入 key（输入时不回显、不进命令历史，推荐）",
     )
     parser.add_argument("--model", help="覆盖 .env 里的 LLM_MODEL")
+    parser.add_argument(
+        "--provider",
+        choices=["deepseek", "zhipu", "moonshot", "openai", "local"],
+        help=(
+            "用预设的 base_url + model（省去手拼参数、也避免拼错）。"
+            "deepseek <- 推荐；local <- 用 .env 里的本地网关"
+        ),
+    )
     args = parser.parse_args(argv)
+
+    # ── 厂商预设：把"容易拼错的两项"固化下来 ─────────────────────────────
+    #
+    # 为什么需要：base_url 少写 `/v1`、模型名多写一个 `-chat`，
+    # 都会得到一个看似"key 无效"或"模型不存在"的报错，
+    # 而真正的原因只是参数拼错。预设把这两项锁死。
+    _PRESETS: dict[str, tuple[str, str]] = {
+        "deepseek": ("https://api.deepseek.com/v1", "deepseek-chat"),
+        "zhipu": ("https://open.bigmodel.cn/api/paas/v4", "glm-4-flash"),
+        "moonshot": ("https://api.moonshot.cn/v1", "moonshot-v1-8k"),
+        "openai": ("https://api.openai.com/v1", "gpt-4o-mini"),
+    }
+    if args.provider and args.provider != "local":
+        preset_base, preset_model = _PRESETS[args.provider]
+        # 显式传的参数优先于预设（允许"用 deepseek 的端点但换模型"）
+        args.base_url = args.base_url or preset_base
+        args.model = args.model or preset_model
+    elif args.provider == "local":
+        args.provider = None  # local 就是"什么都不覆盖，走 .env"
 
     # ── key 的来源优先级：交互输入 > 命令行 > 配置 ────────────────────────
     #
@@ -315,25 +342,49 @@ async def main(argv: list[str] | None = None) -> int:
             return 1
 
     # 读配置。**key 一律不打印**（只打印长度与后 4 位）。
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    base_url = args.base_url or settings.llm.base_url
+    model = args.model or settings.llm.model
+    loopback = is_loopback_base(base_url)
+
     if prompted_key or args.api_key:
         # 只要给了 key，就必须同时知道打到哪个端点 —— 缺的项从配置补。
-        from app.core.config import get_settings
-
-        settings = get_settings()
-        base_url = args.base_url or settings.llm.base_url
-        model = args.model or settings.llm.model
         api_key = prompted_key or args.api_key or ""
         source = "交互输入 + 配置补全" if prompted_key else "命令行参数 + 配置补全"
+
+        # ── 端点/key 不匹配检测（这段来自真实误报）──────────────────────
+        #
+        # 实测踩到：用户 `--prompt-key` 输入了 DeepSeek 的 key（`sk-` 开头），
+        # 但没传 `--base-url`，于是从 `.env` 补到了 **本地网关**
+        # `http://127.0.0.1:8326/v1`。网关当然不认 DeepSeek 的 key，
+        # 返回 `401 {"code":"invalid_api_key"}` —— 脚本于是报「key 无效」。
+        #
+        # **这个误报比不检查更糟**：用户会去核对自己有没有复制错，
+        # 而不是发现"打错服务器了"。所以这里必须在发请求前就说清楚。
+        #
+        # 判据：厂商官方 key（`sk-` + 足够长）+ 本地端点 = 必然错配。
+        looks_like_vendor_key = api_key.startswith("sk-") and len(api_key) >= 32
+        if loopback and looks_like_vendor_key:
+            print("=" * 78)
+            print("⚠ **端点与 key 不匹配** —— 停在这里，不要继续排查 key")
+            print("=" * 78)
+            print(f"  你给的 key : `sk-` 开头，{len(api_key)} 位（像厂商官方 key）")
+            print(f"  base_url   : {base_url}  ← **本地网关**")
+            print()
+            print("  本地网关只认 DSH 会话 key，不认厂商官方 key —— 必然 401。")
+            print("  你刚才看到的「key 无效」是**误报**，真问题是没有指定端点。")
+            print()
+            print("  想测 DeepSeek 就用预设：")
+            print("    --provider deepseek --prompt-key")
+            print()
+            print("  （脚本不自动猜端点：猜错会给出误导性诊断，比不猜更糟）")
+            print()
+            return 1
     else:
-        from app.core.config import get_settings
-
-        settings = get_settings()
-        base_url = args.base_url or settings.llm.base_url
         api_key = settings.llm.api_key.get_secret_value()
-        model = args.model or settings.llm.model
         source = "配置（.env / 环境变量）"
-
-    loopback = is_loopback_base(base_url)
 
     print("=" * 78)
     print("LLM 端点自检")

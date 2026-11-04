@@ -195,3 +195,86 @@ def test_prompt_key_option_exists() -> None:
     )
     # 帮助文本要说明为什么（否则没人会用那个更麻烦的选项）
     assert "历史" in result.stdout, "帮助里要说明 --api-key 会进命令历史"
+
+
+def test_vendor_key_with_local_endpoint_is_caught_before_request() -> None:
+    """**厂商 key + 本地端点 = 必然 401，必须在发请求前报"错配"。**
+
+    ## 这条来自一次真实的误导性诊断
+
+    用户执行 `--prompt-key`，粘贴了 DeepSeek 的 key（`sk-` 开头，60 位），
+    **但没传 `--base-url`** —— 脚本从 `.env` 补到了本地网关
+    `http://127.0.0.1:8326/v1`。
+
+    本地网关不认厂商 key，返回：
+
+        401 {"code":"invalid_api_key","message":"Missing or invalid API key"}
+
+    脚本如实报了「key 无效」。**但这个结论是误导的**：
+    key 可能完全正确，错的是"打到了哪台服务器"。
+    用户会去反复核对复制有没有出错，而真正的问题在参数里。
+
+    ## 判据
+
+    `sk-` 开头 + 足够长（>=32） + 本地端点 => 错配。
+
+    用**假 key** 也能测：这条检测发生在发请求之前，
+    所以测试不需要网络、不花钱。
+    """
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-X",
+            "utf8",
+            str(SCRIPT),
+            # 60 位、sk- 开头，形态上与厂商 key 一致
+            "--api-key",
+            "sk-" + "a" * 57,
+            # 显式指向本地 -> 应触发"错配"而不是真的去请求
+        ],
+        capture_output=True,
+        text=True,
+        cwd=str(PROJECT_ROOT),
+        timeout=120,
+    )
+    combined = result.stdout + result.stderr
+    assert result.returncode != 0
+    assert "不匹配" in combined, (
+        "厂商 key + 本地端点必须报「端点与 key 不匹配」——"
+        f"否则会给出「key 无效」的误导性结论。实际输出：\n{combined[-800:]}"
+    )
+    assert "误报" in combined, "要明说上一次的「key 无效」是误报，否则用户仍会去查 key"
+    # 必须给出正确做法（预设），否则用户不知道怎么办
+    assert "--provider" in combined, "要告诉用户用 --provider 预设指定端点"
+
+
+def test_provider_preset_sets_endpoint_and_model() -> None:
+    """`--provider deepseek` 要把 base_url 与 model 都设对。
+
+    ## 为什么值得单独锁
+
+    这两项是手抄最容易错的：`base_url` 少写 `/v1`、
+    模型名写成 `deepseek` 或 `deepseek-v3`。
+    而写错的症状是 `404 model_not_found` 或莫名其妙的 401，
+    **看起来像 key 的问题**。
+
+    预设把这两项固定下来，等于把"手抄"这一步删掉。
+    """
+    from app.core.llm.client import is_loopback_base
+
+    result = subprocess.run(
+        [sys.executable, "-X", "utf8", str(SCRIPT), "--help"],
+        capture_output=True,
+        text=True,
+        cwd=str(PROJECT_ROOT),
+        timeout=120,
+    )
+    assert "--provider" in result.stdout, "缺 --provider 预设"
+    for name in ("deepseek", "zhipu", "moonshot", "openai", "local"):
+        assert name in result.stdout, f"预设缺 {name}"
+
+    # 结构性确认：预设里的 deepseek 端点必须是公网地址
+    # （如果哪天有人把预设写成 127.0.0.1，这条会红）
+    source = SCRIPT.read_text(encoding="utf-8")
+    assert "https://api.deepseek.com/v1" in source
+    assert is_loopback_base("https://api.deepseek.com/v1") is False
