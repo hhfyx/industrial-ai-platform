@@ -278,3 +278,53 @@ def test_provider_preset_sets_endpoint_and_model() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
     assert "https://api.deepseek.com/v1" in source
     assert is_loopback_base("https://api.deepseek.com/v1") is False
+
+
+def test_model_not_in_list_does_not_fail_the_run() -> None:
+    """**`/models` 里没有这个名字，不能判失败**（真实案例驱动的一条）。
+
+    ## 真实案例
+
+    DeepSeek 的 `/models` 只返回 `deepseek-flash` / `deepseek-v4-pro`，
+    **没有 `deepseek-chat`**。但用 `deepseek-chat` 真实调用返回 200、
+    622ms 正常出字。
+
+    第一版把"不在列表"当硬失败，于是用户的 key 明明完全可用，
+    却被报成「❌ 1 项未通过：模型名」，还被建议去查模型名 ——
+    而那个模型名是对的。
+
+    ## 正确的因果关系
+
+    `/models` 是**元信息**：可能滞后、只列内部别名、按 key 权限裁剪。
+    **能不能调通才是权威**。所以它只做提示，不做判决。
+
+    ## 这条测什么
+
+    直接测函数的返回值语义：列表拿不到（域名不存在）时必须返回 `True`
+    （= 不阻断）。不联网到真实服务、不花钱。
+    """
+    import asyncio
+
+    mod = _load_checker_module()
+    # 域名不存在 -> 拿不到列表 -> 不能因此判负
+    result = asyncio.run(
+        mod._check_listed_model("https://no-such-host-for-test.invalid/v1", "sk-x", "any")
+    )
+    assert result is True, "拿不到模型列表时必须返回 True（不阻断）—— 否则网络抖动会让整个自检失败"
+
+
+def test_model_check_is_not_in_pass_fail_list() -> None:
+    """模型名检查**不能进 `checks`**（那是决定通过/失败的列表）。
+
+    结构性检查：读源码确认 `checks.append` 里没有"模型名"。
+    这条防的是"有人觉得模型名重要，又把它加回判定条件" ——
+    那会重新制造 `deepseek-chat` 那种误判。
+    """
+    source = SCRIPT.read_text(encoding="utf-8")
+    # 找出所有 checks.append 的行
+    append_lines = [line.strip() for line in source.splitlines() if "checks.append(" in line]
+    assert append_lines, "没有找到 checks.append（结构变了？）"
+    for line in append_lines:
+        assert "模型名" not in line, (
+            f"模型名不该进判定列表：{line}\ndeepseek-chat 不在 /models 里但真实可用，算失败会误判"
+        )

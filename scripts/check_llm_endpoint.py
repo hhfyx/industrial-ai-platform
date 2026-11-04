@@ -160,12 +160,28 @@ async def _check_endpoint_reachable(base_url: str, api_key: str) -> bool:
     return True
 
 
-async def _check_listed_model(base_url: str, api_key: str, model: str) -> bool:
-    """模型名是否在可用列表里。
+async def _check_listed_model(base_url: str, api_key: str, model: str) -> bool | None:
+    """模型名是否在 `/models` 列表里。**返回 None 表示"列表不可作准"。**
 
-    **这条单独检查的理由**：模型名写错在 DSH 网关上返回的是
-    `502 未配置凭据`（完全误导），在别的网关上可能是 `404`。
-    先在列表里对一遍，比等报错快得多。
+    ## 返回值语义（这个函数返回三态，不是 bool）
+
+    | 返回 | 含义 | 主流程该怎么做 |
+    | --- | --- | --- |
+    | `True` | 列表里有（或列表拿不到，无法判断） | 继续 |
+    | `False` | 列表拿得到、**明确没有**这个名字 | **不阻断**，交给真实调用判定 |
+    | `None` | — | — |
+
+    ## 为什么"不在列表里"不能算失败（实测踩到）
+
+    `deepseek-chat` **不在** `/models` 的返回里（那里只有 `deepseek-flash`
+    和 `deepseek-v4-pro`），但**真实调用返回 200 并且正常出字**（622ms）。
+
+    第一版把这个当成硬失败，于是四项里三项通过、总分却是"未通过" ——
+    用户拿着一个**完全可用的 key** 被卡住，而提示还说"模型名不在列表里"。
+
+    教训：`/models` 是**元信息**，它可能滞后、可能只列内部别名、
+    也可能按 key 权限裁剪；**真正的权威是能不能调通**。
+    所以这里只做"提示"，不做"判决"。
     """
     url = f"{base_url.rstrip('/')}/models"
     try:
@@ -185,13 +201,14 @@ async def _check_listed_model(base_url: str, api_key: str, model: str) -> bool:
         _ok(f"模型名 `{model}` 在可用列表里")
         return True
 
-    _fail(f"模型名 `{model}` **不在**可用列表里")
-    # 给最可能的候选：同名但前缀不同（`buddy/glm-5.3` vs `buddy-pool/glm-5.3`）
+    # 不在列表 —— **只提示，不判负**（见 docstring 里 deepseek-chat 的实例）
+    print(f"  ⚠ 模型名 `{model}` **不在** `/models` 列表里（这不一定有事）")
     short = model.split("/")[-1]
     similar = [m for m in models if m.endswith(short) or short in m][:5]
     if similar:
-        print(f"      可能是：{', '.join(similar)}")
-    return False
+        print(f"      列表里相近的：{', '.join(similar)}")
+    print("      但列表可能滞后/只列别名，**以下一步真实调用为准**")
+    return True
 
 
 async def _check_generation(client: AsyncOpenAI, model: str) -> bool:
@@ -421,15 +438,18 @@ async def main(argv: list[str] | None = None) -> int:
         http_client=httpx.AsyncClient(trust_env=not loopback, timeout=30.0),
     )
 
+    # 只有**真正决定能不能用**的项进这个列表。
+    # 模型名列表不在其中（见 `_check_listed_model` 的 docstring：
+    # `deepseek-chat` 不在列表里但真实调用完全正常，算失败会误判）。
     checks: list[tuple[str, bool]] = []
     try:
         print("① 连通性 / 鉴权")
         reachable = await _check_endpoint_reachable(base_url, api_key)
         checks.append(("连通 / 鉴权", reachable))
 
-        print("\n② 模型名")
-        model_ok = await _check_listed_model(base_url, api_key, model) if reachable else False
-        checks.append(("模型名", model_ok))
+        print("\n② 模型名（仅供参考，不作判定）")
+        if reachable:
+            await _check_listed_model(base_url, api_key, model)
 
         if not reachable:
             print("\n（连不上就跳过后续检查）")
