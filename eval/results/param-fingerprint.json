@@ -1,0 +1,13 @@
+{
+  "digest": "a91c89ca60d86391898ab442f414c43192e4b0d3c426eaea7b13d9ee1ddebb4d",
+  "values": {
+    "app.rag.bm25.fusion.DEFAULT_RRF_K": 60,
+    "app.rag.bm25.fusion.DEFAULT_CANDIDATES": 20,
+    "app.rag.bm25.index.DEFAULT_B": 0.75,
+    "app.rag.bm25.rerank.DEFAULT_MAX_LENGTH": 512,
+    "app.rag.bm25.rerank.DEFAULT_BATCH_SIZE": 16,
+    "app.rag.generation.compress.DEFAULT_MIN_RATIO": 0.3,
+    "app.rag.settings.DEFAULT_TOP_K": 5,
+    "app.rag.settings.DEFAULT_SCORE_THRESHOLD": 0.575
+  }
+}

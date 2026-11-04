@@ -73,11 +73,90 @@ from pathlib import Path
 
 #: 模型默认走本地路径。**不写 HF repo id**：本机 huggingface.co 不可达
 #: （实测 `getaddrinfo failed`），用 repo id 会触发网络校验并卡在超时上。
-DEFAULT_MODEL_DIR: Path = Path("d:/cache/modelscope/bge-reranker-v2-m3")
+#:
+#: ## 路径解析顺序（W7 修正：原来硬编码 `d:/cache/...`）
+#:
+#: 1. 环境变量 `RERANKER_MODEL_DIR` —— 显式指定，最高优先级
+#: 2. `HF_HOME` / `HF_HUB_CACHE` 下的 `modelscope/bge-reranker-v2-m3`
+#:    （尊重该环境变量，就不再假设盘符）
+#: 3. **本仓约定的位置**：项目根的上两级里的 `cache/...`
+#:    （本仓布局是 `<盘>/git/网页/industrial-ai-platform` -> `<盘>/cache`）
+#: 4. 兜底：`Path.home() / "cache" / ...`
+#:
+#: ## 为什么原来是硬编码，为什么必须改
+#:
+#: 原写法 `Path("d:/cache/modelscope/bge-reranker-v2-m3")` 在本机是对的
+#: （`HF_HOME=d:\cache`，模型 2.27 GB 不该落 C 盘）。但它是**绝对路径常量**，
+#: 换一台机器、换一个盘符、或在 Linux/CI 上跑，它就指向一个不存在的位置。
+#:
+#: 症状是"精排加载失败" —— 而排查的人会先怀疑模型没下载、怀疑显存，
+#: 很难想到是代码里写死了 D 盘。**这类错误只在别人的机器上发作。**
+#:
+#: 改成"候选列表 + 取第一个存在的"之后，本机行为不变（第 3 条命中），
+#: 但换环境时不再直接失败。
+DEFAULT_MODEL_SUBPATH: Path = Path("modelscope") / "bge-reranker-v2-m3"
+
+
+def _model_dir_candidates() -> list[Path]:
+    """按优先级列出可能的模型目录。**第一个真实存在的才被用。**
+
+    暴露成函数（而不是内联）是为了可测：测试里可以 monkeypatch 环境变量，
+    断言候选顺序正确 —— 这类"路径拼接"逻辑光看代码很容易觉得对。
+    """
+    import os
+
+    candidates: list[Path] = []
+
+    # ① 显式环境变量
+    explicit = os.environ.get("RERANKER_MODEL_DIR")
+    if explicit:
+        candidates.append(Path(explicit))
+
+    # ② HF_HOME / HF_HUB_CACHE（不假设盘符，跟着用户配置走）
+    for var in ("HF_HUB_CACHE", "HF_HOME", "MODELSCOPE_CACHE"):
+        value = os.environ.get(var)
+        if value:
+            base = Path(value)
+            # HF_HOME 指的是 "cache 根"，模型在 hub 子目录；这里两种都试，
+            # 因为用户可能把它设成任意一级
+            candidates.append(base / DEFAULT_MODEL_SUBPATH)
+            candidates.append(base / "hub" / DEFAULT_MODEL_SUBPATH)
+
+    # ③ 本仓约定的位置：项目根的上两级 + cache
+    #
+    # 用 `__file__` 推出项目根，**不写盘符**（FOLDERS.md 第七节也禁止硬编码盘符）。
+    project_root = Path(__file__).resolve().parents[3]  # app/rag/bm25 -> 项目根
+    candidates.append(project_root.parent.parent / "cache" / DEFAULT_MODEL_SUBPATH)
+
+    # ④ 兜底：用户主目录
+    candidates.append(Path.home() / "cache" / DEFAULT_MODEL_SUBPATH)
+
+    return candidates
+
+
+def resolve_model_dir() -> Path:
+    """返回**实际可用的**模型目录。
+
+    ## 一个都不存在时怎么办
+
+    返回**第一个候选**（而不是抛异常）。理由：调用方的错误信息里
+    需要包含"我们尝试过哪里"，而返回一个不存在的路径能让那句报错
+    变得有信息量（`rerank.py` 的加载失败分支会打印候选列表）。
+
+    在这里抛异常会让"只是没用精排"的场景也崩掉，而精排是可选的。
+    """
+    candidates = _model_dir_candidates()
+    for path in candidates:
+        if path.exists():
+            return path
+    return candidates[0] if candidates else Path("bge-reranker-v2-m3")
+
+
+DEFAULT_MODEL_DIR: Path = resolve_model_dir()
 r"""本地模型目录（由 `scripts/fetch_reranker.py` 从 ModelScope 拉下来）。
 
-**为什么钉死 D 盘路径**：本仓的 `HF_HOME` 是 `d:\cache`，模型 2.27 GB
-不该落 C 盘。这个路径可被 `RERANKER_MODEL_DIR` 环境变量覆盖。
+解析规则见 `_model_dir_candidates()`：环境变量 > HF_HOME > 本仓约定 > 用户目录。
+**W7 之前这里是硬编码 `d:/cache/...`，换机器就失效。**
 """
 
 DEFAULT_MAX_LENGTH: int = 512

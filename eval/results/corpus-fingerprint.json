@@ -1,0 +1,32 @@
+{
+  "digest": "5c368d2ee2e0ed010dcbbf0161d7d2575bf87e68f49d3fe55a67022b70c59638",
+  "documents": 26,
+  "files": {
+    "README.md": "c3862af88d9e19478d181e186fa16a740d32f161d00e5b2b2e6e355e3e4e613a",
+    "docs/SETUP.md": "691461f846718b00c911ac004eb5d78398e66dd4457ac8cfaa50e25feb2aed76",
+    "docs/ab-scaffold.md": "cc32fb0ed9a59d8203e76c5be8b4cb0b53ba350d5a0287cc8a68272268cbe4a6",
+    "docs/api-spec.md": "131a4ced8ee34f89a2ccb5c1c411ad4378645c08d6bf7ed93c1872179a86bf22",
+    "docs/chroma-store.md": "8e8cb43f9d4f21f05f5ec40f159cc43e8bea98d32b939964b9141b3494d2b30e",
+    "docs/chunking-boundaries.md": "dc4f3faa3b34e927dd634eb159d281738a45c1b43d7dec66a2b2000c7d0aa238",
+    "docs/chunking-predictions.md": "f169d7ab4ba9126609f3a234cde1d606dce3521f6f09e14908e971e2eb6c1486",
+    "docs/chunking-quality.md": "bb7b1f1c429502798e665a2ce8001c7161ebfc122d7a3aeb0aaa20dcac067799",
+    "docs/container-networking.md": "512200ad479c59685d12d4f1b31267a61d0b3048e5c262ed0b93f6c8f6de51c2",
+    "docs/cost.md": "6dd54a3aa05f9266cd58df8df14677dfe0534136f08ca4b5a693b32e3ffe2c62",
+    "docs/deploy-notes.md": "1fc708737636f53dbe9abb654190c3028c9c2b23dee4019ab511762753671a32",
+    "docs/design-decisions.md": "d5a00b25f9ee73edd733e93daf533249b3db0e71762456c8c7a907872f130dbc",
+    "docs/document-parsing.md": "fbb6d1496f013812fac4c091a14fac7507744f97d3b4def2ac7fa074396c8f55",
+    "docs/embedding.md": "06c0d3fa162ba8971437ac0e8657e4ae9ffee3f4f2411114e75f4d0e531f8915",
+    "docs/prompt-ab.md": "382042753d5937e6561caccd180a3ac734e1c96b2e76ad4e08ba4854a518fd42",
+    "docs/prompt-patterns.md": "40b4eedf30a901257cd0385075f8a1d8eb94f59a53e0943e66c86e000b28a462",
+    "docs/prompt-templates.md": "d58cbe4803de61c91c5ac552fb19db844598d78b6d8f50553f7ef79549f136cd",
+    "docs/rag-architecture.md": "a2f0cffb074c1186be69cd3f67ddad141cc33b02fbc4f9f24badb18edb418121",
+    "docs/rag-query-chain.md": "befcae12e169beb6cd9cfa33207b6b5fd7f4a306c3ce4899012dfc5c9f3f4767",
+    "docs/release-notes-v0.3.0.md": "acce50345592f6517b7ea6b647b78ee91da3e1203a5b39a65c783c19042adead",
+    "docs/release-notes-v0.3.1.md": "ad8e8efc02c10724a90be0dd3fa184e222655657445365cf6f483b7bcb62366e",
+    "docs/sse.md": "fe8c7d49cc343bec5c3cc79c7f228879d1e1fa0d3ec90a815ad49db6629befcb",
+    "docs/streamlit-ui.md": "9d20c5d6b17f5fda2fd0fca85912ead84e1f30be04912bd4e1ad2f60aa246253",
+    "docs/structured-output.md": "b6b43f301e5107f557eb8e0afa7aa947f56bc759a39b5a134fb282bddb9028b5",
+    "docs/system-prompt.md": "ada13f44388ae4dd5f1d963187c11cf5289343a0a84f5fb08bac5fabe9184ddc",
+    "docs/why-i-use-langchain.md": "f98af476a927767bf06ae0a48ad94655440fb1ff2a1e067d50fa1c60848ae123"
+  }
+}

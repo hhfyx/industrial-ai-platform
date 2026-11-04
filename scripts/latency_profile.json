@@ -1,8 +1,8 @@
 {
   "meta": {
-    "generated_at": "2026-11-02 17:34:06",
-    "queries": 20,
-    "chunks": 1364,
+    "generated_at": "2026-11-04 22:13:48",
+    "queries": 40,
+    "chunks": 1163,
     "top_k": 5,
     "device": "cpu"
   },
@@ -10,68 +10,68 @@
     {
       "name": "A_候选20_精排",
       "note": "当前链路",
-      "queries": 20,
-      "recall_at_5": 0.6,
-      "hits": 12,
-      "p50_chain_ms": 16781,
-      "p95_chain_ms": 22546,
+      "queries": 40,
+      "recall_at_5": 0.575,
+      "hits": 23,
+      "p50_chain_ms": 12111,
+      "p95_chain_ms": 16220,
       "mean_stage_ms": {
-        "embed_ms": 173.8,
-        "search_ms": 122.0,
-        "bm25_ms": 6.5,
-        "rerank_ms": 16679.5,
+        "embed_ms": 10.6,
+        "search_ms": 88.0,
+        "bm25_ms": 3.1,
+        "rerank_ms": 12286.5,
         "compress_ms": 0
       },
       "shares": {
-        "embed_ms": 0.0102,
-        "search_ms": 0.0072,
-        "bm25_ms": 0.0004,
-        "rerank_ms": 0.9822,
+        "embed_ms": 0.0009,
+        "search_ms": 0.0071,
+        "bm25_ms": 0.0003,
+        "rerank_ms": 0.9918,
         "compress_ms": 0.0
       }
     },
     {
       "name": "B_候选10_精排",
       "note": "缩小候选 N",
-      "queries": 20,
-      "recall_at_5": 0.55,
-      "hits": 11,
-      "p50_chain_ms": 9865,
-      "p95_chain_ms": 13394,
+      "queries": 40,
+      "recall_at_5": 0.5,
+      "hits": 20,
+      "p50_chain_ms": 7382,
+      "p95_chain_ms": 13541,
       "mean_stage_ms": {
-        "embed_ms": 13.9,
-        "search_ms": 121.2,
-        "bm25_ms": 2.4,
-        "rerank_ms": 10030.2,
+        "embed_ms": 9.0,
+        "search_ms": 87.6,
+        "bm25_ms": 1.4,
+        "rerank_ms": 7583.7,
         "compress_ms": 0
       },
       "shares": {
-        "embed_ms": 0.0014,
-        "search_ms": 0.0119,
+        "embed_ms": 0.0012,
+        "search_ms": 0.0114,
         "bm25_ms": 0.0002,
-        "rerank_ms": 0.9865,
+        "rerank_ms": 0.9872,
         "compress_ms": 0.0
       }
     },
     {
       "name": "C_候选20_无精排",
       "note": "跳过精排",
-      "queries": 20,
+      "queries": 40,
       "recall_at_5": 0.35,
-      "hits": 7,
-      "p50_chain_ms": 137,
-      "p95_chain_ms": 139,
+      "hits": 14,
+      "p50_chain_ms": 99,
+      "p95_chain_ms": 105,
       "mean_stage_ms": {
-        "embed_ms": 13.8,
-        "search_ms": 120.9,
-        "bm25_ms": 2.4,
+        "embed_ms": 8.6,
+        "search_ms": 90.0,
+        "bm25_ms": 1.6,
         "rerank_ms": 0,
         "compress_ms": 0
       },
       "shares": {
-        "embed_ms": 0.101,
-        "search_ms": 0.8818,
-        "bm25_ms": 0.0171,
+        "embed_ms": 0.0858,
+        "search_ms": 0.8987,
+        "bm25_ms": 0.0155,
         "rerank_ms": 0.0,
         "compress_ms": 0.0
       }

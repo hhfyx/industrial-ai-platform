@@ -70,6 +70,7 @@ def main(argv: list[str] | None = None) -> int:
             "documents": stats.documents,
             "segments": stats.segments,
             "chunks": stats.chunks,
+            "raw_chunks": stats.raw_chunks,
             "chunk_chars": stats.chunk_chars,
             "overlap_chars": stats.overlap_chars,
             "by_chunk_chars": stats.by_chunk_chars,

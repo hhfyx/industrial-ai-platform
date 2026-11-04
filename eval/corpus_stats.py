@@ -82,15 +82,35 @@ class CorpusStats:
     #: 分块参数，方便文档标注
     chunk_chars: int
     overlap_chars: int
-    #: 三档块数对照 `{chunk_chars: chunks}`
+    #: 三档块数对照 `{chunk_chars: chunks}`（检索口径）
     by_chunk_chars: dict[int, int]
+    #: **`load_raw_corpus()` 口径**的块数（loader 原样输出、不合并）
+    #:
+    #: ## 为什么会有两个块数（这不是 bug）
+    #:
+    #: 两条路径的输入不同，且**都正确**：
+    #:
+    #: | 口径 | 输入 | 谁在用 |
+    #: | --- | --- | --- |
+    #: | `chunks`（`all_docs`，含合并） | 合并后的文档 | **检索评测**（`run_retrieval_eval.py`） |
+    #: | `raw_chunks`（`load_raw_corpus`） | loader 原样输出 | **延迟打点**（`latency_profile.py`） |
+    #:
+    #: `scripts/retrieval_harness.py` 的注释早就警告过：
+    #: "任何要报告'线上会怎样'的评测都用 `load_raw_corpus`"。
+    #:
+    #: 2026-11-04 实测：同一份 26 篇语料，`all_docs` 切出 **814 块**，
+    #: `raw` 切出 **1163 块**。相差 349 块 —— 合并把跨页/跨段碎片先拼起来了。
+    #:
+    #: **两个数都必须记录。** 只记一个，另一个就会在文档里变成"数据打架"
+    #: —— 这正是本轮核实出的老问题（README 里 1365/1364/1160 三种说法）。
+    raw_chunks: int
 
     def as_badge(self) -> str:
         """一行给人看的摘要，可直接粘进文档。"""
         return (
             f"{self.documents} 篇 / {self.segments} 段 / "
-            f"**{self.chunks} 块**（chunk_chars={self.chunk_chars}, "
-            f"overlap={self.overlap_chars}）"
+            f"**{self.chunks} 块**（检索口径）/ **{self.raw_chunks} 块**（延迟口径）"
+            f"（chunk_chars={self.chunk_chars}, overlap={self.overlap_chars}）"
         )
 
 
@@ -110,6 +130,7 @@ def measure(rebuild: bool = True) -> CorpusStats:
                 chunk_chars=payload["chunk_chars"],
                 overlap_chars=payload["overlap_chars"],
                 by_chunk_chars={int(k): v for k, v in payload["by_chunk_chars"].items()},
+                raw_chunks=payload.get("raw_chunks", 0),
             )
         except (KeyError, ValueError, TypeError):
             pass  # 缓存坏了就重算，不要因此失败
@@ -120,9 +141,14 @@ def measure(rebuild: bool = True) -> CorpusStats:
     if str(PROJECT_ROOT) not in sys.path:
         sys.path.insert(0, str(PROJECT_ROOT))
 
-    from scripts.retrieval_harness import chunk_corpus, full_corpus_sources, load_corpus
+    from scripts.retrieval_harness import (
+        chunk_corpus,
+        full_corpus_sources,
+        load_corpus,
+        load_raw_corpus,
+    )
 
-    from app.rag.chunking import ChunkingConfig
+    from app.rag.chunking import ChunkingConfig, build_strategy
 
     sources = full_corpus_sources()
     corpus = load_corpus(sources)
@@ -141,6 +167,13 @@ def measure(rebuild: bool = True) -> CorpusStats:
         return len(chunk_corpus(corpus, cfg))
 
     by_cfg = {cc: count_at(cc, ov) for cc, ov in REFERENCE_CONFIGS}
+
+    # 第二个口径：`latency_profile.py` 用的是 `load_raw_corpus()`（不合并）。
+    # 两个数都要报，理由见 `CorpusStats.raw_chunks` 的 docstring。
+    raw_docs = load_raw_corpus(sources)
+    raw_cfg = ChunkingConfig(chunk_chars=EVAL_CHUNK_CHARS, overlap_chars=EVAL_OVERLAP_CHARS)
+    raw_chunks = len(build_strategy("recursive", cfg=raw_cfg).chunk(raw_docs, raw_cfg))
+
     stats = CorpusStats(
         documents=len(sources),
         segments=segments,
@@ -148,6 +181,7 @@ def measure(rebuild: bool = True) -> CorpusStats:
         chunk_chars=EVAL_CHUNK_CHARS,
         overlap_chars=EVAL_OVERLAP_CHARS,
         by_chunk_chars=by_cfg,
+        raw_chunks=raw_chunks,
     )
 
     # 落盘：让 CI 与文档可以引用同一份数字

@@ -1,12 +1,13 @@
 {
   "documents": 26,
-  "segments": 463,
-  "chunks": 814,
+  "segments": 464,
+  "chunks": 816,
   "chunk_chars": 500,
   "overlap_chars": 50,
   "by_chunk_chars": {
-    "300": 1068,
-    "500": 814,
-    "1000": 637
-  }
+    "300": 1072,
+    "500": 816,
+    "1000": 639
+  },
+  "raw_chunks": 1163
 }
