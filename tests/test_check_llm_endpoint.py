@@ -122,3 +122,76 @@ def test_trust_env_matches_application_for_loopback() -> None:
     assert "trust_env=notis_loopback_base" in compact, (
         "脚本的 trust_env 应当由 is_loopback_base 推出（与应用同一判据）"
     )
+
+
+def _load_checker_module():
+    """把脚本当模块导入，好直接测它的纯函数。"""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("check_llm_endpoint", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_key_shape_warning_flags_uuid_form(capsys) -> None:
+    """UUID 形态的"key"要当场点明，而不是等一个裸 401。
+
+    ## 这条来自真实踩坑
+
+    实测有人把 `api-37102921-f6c2-4968-a141-c2d1993ed94e`（UUID + 前缀）
+    当成 DeepSeek API key 粘进来。服务端当然返回 `401 Authentication Fails`，
+    但**只报 401 会让人去怀疑"过期了""没充值""额度用完"**，
+    而不是"我粘错东西了"。
+
+    形态检查零成本，能立刻把这类问题分离出来。
+
+    ⚠ 边界：**只提醒、不阻断** —— 有的厂商 key 确实不带 `sk-` 前缀，
+    硬阻断会误伤正常配置。
+    """
+    mod = _load_checker_module()
+
+    def captured(key: str) -> str:
+        capsys.readouterr()  # 清掉上一次的输出
+        mod._key_shape_warning(key)
+        return capsys.readouterr().out
+
+    # UUID 形态（含 40 位那种 —— 之前 range(30, 40) 漏掉过 40 位，差一位）
+    assert "UUID" in captured("api-37102921-f6c2-4968-a141-c2d1993ed94e")
+    assert "UUID" in captured("37102921-f6c2-4968-a141-c2d1993ed94e")
+
+    # 正常形态：不啰嗦
+    assert captured("sk-abcdef1234567890abcdef") == ""
+    # 太短：提醒复制不全
+    assert "偏短" in captured("sk-abc")
+    # 空值：不崩
+    assert captured("") == ""
+
+
+def test_prompt_key_option_exists() -> None:
+    """必须提供 `--prompt-key`，避免 key 明文进 PowerShell 历史文件。
+
+    ## 为什么这是安全问题而不是体验问题
+
+    PowerShell 把每条命令明文追加到
+    `%APPDATA%\\Microsoft\\Windows\\PowerShell\\PSReadLine\\ConsoleHost_history.txt`。
+    用 `--api-key sk-xxx` 传 key，就等于把 key **永久写进一个纯文本文件** ——
+    而且**删掉那条命令也不会删历史**。
+
+    `getpass` 交互输入不回显、不进历史，是更安全的方式。
+    （保留 `--api-key` 是为了 CI 等非交互场景。）
+    """
+    result = subprocess.run(
+        [sys.executable, "-X", "utf8", str(SCRIPT), "--help"],
+        capture_output=True,
+        text=True,
+        cwd=str(PROJECT_ROOT),
+        timeout=120,
+    )
+    assert result.returncode == 0, result.stderr[-500:]
+    assert "--prompt-key" in result.stdout, (
+        "缺 --prompt-key：用户只能用命令行传 key，会明文进 PowerShell 历史"
+    )
+    # 帮助文本要说明为什么（否则没人会用那个更麻烦的选项）
+    assert "历史" in result.stdout, "帮助里要说明 --api-key 会进命令历史"

@@ -82,6 +82,36 @@ def _ok(message: str) -> None:
     print(f"  ✓ {message}")
 
 
+def _key_shape_warning(api_key: str) -> None:
+    """key 形态预检 —— 只提醒，不阻断（有的厂商 key 确实不带前缀）。
+
+    实测踩到过：把 **UUID 形态的其它 ID**（`api-37102921-f6c2-...`）
+    当成 API key 粘进来。那种情况下请求必然 401，但如果只报 401，
+    人会先去怀疑"key 是不是过期了""是不是没充值"，而不是"粘错东西了"。
+
+    所以这里把**可零成本判断的形态信息**先说出来。
+    """
+    if not api_key:
+        return
+    # **先查长度，再查前缀。** 顺序反过会让 `sk-abc`（粘漏了的 key）被
+    # `startswith("sk-")` 直接放行 —— 而"带对了前缀但明显太短"恰恰是
+    # copy 到一半就松手这种最常见的失误。测试抓过这个顺序 bug。
+    if len(api_key) < 16:
+        print(f"  ⚠ key 只有 {len(api_key)} 个字符，偏短 —— 可能复制不全")
+        print()
+        return
+    if api_key.startswith("sk-"):
+        return  # 最常见形态，无需提醒
+    # UUID 形态是 36 位（8-4-4-4-12），带 `api-` 之类前缀时到 40 位左右。
+    # **上界取 45 而不是 40** —— 之前写 range(30, 40) 会把 40 位的漏掉（差一位）。
+    looks_like_uuid = api_key.count("-") >= 4 and len(api_key) <= 45
+    if looks_like_uuid:
+        print("  ⚠ 这个 key 是 **UUID 形态**，不像常见 API key（通常以 `sk-` 开头）")
+        print("     DeepSeek 的 key 在 platform.deepseek.com → API keys 里创建")
+        print("     （如果是别的厂商，忽略这条提醒）")
+        print()
+
+
 async def _check_endpoint_reachable(base_url: str, api_key: str) -> bool:
     """① 连通性 + ② 鉴权 + ③ 模型名，一次 `/models` 全测了。
 
@@ -253,20 +283,53 @@ async def _check_rag_style(client: AsyncOpenAI, model: str) -> bool:
 async def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="验证 LLM 端点能不能用")
     parser.add_argument("--base-url", help="覆盖 .env 里的 LLM_BASE_URL")
-    parser.add_argument("--api-key", help="覆盖 .env 里的 LLM_API_KEY")
+    parser.add_argument(
+        "--api-key",
+        help=(
+            "覆盖 .env 里的 LLM_API_KEY。**建议不要用这个参数** —— "
+            "命令行参数会明文进 PowerShell 历史文件，改用 --prompt-key 交互输入"
+        ),
+    )
+    parser.add_argument(
+        "--prompt-key",
+        action="store_true",
+        help="交互式输入 key（输入时不回显、不进命令历史，推荐）",
+    )
     parser.add_argument("--model", help="覆盖 .env 里的 LLM_MODEL")
     args = parser.parse_args(argv)
 
-    # 读配置。**key 一律不打印**（只打印长度与前 4 位）。
-    if args.base_url and args.api_key and args.model:
-        base_url, api_key, model = args.base_url, args.api_key, args.model
-        source = "命令行参数"
+    # ── key 的来源优先级：交互输入 > 命令行 > 配置 ────────────────────────
+    #
+    # **为什么要有 `--prompt-key`**（而不是只留 `--api-key`）：
+    # 把 key 写在命令行里，PowerShell 会把它明文追加到
+    # `%APPDATA%\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt`。
+    # 那是纯文本，任何能读该文件的人或程序都能拿到 —— 而且**删命令不会删历史**。
+    # 用 `getpass` 交互输入则连回显都没有，更不会进历史。
+    prompted_key: str | None = None
+    if args.prompt_key:
+        import getpass
+
+        prompted_key = getpass.getpass("请粘贴 API key（输入时不显示，回车确认）：").strip()
+        if not prompted_key:
+            print("✗ 没有输入 key，已退出")
+            return 1
+
+    # 读配置。**key 一律不打印**（只打印长度与后 4 位）。
+    if prompted_key or args.api_key:
+        # 只要给了 key，就必须同时知道打到哪个端点 —— 缺的项从配置补。
+        from app.core.config import get_settings
+
+        settings = get_settings()
+        base_url = args.base_url or settings.llm.base_url
+        model = args.model or settings.llm.model
+        api_key = prompted_key or args.api_key or ""
+        source = "交互输入 + 配置补全" if prompted_key else "命令行参数 + 配置补全"
     else:
         from app.core.config import get_settings
 
         settings = get_settings()
         base_url = args.base_url or settings.llm.base_url
-        api_key = args.api_key or settings.llm.api_key.get_secret_value()
+        api_key = settings.llm.api_key.get_secret_value()
         model = args.model or settings.llm.model
         source = "配置（.env / 环境变量）"
 
@@ -285,6 +348,13 @@ async def main(argv: list[str] | None = None) -> int:
         f"  key        : {'*' * 8}{api_key[-4:] if len(api_key) > 4 else ''}（长度 {len(api_key)}）"
     )
     print()
+
+    # ── 形态预检：key 长得不像 API key 时当场点明，别等 401 ─────────────
+    #
+    # **为什么值得单独检查**：实测有人把别的 ID（UUID 形态）当成 key 粘进来，
+    # 然后一路排查网络、排查 base_url，最后才发现"粘错东西了"。
+    # 形态检查是零成本的，能立刻把这类问题分离出来。
+    _key_shape_warning(api_key)
 
     if loopback:
         print("  ⚠ 这是本地地址：本机验证没问题，但 **Streamlit Cloud 上必须换成公网端点**")
