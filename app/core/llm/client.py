@@ -34,13 +34,11 @@ pydantic 的 `BaseModel` 默认不可哈希，拿 `settings.llm` 当 lru_cache �
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Annotated
 from urllib.parse import urlparse
 
-from fastapi import Depends
 from openai import AsyncOpenAI
 
-from app.core.config import Settings, get_settings
+from app.core.config import Settings
 
 #: 本地回环的常用主机名（小写比较）。
 #:
@@ -152,20 +150,44 @@ def _build_client(
     return client
 
 
-def get_llm_client(settings: Annotated[Settings, Depends(get_settings)]) -> AsyncOpenAI:
-    """FastAPI 依赖：拿到本进程共用的 AsyncOpenAI 实例。
+def get_llm_client(settings: Settings) -> AsyncOpenAI:
+    """拿到本进程共用的 AsyncOpenAI 实例。
 
-    路由里的用法：
+    ## 参数为什么不带 `Depends`（这是一个真实的线上崩溃）
 
-        LlmClientDep = Annotated[AsyncOpenAI, Depends(get_llm_client)]
+    这里**显式接收 `Settings`**，而不是写成
+    `settings: Annotated[Settings, Depends(get_settings)]`。
+    原因是这个模块要被 **两套运行时**共用：
 
-        @router.post("/x")
-        async def handler(client: LlmClientDep) -> ...:
-            ...
+    | 运行时 | 怎么调用 |
+    | --- | --- |
+    | FastAPI（`app/api`） | 经 `app.core.llm.deps.LLMClientDep` 注入 |
+    | Streamlit（`app/ui`） | `get_llm_client(get_settings())` 直接传 |
+    | 脚本 / 测试 | 同上，手动传 |
 
-    参数写成 `Depends(get_settings)` 而不是函数体里直接调 `get_settings()`：
-    这样测试里可以用 `app.dependency_overrides[get_settings]` 注入测试配置，
-    整条依赖链（settings → client）一起被替换，不用碰环境变量也不用清缓存。
+    写成 `Depends(...)` 会让 **Streamlit 也必须安装 fastapi** ——
+    而 `app/ui/requirements.txt` 刻意不含 fastapi（UI 用不到 Web 框架）。
+
+    实测踩到这个坑，线上直接起不来：
+
+        File "/mount/src/industrial-ai-platform/app/core/llm/client.py", line 39
+            from fastapi import Depends
+        ModuleNotFoundError: No module named 'fastapi'
+
+    **module-level 的 import 会让整条 import 链失败** ——
+    即使没人用到 `Depends`，只要 import 了这个模块就崩。
+
+    ## FastAPI 侧怎么继续用 `Depends`
+
+    见 `app/core/llm/deps.py`：那边是**独立模块**，只有 FastAPI 场景才导入，
+    所以 fastapi 不在——也不影响 Streamlit。
+
+    > 为什么不做成"模块级 `__getattr__` 惰性暴露"（试过，行不通）：
+    > `Annotated[x, Depends(f)]` 的元组里要**真实对象**，必须在导入时求值；
+    > 而 `dependency_overrides` 又依赖那个函数对象的**身份**。
+    > 每次新建对象 -> 覆盖失效；`globals()` 缓存 -> 覆盖的仍是
+    > `get_llm_client` 而非真正被 `Depends` 包住的内层函数，还是失效。
+    > 详见 `deps.py` 的模块 docstring。
     """
     config = settings.llm
     return _build_client(
@@ -195,11 +217,8 @@ async def aclose_llm_client() -> None:
     _build_client.cache_clear()
 
 
-LLMClientDep = Annotated[AsyncOpenAI, Depends(get_llm_client)]
-
-
 __all__ = [
-    "LLMClientDep",
     "aclose_llm_client",
     "get_llm_client",
+    "is_loopback_base",
 ]

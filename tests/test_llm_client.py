@@ -22,7 +22,11 @@ from fastapi.testclient import TestClient
 from openai import AsyncOpenAI
 
 from app.core.config import LLMSettings, Settings, get_settings
-from app.core.llm.client import LLMClientDep, _build_client, get_llm_client
+from app.core.llm.client import _build_client, get_llm_client
+
+# `LLMClientDep` 在 `deps.py`（那里才允许 import fastapi）。
+# 本测试文件本身就在测 FastAPI 集成，所以从 deps 导入是对的。
+from app.core.llm.deps import LLMClientDep
 
 
 @pytest.fixture
@@ -109,19 +113,42 @@ def test_depends_resolves_and_is_singleton(llm_settings: Settings) -> None:
     assert seen[0] is seen[1]
 
 
-def test_dependency_overrides_can_replace_client(llm_settings: Settings) -> None:
-    """整条依赖可替换：这是"不能被模块级实例化锁死"的直接收益。"""
+def test_dependency_overrides_can_replace_settings(llm_settings: Settings) -> None:
+    """整条依赖可替换：覆盖 `get_settings` 就能换掉 client 的配置来源。
+
+    ## W7 重构后的覆盖目标变了（这是有意的）
+
+    重构前 `get_llm_client` 自己就是 `Depends` 的目标，所以
+    `dependency_overrides[get_llm_client] = lambda: fake` 能生效。
+
+    重构后（把 fastapi 隔离到 `deps.py`，让 `client.py` 零 fastapi），
+    依赖链变成：
+
+        route -> deps._dep_get_llm_client -> get_llm_client -> _build_client
+
+    被 `Depends` 包住的是 `_dep_get_llm_client`，所以覆盖
+    `get_llm_client` **不再生效**（对象不同，FastAPI 认不出来）。
+
+    **这不损失能力** —— "整条可替换"的真正价值是"测试能注入假配置、
+    不碰环境变量"，覆盖 `get_settings` 同样做到，而且覆盖点更上游：
+    连 `_build_client` 的缓存键都跟着变。
+
+    > 为什么不保留原来的覆盖点：试过把 `Depends` 目标做成本模块的
+    > 惰性属性并缓存到 `globals()`，但 `client.py` 一旦持有 `Depends`
+    > 就必须 import fastapi —— 那正是线上崩溃的原因。二者不可兼得，
+    > 取舍是"Streamlit 能启动"优先。
+    """
     app = FastAPI()
-    fake = AsyncOpenAI(api_key="sk-fake", base_url="https://fake.example/v1")
 
     @app.get("/probe")
     def probe(client: LLMClientDep) -> dict[str, bool]:
-        return {"is_fake": client is fake}
+        # 配置来自被覆盖的 get_settings -> base_url 是 llm_settings 里的
+        return {"from_test_settings": "llm.example.test" in str(client.base_url)}
 
-    app.dependency_overrides[get_llm_client] = lambda: fake
+    app.dependency_overrides[get_settings] = lambda: llm_settings
 
     with TestClient(app) as http:
-        assert http.get("/probe").json() == {"is_fake": True}
+        assert http.get("/probe").json() == {"from_test_settings": True}
 
 
 def test_import_does_not_build_client(monkeypatch: pytest.MonkeyPatch) -> None:
