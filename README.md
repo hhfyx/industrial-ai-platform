@@ -51,14 +51,18 @@
 | 运行时 | Python 3.11 + uvicorn + Streamlit，非 root（uid 10001） |
 | 当前版本 | **v0.5.0**（W6：混合检索与精排，四配置消融） |
 
-> **当前状态（v0.5.1）**：检索层四层全部实现并实测，**四配置消融的结论是三层全部不进链路**
+> **当前状态（v0.6.0）**：检索层四层全部实现并实测，**四配置消融的结论是三层全部不进链路**
 > （见 [ablation-four.md](docs/ablation-four.md)）。
-> **✅ P0 已解决（W6 周日）**：真模型问答路径已跑通，端到端答案正确率 **75%（n=20）**，
-> 幻觉引用 0 个（见 [answer-quality.md](docs/answer-quality.md)）。
-> 根因不是"凭据过期"，是**本地回环请求走了系统代理** + **模型名写错**，两个坑都返回同一个误导性的 502。
-> **唯一剩下的 P0 是"线上链接未创建"。** 它需要**两样我做不了的东西**：
-> ① GitHub 账号授权（网页操作）② 一个**公网可达的 LLM 端点**（本地那个 `127.0.0.1:8326` 部署后指向 Cloud 容器自己）。
-> **仓库侧我已经准备到"点一下就能部署"** —— 见 [deploy-notes.md §部署步骤](docs/deploy-notes.md)。
+> **✅ P0 已全部清零**：
+> ① 真模型问答路径跑通（W6 周日），本机 20 题正确率 **75%**、幻觉引用 0 个
+> ② **线上链接已创建并跑通全链路（2026-11-04）**：
+> [`industrial-ai-platform…streamlit.app`](https://industrial-ai-platform-9mxgvsbziodwgcqxnepcwm.streamlit.app)
+> —— 上传、索引、检索、流式、引用、拒答全部实测，见 [deploy-notes.md §线上验证结果](docs/deploy-notes.md)。
+>
+> **线上能力的诚实边界**：免费层无 torch → 降级为 `hashing`（字面检索）。
+> 本机那 **75% 是 bge 的成绩，不能直接标到线上**。
+> 线上在"问题用词与原文一致"时答得准，换说法就可能答不出 ——
+> 这是能力边界，不是隐藏缺陷，详见 [deploy-notes.md §检索质量](docs/deploy-notes.md)。
 
 ---
 
@@ -431,10 +435,12 @@ W5 把 15 条错例（50%）判成「② 术语/同义词未命中」。W6 两�
 | # | 问题 | 现状 | 为什么 | 怎么修 |
 | --- | --- | --- | --- | --- |
 | ~~1~~ | ~~**真模型问答路径一次都没跑过**~~ | ✅ **W6 周日已解决**：跑通 20 条，答案正确率 **75%**、幻觉引用 0 个 | 根因不是凭据，是**本地回环走了系统代理**（httpx 默认 `trust_env=True`）+ **模型名写错**（`buddy/glm-5.3` 少了 `-pool`）。两个坑都返回误导性的 `502 未配置凭据` | 已修：`_build_client` 传 `trust_env=False`；模型名改 `buddy-pool/glm-5.3`。见 [answer-quality.md](docs/answer-quality.md) |
-| 2 | **线上链接未创建** | **仓库侧已就绪**（见下），只差网页侧几步操作 | 需要 GitHub 账号授权，我这边只有本地 git | 见 [deploy-notes.md §部署步骤](docs/deploy-notes.md)：填 `hhfyx/industrial-ai-platform` + `main` + **`app/ui/streamlit_app.py`** |
-| **2.1** | **线上还需要一个公网 LLM 端点** | 本地 `LLM_BASE_URL=http://127.0.0.1:8326/v1` 是**我机器上的网关**；部署后 `127.0.0.1` 指 Cloud 容器自己，那里什么都没有 | 没有端点不是"app 起不来"，而是**上传/检索/引用都正常、只有生成报 502** —— 这种状态比彻底失败更难解释 | 三条路见 [deploy-notes.md §线上可用的三条路](docs/deploy-notes.md)。**推荐**：官方 API + 几元充值 |
+| 2 | **线上链接未创建** | ✅ **2026-11-04 已创建并跑通** | 需要 GitHub 账号授权 + 公网 LLM 端点，之前两者都没有 | 已部署：`app/ui/streamlit_app.py` + DeepSeek 官方 API。见 [deploy-notes.md §线上验证结果](docs/deploy-notes.md) |
+| **2.1** | **线上还需要一个公网 LLM 端点** | ✅ **已解决**：用 DeepSeek 官方 API（`deepseek-chat`） | 本地 `127.0.0.1:8326` 部署后指 Cloud 容器自己 | 见 [deploy-notes.md §线上可用的三条路](docs/deploy-notes.md) |
 | 3 | **免费层语义检索降级** | 线上默认 `hashing`（只有字面相似）。**注意：那跑的不是评测的那套** | bge 实测占 **528 MB**，加框架开销撞 1 GB 上限 | ONNX 量化版（未验证）/ 付费层 / 换 API embedding。**折中**：部署侧装 BM25（纯 Python，~20 MB），它恰好补上"无 torch 时"的字面检索能力 |
 | ~~2.2~~ | ~~**部署依赖文件 Cloud 根本不会读**~~ | ✅ **W7 周一已修**：文件原来叫 `requirements-deploy.txt`（Cloud 不认这个名字），且计划"在 Advanced settings 里指定"（**没有这个选项**）。实际会命中根目录的 `uv.lock` → 装 900 MB 的 torch | 根目录有 `uv.lock`，它的优先级**高于** `requirements.txt`，所以"放根目录"这条路是堵死的 | 已挪到 **`app/ui/requirements.txt`**（入口目录先被搜）。`test_deploy_manifest_is_where_cloud_actually_looks` 守着 |
+| ~~2.3~~ | ~~**线上 import fastapi 崩溃**~~ | ✅ **W7 周一已修**：`client.py` 顶层 `from fastapi import Depends`，而部署依赖不含 fastapi → `ModuleNotFoundError` | **本地 `.venv` 装了 fastapi，所以 pytest 全绿、`streamlit run` 正常** —— 本地全绿证明不了线上能跑 | fastapi 隔离到 `app/core/llm/deps.py`。`test_deploy_runtime_boundary.py` 在子进程里屏蔽 fastapi 后导入整条 UI 链，**本地就能抓到** |
+| **2.4** | **短块/目录污染检索**（部署成功后才暴露） | ✅ **已修**：105 块里 17 个短块、目录块霸占 Top-1 | `hashing` 按字符重叠排序 → **越没内容的块排得越前**。实测「训练损失怎么变化」第 1、2 名是 9/11 字符的标签行 | 短块合并（<40 字符）+ 目录排除（锚点占比≥0.5）+ 图片行丢弃。见 [deploy-notes.md §检索质量](docs/deploy-notes.md) |
 
 > **P0-1 解决后，剩下的"能不能说它能问答"的缺口**（不再阻断，但还没"好"）：
 > - 端到端正确率 75%（n=20，单次，单人判定）—— 有数字了，但样本小
