@@ -71,14 +71,66 @@ FINGERPRINT_PATH: Path = PROJECT_ROOT / "eval" / "results" / "param-fingerprint.
 #: - 排序/召回相关（rrf_k、candidates、b）-> 会
 #: - 精排截断（max_length）-> 会（实测影响远大于预期）
 #: - 压缩比例（min_ratio）-> 会
+#: - **切分参数（chunk_chars / overlap / strategy / MIN_CHUNK_CHARS /
+#:   TOC_ANCHOR_RATIO）-> 会，而且影响比想象大得多**
 #: - 批次大小（batch_size）-> **不会**（只影响速度），但值得记，因为
 #:   延迟数字绑在它上面
+#:
+#: ## ⚠ 切分参数是第一版漏掉的口子（2026-11-05 补）
+#:
+#: 第一版只跟踪了 8 个"检索/生成"参数，**切分参数一个都没有**。实测后果：
+#:
+#:     DEFAULT_CHUNK_CHARS  500 -> 450
+#:       -> 索引 1160 -> 1181 块
+#:       -> Recall@5 40.0% -> 42.5%（+2.5pp）
+#:       -> 968 条测试全绿，指纹不报
+#:
+#: 这个 +2.5pp 有多要命：50 条上 1 条 = 2pp，所以 +2.5pp 约等于
+#: "凭空多命中一条题"。而 W6 全套消融最大的争议正是精排 +15pp
+#: （p=0.0703）—— 随手挪一下 chunk_chars 就能造出同量级的"提升"。
+#:
+#: **为什么切分参数比检索参数更危险**：
+#:
+#: | 参数类型 | 改动时会被什么拦 |
+#: | --- | --- |
+#: | 检索参数（`RagConfig` 字段） | 至少 `test_rag_config` 类测试会碰到 |
+#: | 切分参数（模块常量） | **几乎拦不住** —— 测试断言的是"块长在区间内"这种**区间性质**，挪 50 个字符完全落在区间内，行为"看起来没变" |
+#:
+#: 换句话说：检索参数改了会"变红"，切分参数改了会"变绿"。
+#: 后者才是真正危险的。
 #:
 #: ## 什么不该进来
 #:
 #: - 与质量无关的实现细节（`EMPTY_TOKEN`、`INDEX_VERSION` 之类）——
 #:   把它们加进来会让指纹频繁变动，反而失去"值得警觉的变化"这个意义
 TRACKED_PARAMS: tuple[tuple[str, str, str], ...] = (
+    # ---- 切分（**影响最大、最容易被忽视的一组**）----
+    (
+        "app.rag.settings",
+        "DEFAULT_CHUNK_CHARS",
+        "块长；改它会改变索引块数与召回（实测 500->450 让 Recall +2.5pp）",
+    ),
+    (
+        "app.rag.settings",
+        "DEFAULT_OVERLAP_CHARS",
+        "块间重叠；与块长一起决定切分密度",
+    ),
+    (
+        "app.rag.settings",
+        "DEFAULT_STRATEGY",
+        "切分策略（recursive/heading/semantic）；换策略等于换尺子",
+    ),
+    (
+        "app.rag.loaders.markdown",
+        "MIN_CHUNK_CHARS",
+        "短块合并阈值；改它会改变 Markdown 的块数与 Top-K 竞争格局",
+    ),
+    (
+        "app.rag.loaders.markdown",
+        "TOC_ANCHOR_RATIO",
+        "目录块识别阈值；改它会让目录重新进/出索引（实测影响排名第 1）",
+    ),
+    # ---- 检索 / 融合 ----
     (
         "app.rag.bm25.fusion",
         "DEFAULT_RRF_K",
@@ -94,6 +146,7 @@ TRACKED_PARAMS: tuple[tuple[str, str, str], ...] = (
         "DEFAULT_B",
         "BM25 长度归一化强度；影响长文档的权重",
     ),
+    # ---- 精排 ----
     (
         "app.rag.bm25.rerank",
         "DEFAULT_MAX_LENGTH",
@@ -104,6 +157,7 @@ TRACKED_PARAMS: tuple[tuple[str, str, str], ...] = (
         "DEFAULT_BATCH_SIZE",
         "精排批次；只影响速度，但 latency 结论绑在它上面",
     ),
+    # ---- 压缩 / 检索输出 ----
     (
         "app.rag.generation.compress",
         "DEFAULT_MIN_RATIO",

@@ -1,6 +1,11 @@
 {
-  "digest": "a91c89ca60d86391898ab442f414c43192e4b0d3c426eaea7b13d9ee1ddebb4d",
+  "digest": "f2bce4d5bcfa09a27420d1b3b52c52ab5d4873daa214444e466e162f83b4bab3",
   "values": {
+    "app.rag.settings.DEFAULT_CHUNK_CHARS": 500,
+    "app.rag.settings.DEFAULT_OVERLAP_CHARS": 50,
+    "app.rag.settings.DEFAULT_STRATEGY": "recursive",
+    "app.rag.loaders.markdown.MIN_CHUNK_CHARS": 40,
+    "app.rag.loaders.markdown.TOC_ANCHOR_RATIO": 0.5,
     "app.rag.bm25.fusion.DEFAULT_RRF_K": 60,
     "app.rag.bm25.fusion.DEFAULT_CANDIDATES": 20,
     "app.rag.bm25.index.DEFAULT_B": 0.75,

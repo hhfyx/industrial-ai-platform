@@ -114,12 +114,38 @@ class CorpusStats:
         )
 
 
-def measure(rebuild: bool = True) -> CorpusStats:
+def measure(rebuild: bool = True, write: bool = False) -> CorpusStats:
     """实测当前语料的规模。
 
-    `rebuild=False` 时只读缓存（测试里用，避免每次都切一遍全语料）。
+    ## 参数
+
+    - `rebuild=True`（默认）：真的切一遍全语料（准，但要几秒）
+    - `rebuild=False`：只读缓存（快，但可能过时）
+    - `write=False`（**默认**）：**不写盘**
+
+    ## ⚠ 为什么 `write` 默认是 False（2026-11-05 修正）
+
+    第一版 `measure()` **无条件写盘**。后果：
+
+        每次跑 scripts/corpus_stats.py
+          -> 改写 eval/results/corpus-stats.json
+          -> git status 里出现 "M eval/results/corpus-stats.json"
+
+    "跑一次统计"居然会弄脏工作区 —— 而那个文件躺在版本库里，
+    与**权威评测结果**放在同一目录，很难分辨"这是缓存还是结果"。
+
+    更糟的是它制造了**双答案**：缓存里存着旧值，重算给新值。
+    谁先跑谁得旧数，取决于上一个人什么时候跑的。
+
+    ## 缓存文件该不该入库
+
+    **不该**。它是派生数据（能随时从语料重算），不是结果。
+    入库只会造成两个后果：① 每次重算都产生无意义的 diff
+    ② 让人误以为它是权威数字。
+
+    真正的权威来源是**实时重算**；缓存只在同一进程内加速。
     """
-    cache = PROJECT_ROOT / "eval" / "results" / "corpus-stats.json"
+    cache = PROJECT_ROOT / "data" / "cache" / "corpus-stats.json"
     if not rebuild and cache.exists():
         try:
             payload = json.loads(cache.read_text(encoding="utf-8"))
@@ -184,11 +210,15 @@ def measure(rebuild: bool = True) -> CorpusStats:
         raw_chunks=raw_chunks,
     )
 
-    # 落盘：让 CI 与文档可以引用同一份数字
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    payload = asdict(stats)
-    payload["by_chunk_chars"] = {str(k): v for k, v in stats.by_chunk_chars.items()}
-    cache.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    # 落盘**只在显式要求时**（默认 write=False，见 `measure` 的 docstring）。
+    #
+    # 缓存路径在 `eval/results/` 下但**不进版本库**（.gitignore 里挡掉），
+    # 理由：它是派生数据，不是评测结果。混在一起会让人以为它是权威数字。
+    if write:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        payload = asdict(stats)
+        payload["by_chunk_chars"] = {str(k): v for k, v in stats.by_chunk_chars.items()}
+        cache.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return stats
 
 
