@@ -71,6 +71,7 @@ QUESTION_SETS: tuple[str, ...] = (
     "retrieval-gold.jsonl",
     "table-gold.jsonl",
     "refusal-gold.jsonl",
+    "questions-120.jsonl",
 )
 
 
@@ -240,6 +241,10 @@ def test_question_set_sizes_are_what_they_are() -> None:
         table-gold     5
         refusal-gold   5
 
+    2026-11-05 追加：`questions-120` 是 **W7 的报成绩集**（目标 120 条），
+    当前是 **0 条占位**——先进门禁、后出题，出题后这条会红，
+    届时把 0 改成 120 即可（改前先跑一遍跨集比对确认无污染）。
+
     没有任何地方存着 200 条。如果哪天有人加了题，这条会红 ——
     那时请同步更新这个数字（**以及所有引用它总数的文档**）。
     """
@@ -248,11 +253,13 @@ def test_question_set_sizes_are_what_they_are() -> None:
         "retrieval-gold.jsonl": 20,
         "table-gold.jsonl": 5,
         "refusal-gold.jsonl": 5,
+        "questions-120.jsonl": 0,
     }
     actual = {name: len(_load(name)) for name in expected}
     assert actual == expected, (
         f"题集规模变了：{actual}（期望 {expected}）。\n"
-        "改了题量请同步更新这里，以及文档里引用总数的说法。"
+        "改了题量请同步更新这里，以及文档里引用总数的说法。\n"
+        "questions-120 涨了说明 W7 出题已开始：先把跨集比对跑绿，再改这里的 0。"
     )
     assert sum(actual.values()) == 80, (
         f"题目总数是 {sum(actual.values())}，不是 200 —— 引用时请写实数"
