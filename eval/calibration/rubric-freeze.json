@@ -1,0 +1,16 @@
+{
+ "frozen_at": "2026-11-05 22:49:15",
+ "commit": "c98aafebff",
+ "rubric_note": "改 rubric 必须新 commit；本文件记录校准时点的 rubric 指纹",
+ "rubric_sha256": "607f7add183bf13b",
+ "mitigations": {
+  "position_bias": "不适用：单答案判分，无候选排序。Faithfulness 校准的多答案场景按随机序（seed=20261204）展示",
+  "preference_leak": "适用：judge 提示词不含任何来源/系统/prompt 版本信息",
+  "length_preference": "适用：rubric 明确「更长不加分；缺一个关键点就扣」",
+  "self_preference": "适用：生成=glm-5.3（buddy-pool），judge=deepseek-flash（不同家族）"
+ },
+ "generator_model": "buddy-pool/glm-5.3",
+ "judge_model": "deepseek-account/deepseek-flash",
+ "n": 30,
+ "instruction": "先人工填 human_verdict / human_key_fact_ok（不看 judge 输出），填完跑 --grade"
+}

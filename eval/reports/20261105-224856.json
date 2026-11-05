@@ -1,0 +1,521 @@
+{
+  "meta": {
+    "generated_at": "2026-11-05 22:45:02",
+    "questions": "eval\\questions-calib30.jsonl",
+    "n_questions": 30,
+    "commit": "c98aafebffb23aacbff1e4f8cfff0e5fe45b392f",
+    "metrics_version": "metrics@2026-11-30",
+    "prompt_version": "v1",
+    "threshold": 0.575,
+    "top_k": 5
+  },
+  "retrieval": {
+    "metrics": {
+      "recall@1": {
+        "hits": 9,
+        "total": 30,
+        "rate": 0.3
+      },
+      "recall@5": {
+        "hits": 18,
+        "total": 30,
+        "rate": 0.6
+      },
+      "mrr": 0.4407,
+      "ndcg@5": {
+        "overall": 0.4955,
+        "fact": 0.5249,
+        "multi_hop": 0.2311
+      },
+      "refusal_three_way": {
+        "correct_refusals": 0,
+        "refusal_total": 0,
+        "false_refusals": 5,
+        "false_accepts": 0
+      }
+    },
+    "source_meta": {
+      "generated_at": "2026-11-05 22:45:14",
+      "questions_file": "eval\\questions-calib30.jsonl",
+      "chunk_chars": 500,
+      "overlap": 50,
+      "strategy": "recursive",
+      "embedder": "bge",
+      "chunks": 1165,
+      "corpus_docs": 1079,
+      "corpus_kind": "raw",
+      "ks": [
+        1,
+        3,
+        5,
+        8,
+        10
+      ],
+      "top_k": 5
+    }
+  },
+  "generation": {
+    "records": [
+      {
+        "id": "f-08",
+        "type": "fact",
+        "question": "抽取模板遗留的真实待改项是什么？",
+        "gen_status": "ok",
+        "answer": "根据段落[2]，遗留的真实待改项是：v2 模板倾向于\"提炼\"而不是\"照抄\"。模板里虽已写明\"值保持原文原始写法\"，但实测仍有压缩/合并倾向。这是 v2 模板的真实待改项，属于模板问题而非模型能力问题。",
+        "citations": [
+          2
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "与标准答案一致，无数字单位否定词错误"
+      },
+      {
+        "id": "f-38",
+        "type": "fact",
+        "question": "四要素里，边界句的特殊作用是什么？",
+        "gen_status": "ok",
+        "answer": "在四要素中，边界句的特殊作用在于：没有它，越界请求会被当作正常需求执行；它是唯一能区分\"任务\"和\"闲聊\"的一句话。",
+        "citations": [
+          1
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "核心事实与锚点完全一致，无错漏"
+      },
+      {
+        "id": "m-01",
+        "type": "multi_hop",
+        "question": "内存测量那两次差点量错的坑，分别错在哪？",
+        "gen_status": "ok",
+        "answer": "内存测量链路有两个独立错误源：一是 `tasklist` 的 CSV 输出里内存字段本身含逗号，解析时容易出错（差点把结论做反，错误结果看起来很合理）；二是进程身份搞错——用 `p.pid` 去查询，量到的其实是 launcher 的空壳进程，同样会得到'1 MB'这种很小的数字。任一错误都会给出'很小、很乐观'的结果。修法是让探针脚本第一行打印 `os.getpid()`，主进程用它去查询。",
+        "citations": [
+          1,
+          3
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "两个坑均答对，但含多余修复方法细节"
+      },
+      {
+        "id": "f-81",
+        "type": "fact",
+        "question": "消融实验分两次跑踩了什么坑？",
+        "gen_status": "ok",
+        "answer": "消融实验分两次跑时，每次都新建 store，导致前两档数据被覆盖（与 lc_extract.py 是同一个坑）。教训是\"我验证过了\"和\"我保存下来了\"是两回事，任何花真钱的实验必须先落盘再开始下一次。",
+        "citations": [
+          1
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "核心坑点正确，但附加了锚点外的多余教训"
+      },
+      {
+        "id": "f-43",
+        "type": "fact",
+        "question": "section_path 存进 metadata 有哪两个实际用途？",
+        "gen_status": "ok",
+        "answer": "两个实际用途：一是检索时按章节过滤——section_path 是扁平字符串，可直接进 Chroma 的 where 条件做过滤；二是生成时告诉用户信息出自哪一节（如\"在第 1.2 节\"），即可验证的来源定位。",
+        "citations": [
+          1,
+          4
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "两项用途与标准答案完全一致，无错"
+      },
+      {
+        "id": "f-02",
+        "type": "fact",
+        "question": "摘要组换 v2 之后失败情况怎么样？",
+        "gen_status": "ok",
+        "answer": "摘要组换 v2 后的失败属于参数配置问题而非模板质量问题：`timeout=30s` 太短，导致 7 条超时失败；如果调到 60s，这 7 条超时可能全部变为成功。因此“v2 摘要模板差”的结论只在当前 timeout 配置下成立（依据段落[1]）。",
+        "citations": [
+          1
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "7条超时正确，但未提70%失败率，且加入多余推测"
+      },
+      {
+        "id": "f-77",
+        "type": "fact",
+        "question": "v0.3.0 的核心交付是什么？",
+        "gen_status": "ok",
+        "answer": "v0.3.0 是 W3 Prompt 工程周的版本，其核心交付是把「模型输出」从\"祈祷它按格式回\"变成\"有契约、有校验、有可复现对比\"。",
+        "citations": [
+          2
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "wrong",
+        "judge_reason": "未提structured_call签名定版，答非所问"
+      },
+      {
+        "id": "f-51",
+        "type": "fact",
+        "question": "A/B 脚手架的 temperature 和 seed 为什么写成常量？",
+        "gen_status": "ok",
+        "answer": "上下文不足以回答。段[2]只有标题\"为什么 temperature 和 seed 不做成参数\"，缺少该节正文，未说明写成常量的具体理由。段[1]仅记录了 temp=0 与 seed 实测不可复现的现象，但并未说明这与\"写成常量\"之间的因果关系，缺少 A/B 脚手架将 temperature 和 seed 写成常量的直接原因说明。",
+        "citations": [
+          2,
+          1
+        ],
+        "uncertain": true,
+        "judge_status": "ok",
+        "verdict": "wrong",
+        "judge_reason": "答非所问，拒绝回答，未给出写成常量的原因"
+      },
+      {
+        "id": "f-72",
+        "type": "fact",
+        "question": "容器里必然降级的两个原因之间是什么关系？",
+        "gen_status": "ok",
+        "answer": "两者是相互独立的关系，各自单独都会导致容器内降级。原因1：容器内的127.0.0.1指向容器自身的loopback而非宿主机网关（[1]）；原因2：网关鉴权绑定宿主登录态，即使把LLM_BASE_URL改成host.docker.internal:8326使网络连通，仍因未配置凭据返回502而降级（[3]、[4]）。文档明确将其称为『容器必然降级的两个独立原因』（[1]、[4]）。",
+        "citations": [
+          1,
+          3,
+          4
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "关系判断与锚点一致，无数字单位否定词错误"
+      },
+      {
+        "id": "f-24",
+        "type": "fact",
+        "question": "扁平 schema 对照实验纠正了什么结论？",
+        "gen_status": "ok",
+        "answer": "对照实验纠正了原先'扁平也照样失败，本网关根本不强制任何格式'的说法，该说法是基于 1 条样本的错误归因 [1]。修正后的结论是：本网关对扁平 schema 能强制执行，对嵌套 schema 不能 [1]。扁平 schema 的 2 条失败不是格式没被强制，而是'形状选错' [1][4]。",
+        "citations": [
+          1,
+          4
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "核心结论与锚点一致，补充信息无错误"
+      },
+      {
+        "id": "f-17",
+        "type": "fact",
+        "question": "部署前跑端点自检的成本是多少？",
+        "gen_status": "ok",
+        "answer": "上下文没有给出部署前跑端点自检的成本。材料只提到「拿到 key 后，先跑自检再部署」可以省一次 3 分钟的等待【1】，以及回灌重试的成本结论见 docs/cost.md【4】，但均未给出自检本身的成本数值。缺少自检的耗时或费用数据。",
+        "citations": [
+          1,
+          4
+        ],
+        "uncertain": true,
+        "judge_status": "ok",
+        "verdict": "wrong",
+        "judge_reason": "答非所问，原文有数据却称未给出"
+      },
+      {
+        "id": "f-12",
+        "type": "fact",
+        "question": "上传大小上限配置写在哪才真正生效？",
+        "gen_status": "ok",
+        "answer": "配置要写在 `[server]` 段下才真正生效。如果写错位置，进程仍能正常启动、没有任何错误信号，表现为\"我明明调了上限\"和\"还是传不上去\"同时成立；`tests/test_deploy_config.py::test_streamlit_config_has_no_invalid_keys` 有测试守着这条。",
+        "citations": [
+          1
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "主要事实对，未点名[client]，且多测试文件名"
+      },
+      {
+        "id": "f-18",
+        "type": "fact",
+        "question": "Streamlit Secrets 里的配置要粘贴到哪一层？",
+        "gen_status": "ok",
+        "answer": "Secrets 要粘贴到根级，不要放进 `[section]`。Streamlit 官方文档明确：根级 secrets 会作为环境变量可用（`os.environ[\"db_username\"] == st.secrets[\"db_username\"]`），而 section 里的不会。本项目用 pydantic-settings 读 `LLM_*` 环境变量，所以只要放在根级，不需要改任何代码。",
+        "citations": [
+          1,
+          3
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "层级与否定词均与标准答案一致"
+      },
+      {
+        "id": "f-14",
+        "type": "fact",
+        "question": "部署用的依赖文件必须放在哪里？",
+        "gen_status": "ok",
+        "answer": "部署用的依赖文件必须放在入口目录（即入口文件所在目录，如 `app/ui/`），而不是仓库根目录。因为 Community Cloud 会先搜索入口文件所在目录，再搜索仓库根目录；若放在根目录，会被优先级更高的 `uv.lock`（优先级高于 `requirements.txt`）抢掉，导致安装完整依赖（含 torch 900 MB），引发超时或 OOM。段落[5]也明确指出：这份文件必须放在入口目录，放根目录会被 `uv.lock` 抢掉。",
+        "citations": [
+          2,
+          4,
+          5
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "与锚点一致：放入口目录，根目录会被抢"
+      },
+      {
+        "id": "f-40",
+        "type": "fact",
+        "question": "四档判定改完之后，两版真正把越界请求挡在门外（合法 JSON 加拒绝话术）的比例各是多少？",
+        "gen_status": "ok",
+        "answer": "上下文不足以确定各版的具体比例。段落[3]只给出四档判定后的两组数字：显式拒绝率 0.00→0.60、笼统搪塞率 0.40→0.00，但未标明 0.00 与 0.60 分别对应 A 版还是 B 版；且「显式拒绝率」是否等同于「合法 JSON 加拒绝话术」也未说明（段落[1]显示 A 版的拒绝是自然语言、解析崩，B 版才是合法 JSON）。缺少各版本显式拒绝率的明确归属及显式拒绝与合法 JSON 输出的对应关系。",
+        "citations": [
+          1,
+          3
+        ],
+        "uncertain": true,
+        "judge_status": "ok",
+        "verdict": "wrong",
+        "judge_reason": "答非所问：称无法确定，未直接给出各版比例"
+      },
+      {
+        "id": "f-70",
+        "type": "fact",
+        "question": "本机网关的鉴权依赖什么？",
+        "gen_status": "ok",
+        "answer": "本机网关（端口 8326）是 DeepSeek Harness 进程内起的，其鉴权跟着宿主进程的登录态走；对应的 LLM_API_KEY 是 DSH 的会话凭据。因此容器作为另一个进程、另一种身份，即使网络可达，网关也不认。",
+        "citations": [
+          1,
+          3
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "核心事实对，但含多余细节"
+      },
+      {
+        "id": "f-10",
+        "type": "fact",
+        "question": "免费层为什么跑不了 bge？",
+        "gen_status": "ok",
+        "answer": "模型栈实测增量528 MB，加上Streamlit自身约100 MB与Chroma约50 MB，1 GB上限下没有余量，并发会话或一次大文档索引就会OOM，所以免费层跑不了bge，线上默认降级为hashing",
+        "citations": [
+          1
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "主体数字正确，含Chroma等锚点外多余信息"
+      },
+      {
+        "id": "f-26",
+        "type": "fact",
+        "question": "什么场景下 LangChain 的 Runnable 层仍有明显优势？",
+        "gen_status": "ok",
+        "answer": "在「多步骤 agent + 工具调用 + 流式 + 内存」这类场景下，LangChain 的 Runnable 层有明显优势：自研流式需要写 stream/astream 两套，批量要自己写并发控制，组合要手写 pipeline，而 LangChain 在这些场景省下的代码量是实打实的。作者强调其结论只是特定于\"结构化输出\"这一层，并不是说 LangChain 没用。",
+        "citations": [
+          1
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "场景与标准答案完全一致，无错漏"
+      },
+      {
+        "id": "f-25",
+        "type": "fact",
+        "question": "从单条样本得出结论这件事，代价是什么？",
+        "gen_status": "ok",
+        "answer": "上下文没有说明“从单条样本得出结论”的代价。段落[1]只提到一条样本成功了、但一条样本不能下结论，因此作者补做了10条对照实验，但并未描述这样做或下这种结论的代价是什么。缺少关于单条样本结论的代价的具体信息。",
+        "citations": [
+          1
+        ],
+        "uncertain": true,
+        "judge_status": "ok",
+        "verdict": "wrong",
+        "judge_reason": "答非所问，未给出写错小节的代价"
+      },
+      {
+        "id": "m-05",
+        "type": "multi_hop",
+        "question": "50 页 PDF 全流程里，解析和索引各自花了多久？",
+        "gen_status": "ok",
+        "answer": "上下文未给出50页PDF全流程中解析和索引各自的耗时。仅有解析相关的局部数据：pypdf抽取50页全文82.9 ms，pdfplumber对50页全文执行find_tables为164.2 ms，无表格页的单页find_tables为3.3 ms（见[4]）。但缺少：50页全流程中索引（向量化/入库）阶段的具体耗时数据，也没有全流程整体耗时分解。[2]只提到批量入库在15,000条时是'几十秒 vs 几分钟'的对比，并非50页流程的索引耗时。",
+        "citations": [
+          1,
+          2,
+          4
+        ],
+        "uncertain": true,
+        "judge_status": "ok",
+        "verdict": "wrong",
+        "judge_reason": "答非所问，否认原文给出的714ms/1015ms耗时数据"
+      },
+      {
+        "id": "f-55",
+        "type": "fact",
+        "question": "用量统计怎么拿到而不动定版的函数签名？",
+        "gen_status": "ok",
+        "answer": "由于 structured_call 的签名是周三定版的（返回 BaseModel），改动会导致后面四周全部返工，但它拿不到 usage，因此加了一个旁路钩子来获取用量，而不动定版签名。",
+        "citations": [
+          1
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "答出旁路钩子但漏set_usage_sink与默认None零开销"
+      },
+      {
+        "id": "f-68",
+        "type": "fact",
+        "question": "实验缓存的键由哪些字段构成？",
+        "gen_status": "ok",
+        "answer": "缓存键由 (model, prompt, schema_json, temperature, max_tokens) 的 sha256 构成，即包含模型、提示词、schema 的 JSON、温度和最大 token 数这五个字段；且缓存键必须包含 schema，否则会拿到结构不兼容的旧结果。",
+        "citations": [
+          3
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "五字段及sha256均与标准一致，无错漏"
+      },
+      {
+        "id": "m-12",
+        "type": "multi_hop",
+        "question": "v2 加引用要求后，预期收益与实际效果差在哪？",
+        "gen_status": "ok",
+        "answer": "预期收益是\"引用更完整、可核查\"，实际效果是\"部分实现\"：确实更多条目给了引用，但对 qa-08 这类\"上下文完全无关\"的题，v2 仍然给出 0 条引用（这是正确行为）。即差距在于收益只部分达成——整体引用数量增加，但并非所有条目都带引用。",
+        "citations": [
+          2
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "预期与实际差距表述与原文一致，qa-08零引用正确"
+      },
+      {
+        "id": "f-22",
+        "type": "fact",
+        "question": "json_mode 路线失败时，模型的输出实际长什么样？",
+        "gen_status": "ok",
+        "answer": "json_mode 路线失败时，模型拿到的是'内容正确、结构不对'的输出，即两个业务字段的值都答对了（平台=Windows、正确命令=curl.exe），只是没套上 {\"fields\": {...}} 这层外壳，随后框架抛出 OutputParserException；这与 json_schema 的失败根因相同，差别仅在报错类型。",
+        "citations": [
+          2,
+          5
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "业务字段对但缺JSON外壳，与事实一致"
+      },
+      {
+        "id": "f-15",
+        "type": "fact",
+        "question": "仓库根目录同时有 requirements.txt 和 uv.lock 时，Cloud 实际读哪个？",
+        "gen_status": "ok",
+        "answer": "Cloud 实际读取 uv.lock。因为 Cloud 会先搜索入口文件所在目录，再搜索仓库根目录；在每个位置，依赖文件的优先级顺序为 uv.lock > Pipfile > environment.yml > requirements.txt > pyproject.toml，uv.lock 优先级高于 requirements.txt（段落[1]）。所以当仓库根目录同时存在 requirements.txt 和 uv.lock 时，Cloud 会命中优先级更高的 uv.lock（段落[2]）。",
+        "citations": [
+          1,
+          2
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "答案为uv.lock，与标准答案一致，无错误"
+      },
+      {
+        "id": "f-50",
+        "type": "fact",
+        "question": "PDF 标题启发式的 confidence 这个数衡量什么？",
+        "gen_status": "ok",
+        "answer": "confidence 衡量\"这个判据在这份文档上稳不稳\"：它是命中行 / 候选大字号行的比例，即字号启发式判定出的标题命中数占所有候选大字号行的比例。它衡量的是判据在文档上的可靠程度（是否大部分大字号行确实被识别为标题），而非字号差距（那由 ratio 衡量）。",
+        "citations": [
+          2
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "比例定义与衡量对象均与锚点一致"
+      },
+      {
+        "id": "f-13",
+        "type": "fact",
+        "question": "低内存环境的降级方案为什么选 hashing？",
+        "gen_status": "ok",
+        "answer": "选 hashing 的理由是\"确定的代价 vs 不确定的收益\"：ONNX 量化版可能省下 300 MB，但需要先验证它能装、能跑、精度下降多少，那是半天到一天的工作，且它不改变 demo 想演示的内容（能跑通 + 能讲清 + 能指出问题）。这不是 ONNX 不好，而是当天没时间验证，该事项已写进 README 的\"已知问题\"清单作为明确待办。此外，降级必须对用户可见：侧栏会显示提示及当前 recommended_min_score（hashing 是 0.0，等于关掉拒答闸门），因为悄悄降级等于骗用户——用户以为在做语义检索，实际只有字面匹配。",
+        "citations": [
+          5,
+          4
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "核心事实零依赖零下载未提，答偏另一理由"
+      },
+      {
+        "id": "f-54",
+        "type": "fact",
+        "question": "prompt 实验集为什么不能拿去当 W7 评测集？",
+        "gen_status": "ok",
+        "answer": "因为调 prompt 时会反复看到这 40 条，若 W7 用同一批问题，评测结果会因\"这些题在调 prompt 时见过并针对性优化过\"而虚高，那就不是在测 RAG，而是在测记忆；因此两者不能混用、不能复用（该边界由 check_leakage() 兜住）",
+        "citations": [
+          2,
+          3,
+          1
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "核心事实一致，仅多补充说明"
+      },
+      {
+        "id": "f-07",
+        "type": "fact",
+        "question": "抽取组 v1 输得那么惨，根因是什么？",
+        "gen_status": "ok",
+        "answer": "根因是契约不匹配，而非模型能力差。v1 的 schema 把槽位写死成「主体/时间」（按工单场景设计，即\"联系人+发生时间\"），而这批输入来自技术文档，字段是「版本/路径/要求/算法名」，对不上。模型不是不会抽，是没有槽位可填。",
+        "citations": [
+          1,
+          2
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "核心事实与标准一致：非模型差而是契约不匹配"
+      },
+      {
+        "id": "f-45",
+        "type": "fact",
+        "question": "把「有 heading_level」当成节开头这个错，怎么修的？",
+        "gen_status": "ok",
+        "answer": "修法是把判据改成'标题行'：即 block == \"heading\" 或首行是 ATX 标题的行才作为节的开头；heading_level 只用来筛选'够不够深'，超过 heading_max_level 的标题只算上一节的分点，不再作为新节边界。原错误是因为 loader 把 heading_level 挂在该节每一段上（表示该段属于哪一级，而非该段就是标题），导致每段都成节开头、等于没分组。",
+        "citations": [
+          1,
+          2
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "判据与heading_level用途均与标准一致"
+      }
+    ],
+    "elapsed_sec": 220.5,
+    "summary": {
+      "n_total": 30,
+      "n_excluded_na": 0,
+      "n_measured": 30,
+      "verdict_counts": {
+        "correct": 16,
+        "partially_correct": 8,
+        "wrong": 6
+      },
+      "answer_score": 0.6667,
+      "failures": {
+        "retrieve": [],
+        "prompt": [],
+        "generate": [],
+        "judge_parse": []
+      },
+      "n_failures": 0
+    }
+  }
+}

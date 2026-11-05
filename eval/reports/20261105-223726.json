@@ -1,9 +1,9 @@
 {
   "meta": {
-    "generated_at": "2026-11-05 22:20:12",
+    "generated_at": "2026-11-05 22:35:04",
     "questions": "eval\\questions-slice20.jsonl",
     "n_questions": 20,
-    "commit": "9bd08fdcbb00cae5785a7ab87833f32e8493ffa8",
+    "commit": "c98aafebffb23aacbff1e4f8cfff0e5fe45b392f",
     "metrics_version": "metrics@2026-11-30",
     "prompt_version": "v1",
     "threshold": 0.575,
@@ -35,7 +35,7 @@
       }
     },
     "source_meta": {
-      "generated_at": "2026-11-05 22:20:28",
+      "generated_at": "2026-11-05 22:35:20",
       "questions_file": "eval\\questions-slice20.jsonl",
       "chunk_chars": 500,
       "overlap": 50,
@@ -61,51 +61,50 @@
         "type": "fact",
         "question": "四类模板 A/B 里最容易混的是哪两个意图类别，混了几次？",
         "gen_status": "ok",
-        "answer": "最容易混的是「功能咨询」→「故障报修」，两个版本各混 1 次。",
+        "answer": "最容易混淆的是「功能咨询」和「故障报修」这两个类别，两个版本中各混淆 1 次。",
         "citations": [
           1
         ],
         "uncertain": false,
         "judge_status": "ok",
         "verdict": "correct",
-        "judge_reason": "意图类别、次数均与标准一致"
+        "judge_reason": "类别与次数均与标准答案一致"
       },
       {
         "id": "f-03",
         "type": "fact",
         "question": "抽取组 v2 大幅胜出，真实原因是什么？",
         "gen_status": "ok",
-        "answer": "真实原因是\"契约修复\"而非\"写得更好\"：不是 v2 模板写得好，而是 v1 的字段契约根本对不上。v1 的 schema 把槽位写死成「主体」/「时间」（按工单场景设计），而这批输入来自技术文档，字段是「版本 / 路径 / 要求 / 算法名」。模型不是不会抽，是没有槽位可填，证据在 v1 的输出里很清楚。",
+        "answer": "真实原因是\"契约修复\"而非\"写得更好\"：不是v2模板写得好，而是v1的字段契约根本对不上。v1的schema把槽位写死成「主体」/「时间」（按工单场景设计），而这批输入来自技术文档，字段是「版本/路径/要求/算法名」，模型不是不会抽，是没有槽位可填。",
         "citations": [
-          1,
           4
         ],
         "uncertain": false,
         "judge_status": "ok",
         "verdict": "correct",
-        "judge_reason": "核心事实一致：非模板好，是v1契约不匹配"
+        "judge_reason": "核心事实与锚点一致，无数字单位否定词错误"
       },
       {
         "id": "f-22",
         "type": "fact",
         "question": "json_mode 路线失败时，模型的输出实际长什么样？",
         "gen_status": "ok",
-        "answer": "json_mode 路线失败时，模型输出的实际样子是：{\"平台\": \"Windows\", \"正确命令\": \"curl.exe\"} —— 两个字段的值完全正确，内容没问题，只是没套上 {\"fields\": {...}} 这层嵌套壳，即结构不符合预期的 schema 形状。随后解析时抛出 OutputParserException。因为 json_mode 只保证'是合法 JSON'，不保证'是我的形状'，所以拿到的是内容正确、结构不对的输出，其失败根因与 json_schema 路线相同，差别仅在报错类型。",
+        "answer": "模型的输出是\"内容正确、结构不对\"：它给出了两个业务字段且值完全正确，形如 {\"平台\": \"Windows\", \"正确命令\": \"curl.exe\"}，只是没有套上 {\"fields\": {...}} 这层外壳。json_mode 只保证输出是合法 JSON，不保证符合指定形状，因此框架随后抛出 OutputParserException；这与 json_schema 的失败是同一根因，差别仅在报错类型。",
         "citations": [
           2,
           5
         ],
         "uncertain": false,
         "judge_status": "ok",
-        "verdict": "correct",
-        "judge_reason": "核心事实一致：字段正确，仅缺JSON外壳"
+        "verdict": "partially_correct",
+        "judge_reason": "核心事实正确，但多余自编字段示例及根因对比"
       },
       {
         "id": "f-31",
         "type": "fact",
         "question": "给模板加新版本的正确流程是什么？",
         "gen_status": "ok",
-        "answer": "上下文未给出新增 v2 模板的完整流程。材料只说明：版本机制有测试覆盖（环境变量切换、显式传参），但'真正新增一个 v2 并切换'的完整流程从未走过；且 load_schema 靠模块里固定属性名（QAAnswer/SummaryResult 等）查找，新增第五类模板时需同步修改那个元组，属于手工点。缺少的信息：新增 v2 模板版本的具体步骤（如文件命名、注册、切换方式）的文档说明。",
+        "answer": "上下文没有给出\"新增一个 v2 并切换\"的完整流程。已知的信息仅有：版本机制本身有测试覆盖，支持环境变量切换和显式传参两种方式[5][1]；模板加载靠模块里固定属性名（如 QAAnswer/SummaryResult）查找，新增第五类模板时需同步修改那个元组[1]。但文档明确承认\"真正新增一个 v2 并切换\"的完整流程从未走过，目前不存在 v2 模板实例[5]。缺少的信息：从创建新模板文件、注册到切换验证的逐步正确操作流程，上下文中未描述。",
         "citations": [
           1,
           5
@@ -113,115 +112,113 @@
         "uncertain": true,
         "judge_status": "ok",
         "verdict": "wrong",
-        "judge_reason": "答非所问，未给出新增v2模板的流程"
+        "judge_reason": "否定原文锚点，答非所问"
       },
       {
         "id": "f-35",
         "type": "fact",
         "question": "这组 prompt A/B 实验里，两版之间唯一动过的东西是什么？",
         "gen_status": "ok",
-        "answer": "上下文没有说明两版 prompt 之间具体改动了什么。段落[3]只提到存在'两版 prompt + 10 条对抗输入'及A/B对抗测试的脚本与数据路径，段落[5]给出了实验结果指标，但均未描述两版之间唯一变动的变量是什么，缺少该信息。",
+        "answer": "上下文未说明两版 prompt 之间具体改动的内容。段落[3]只提到存在两版 prompt 和 10 条对抗输入的 A/B 对抗测试，但没有描述两版之间唯一变动的变量是什么，缺少关于两版 prompt 差异点的信息。",
         "citations": [
-          3,
-          5
+          3
         ],
         "uncertain": true,
         "judge_status": "ok",
         "verdict": "wrong",
-        "judge_reason": "未答出唯一变量为约束密度，答非所问"
+        "judge_reason": "否定词误判，原文明确唯一变量是约束密度"
       },
       {
         "id": "f-47",
         "type": "fact",
         "question": "切分器对代码块做常规 strip 会破坏什么？",
         "gen_status": "ok",
-        "answer": "会吃掉 Python 唯一的结构性信息，即代码行的原始缩进。切分器会 strip() 每一块，而 strip() 恰好会破坏这种结构，因此代码块应保留每行原始缩进，只去整块首尾空行。",
+        "answer": "会吃掉 Python 唯一的结构性信息（缩进）。切分器对每一块做 strip()，而 strip() 恰好吞掉代码的原始缩进；因此代码块应保留每行原始缩进，只去整块首尾空行。",
         "citations": [
           1
         ],
         "uncertain": false,
         "judge_status": "ok",
         "verdict": "correct",
-        "judge_reason": "事实与标准答案一致，缩进信息描述正确"
+        "judge_reason": "核心事实与标准答案一致，无错误"
       },
       {
         "id": "f-74",
         "type": "fact",
         "question": "按文档结构标记来切分的策略，预判会在哪种文档上吃亏？",
         "gen_status": "ok",
-        "answer": "按标题层级（结构标记）切分策略预判会在三类文档上吃亏：1. PDF——文件里没有\"标题\"概念，loader 只能给到 page+block=text，heading_level 一律缺失，按标题切要么退化成按页切（每页一块可能跨 3 个主题），要么靠启发式猜标题，猜测准确率是天花板；2. 标题粒度极不均匀的文档——如某标题下 3000 字、另一标题下仅 30 字，会产出巨大块加迷你块，结构边界不等于检索粒度；3. 标题只作装饰的文档（\"第 1 节\"\"Part A\"\"附录\"）——标题里没有主题词，切后块与块之间没有可区分的信息，引用时报\"第 3 节\"等于没报。",
+        "answer": "按标题层级（结构标记）切分的策略预判会在三类文档上吃亏：(1) PDF——文件里没有\"标题\"这个概念，heading_level 一律缺失，只能退化成按页切或用启发式猜标题，猜测准确率就是天花板；(2) 标题粒度极不均匀的文档——会产生巨大块加迷你块，结构边界不等于检索粒度；(3) 标题只作装饰的文档——标题里没有主题词，切分后块与块之间没有可区分的信息。",
         "citations": [
-          5,
-          1
+          5
         ],
         "uncertain": false,
         "judge_status": "ok",
         "verdict": "partially_correct",
-        "judge_reason": "含标准答案要点但多列两类文档，信息有冗余"
+        "judge_reason": "含正确项但多答两类文档，超出标准答案"
       },
       {
         "id": "f-76",
         "type": "fact",
         "question": "三种切分策略的预判排序是怎样的？",
         "gen_status": "ok",
-        "answer": "上下文未给出三种切分策略预判排序的具体内容。段落[1]只说明三种策略各自依赖不同信号、适用范围不同，段落[2]提到存在'三策略预判'且记录于 2026-11-16 20:30 的预判文件（chunking-predictions.md），但缺少预判中对三种策略的排序或优劣判断的具体文字，因此无法确定排序结论。",
+        "answer": "上下文没有给出三种切分策略的预判排序。段落[2]只说明预判文件是先写后测的凭证，段落[3]提到配套的 chunking-predictions.md 记录了周一的预判，但均未包含任何关于三种策略排序的具体内容。缺少预判文档中各策略优劣排序的正文信息。",
         "citations": [
-          1,
-          2
+          2,
+          3
         ],
         "uncertain": true,
         "judge_status": "ok",
         "verdict": "wrong",
-        "judge_reason": "答非所问：未给出预判排序结论，否认原文可答"
+        "judge_reason": "答非所问，否认原文已给出的预判排序"
       },
       {
         "id": "m-02",
         "type": "multi_hop",
         "question": "部署依赖文件的两个坑合起来看，最终方案落在哪里？",
         "gen_status": "ok",
-        "answer": "上下文不足以确定最终方案。已知坑 5.1 指出：依赖文件必须放在入口目录，放在根目录会被 uv.lock 抢掉，且原计划中文件名 requirements-deploy.txt 并通过 Cloud 的 Advanced settings 指定的做法是错的 [1]。但文中只给出了这一处坑及'那句话两处都错'的结论 [1]，并未给出第二个坑的具体内容，也没有说明修正后的最终方案（如实际的文件名、存放位置与指定方式），因此无法确定最终方案落在哪里。缺少的信息是：修正后的依赖文件方案细节及另一处坑的描述。",
+        "answer": "上下文不足以回答。段[1]只说明原计划是：文件叫 requirements-deploy.txt，在 Cloud 的 Advanced settings 里指定它，且'那句话是错的，两处都错'，并提到文件必须放在入口目录、放根目录会被 uv.lock 抢掉。但材料中没有给出第二个坑的具体内容，也没有说明修正后的最终方案（如最终文件名、最终指定方式、最终放置路径的完整组合），因此'两个坑合起来看最终方案落在哪里'无法确定。",
         "citations": [
           1
         ],
         "uncertain": true,
         "judge_status": "ok",
-        "verdict": "wrong",
-        "judge_reason": "答非所问：未给出hash334KB坑及最终方案"
+        "verdict": "partially_correct",
+        "judge_reason": "答出坑5.1但漏334KB hash坑且称无法回答"
       },
       {
         "id": "m-10",
         "type": "multi_hop",
         "question": "问答组 v2 掉分的机制和最典型的那条各是什么？",
         "gen_status": "ok",
-        "answer": "机制：v2 的\"两步走\"（先输出缺少信息、再输出答案）结构在其实能答的题上引起过度保守，答案被压缩、要点覆盖下降，这不是 prompt 写得差，而是\"分步\"结构本身有代价【1】。最典型的题是 qa-02：v1 完整答出 3 个要点，v2 只答了\"成本结构决定优化上限\"，把\"输入占 39%、30%×39%≈11.8%\"这些关键数字丢了【1】。",
+        "answer": "机制：v2 的\"两步走\"结构要求先输出\"缺少信息\"、再输出\"答案\"，导致模型在有把握回答的题上也倾向先列缺什么、再把答案写短，引起过度保守，答案被压缩、要点覆盖下降——是\"分步\"结构本身的代价，不是 prompt 写得差（段落1）。最典型的一条是 qa-02：prompt 精简 30% 只省 11.8%，v1 完整答出 3 个要点，v2 只答\"成本结构决定优化上限\"，丢掉了\"输入占 39%、30%×39%≈11.8%\"这些关键数字（段落1）。",
         "citations": [
           1
         ],
         "uncertain": false,
         "judge_status": "ok",
         "verdict": "partially_correct",
-        "judge_reason": "机制与qa-02均对，但漏了1.00掉到0.33"
+        "judge_reason": "主要事实对，但遗漏 qa-02 的 1.00→0.33 分数"
       },
       {
         "id": "m-11",
         "type": "multi_hop",
         "question": "分类混淆的机制和用户输入的特征是什么？",
         "gen_status": "ok",
-        "answer": "上下文仅指出最易混淆的类别对是「功能咨询」→「故障报修」，两个版本各混 1 次（段2）。但关于混淆的机制（为什么这一对容易混）以及用户输入的具体特征，上下文未提供任何信息，无法回答。",
+        "answer": "上下文仅指出「功能咨询」→「故障报修」是最容易混淆的两个类（两个版本各混 1 次），但未说明混淆产生的具体机制，也未描述用户输入在这两类上的特征差异，因此无法回答混淆机制和用户输入特征是什么。",
         "citations": [
           2
         ],
         "uncertain": true,
         "judge_status": "ok",
         "verdict": "wrong",
-        "judge_reason": "答非所问：否认原文信息，混淆类别对也错"
+        "judge_reason": "未回答混淆机制与用户输入特征，答非所问"
       },
       {
         "id": "m-16",
         "type": "multi_hop",
         "question": "w4 清单切分不合并的根因与修法各是什么？",
         "gen_status": "ok",
-        "answer": "上下文中没有关于 w4 清单切分不合并的根因与修法的信息。现有段落仅涉及 W5 周二关于 section_path 标题切分的讨论，包括层级信息在切分时即销毁、无法事后补等论证，以及部署修复与标量归一问题，均未提及 w4 清单切分不合并的内容。",
+        "answer": "上下文中没有关于“w4 清单切分不合并”的根因与修法的信息。给定材料只涉及 W5（2026-11-17）关于 section_path 标题切分的内容（[1]），以及层级信息切分后销毁、无法事后补的论述（[2][3]），并未提及 w4 清单切分不合并这一问题的根因或修法。",
         "citations": [
           1,
           2,
@@ -230,36 +227,36 @@
         "uncertain": true,
         "judge_status": "ok",
         "verdict": "wrong",
-        "judge_reason": "答非所问，未给出w4根因与修法"
+        "judge_reason": "答非所问，否认有据信息，未给根因与修法"
       },
       {
         "id": "m-18",
         "type": "multi_hop",
         "question": "_freeze 崩 ctx.id 的根因和修法各是什么？",
         "gen_status": "ok",
-        "answer": "根因：lru_cache 的参数必须可哈希，因此把参数字典 _freeze 成元组；但同一份值既当缓存键、又当渲染参数，导致模板里的 ctx.id 报错（段落1）。修法：上下文只给出了根因和报错现象，未给出具体的修复方案（如改键或改渲染参数的分离方式），缺少这部分信息。",
+        "answer": "根因：lru_cache 的参数必须可哈希，因此把参数字典 _freeze 成元组；但同一份值既当缓存键、又当渲染参数，导致模板里的 ctx.id 报错（段落1）。修法：上下文只描述了报错现象，未给出具体修复方案，缺少'如何让缓存键与渲染参数分离（或如何让 ctx.id 可用）'的信息，无法确定。",
         "citations": [
           1
         ],
         "uncertain": true,
         "judge_status": "ok",
         "verdict": "partially_correct",
-        "judge_reason": "根因正确，但修法答错，称上下文无修法与锚点不符"
+        "judge_reason": "根因正确但漏掉修法，误称原文未给修复方案"
       },
       {
         "id": "m-19",
         "type": "multi_hop",
         "question": "探针实验里模型自创字段与枚举缺失的关系是什么？",
         "gen_status": "ok",
-        "answer": "上下文给出了实证：模型在看不到枚举时会自创枚举值（探针中自创了\"category\":\"故障报修\"）；而一旦把枚举清单渲染进 prompt，实测单次调用即可直接命中正确的\"功能异常\"。这说明模型自创字段/枚举值与 schema 中枚举信息缺失直接相关——schema 未渲染进 prompt 时，模型既自创了 category 等字段（4 个 required 字段一个都没出），也自创了枚举值；补充枚举后即可命中正确值。",
+        "answer": "根据上下文，二者存在直接关联：探针实验中，在模型看不到枚举清单的情况下，模型自创了枚举值 \"category\":\"故障报修\"；而在给出枚举清单后，实测单次调用直接命中了 \"功能异常\"（[2]）。这说明枚举未渲染进提示会导致模型自创字段/枚举值，是\"枚举必须渲染进去\"的实证（[2]）。此外，探针给的是完整 schema（含 3 组 enum），但结果模型自创了 category、priority、summary、tags、suggested_team 等字段，四个 required 字段一个都没出（[1]）。",
         "citations": [
           1,
           2
         ],
         "uncertain": false,
         "judge_status": "ok",
-        "verdict": "partially_correct",
-        "judge_reason": "核心关系正确，但含原文未证实的多余数字细节"
+        "verdict": "correct",
+        "judge_reason": "核心事实一致：看不到枚举时自创category等字段，无错误"
       },
       {
         "id": "r-01",
@@ -310,17 +307,17 @@
         "note": "拒答题由检索侧阈值三分类判定，不进生成指标分母"
       }
     ],
-    "elapsed_sec": 125.5,
+    "elapsed_sec": 123.2,
     "summary": {
       "n_total": 20,
       "n_excluded_na": 6,
       "n_measured": 14,
       "verdict_counts": {
         "correct": 4,
-        "wrong": 6,
-        "partially_correct": 4
+        "partially_correct": 5,
+        "wrong": 5
       },
-      "answer_score": 0.4286,
+      "answer_score": 0.4643,
       "failures": {
         "retrieve": [],
         "prompt": [],

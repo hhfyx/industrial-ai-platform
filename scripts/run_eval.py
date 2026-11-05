@@ -396,10 +396,14 @@ def main(argv: list[str] | None = None) -> int:
         ["git", "rev-parse", "HEAD"], cwd=PROJECT_ROOT, capture_output=True, text=True
     ).stdout.strip()
     n_q = sum(1 for line in args.questions.read_text(encoding="utf-8").splitlines() if line.strip())
+    # questions 路径统一转绝对再取相对 —— 传相对路径时 relative_to 会炸（相对≠绝对）
+    questions_abs = (
+        args.questions if args.questions.is_absolute() else (PROJECT_ROOT / args.questions)
+    )
     payload = {
         "meta": {
             "generated_at": started,
-            "questions": str(args.questions.relative_to(PROJECT_ROOT)),
+            "questions": str(questions_abs.relative_to(PROJECT_ROOT)),
             "n_questions": n_q,
             "commit": commit,
             "metrics_version": METRICS_VERSION,

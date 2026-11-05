@@ -1,0 +1,272 @@
+[
+ {
+  "id": "f-81",
+  "question": "消融实验分两次跑踩了什么坑？",
+  "gold_answer": "每次新建 store，前两档数据被覆盖",
+  "answer": "消融实验分两次跑时，每次都新建 store，导致前两档数据被覆盖（与 lc_extract.py 是同一个坑）。教训是\"我验证过了\"和\"我保存下来了\"是两回事，任何花真钱的实验必须先落盘再开始下一次。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 1
+ },
+ {
+  "id": "m-01",
+  "question": "内存测量那两次差点量错的坑，分别错在哪？",
+  "gold_answer": "坑1：tasklist CSV 内存字段含逗号；坑2：p.pid 是 launcher 不是被测进程",
+  "answer": "内存测量链路有两个独立错误源：一是 `tasklist` 的 CSV 输出里内存字段本身含逗号，解析时容易出错（差点把结论做反，错误结果看起来很合理）；二是进程身份搞错——用 `p.pid` 去查询，量到的其实是 launcher 的空壳进程，同样会得到'1 MB'这种很小的数字。任一错误都会给出'很小、很乐观'的结果。修法是让探针脚本第一行打印 `os.getpid()`，主进程用它去查询。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 2
+ },
+ {
+  "id": "f-15",
+  "question": "仓库根目录同时有 requirements.txt 和 uv.lock 时，Cloud 实际读哪个？",
+  "gold_answer": "uv.lock（优先级更高）",
+  "answer": "Cloud 实际读取 uv.lock。因为 Cloud 会先搜索入口文件所在目录，再搜索仓库根目录；在每个位置，依赖文件的优先级顺序为 uv.lock > Pipfile > environment.yml > requirements.txt > pyproject.toml，uv.lock 优先级高于 requirements.txt（段落[1]）。所以当仓库根目录同时存在 requirements.txt 和 uv.lock 时，Cloud 会命中优先级更高的 uv.lock（段落[2]）。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 3
+ },
+ {
+  "id": "f-51",
+  "question": "A/B 脚手架的 temperature 和 seed 为什么写成常量？",
+  "gold_answer": "允许调它，等于允许有人偷偷改来调好看",
+  "answer": "上下文不足以回答。段[2]只有标题\"为什么 temperature 和 seed 不做成参数\"，缺少该节正文，未说明写成常量的具体理由。段[1]仅记录了 temp=0 与 seed 实测不可复现的现象，但并未说明这与\"写成常量\"之间的因果关系，缺少 A/B 脚手架将 temperature 和 seed 写成常量的直接原因说明。",
+  "human_verdict": "wrong",
+  "human_key_fact_ok": "false",
+  "no": 4
+ },
+ {
+  "id": "f-72",
+  "question": "容器里必然降级的两个原因之间是什么关系？",
+  "gold_answer": "互相独立：网络可达不够，还要解决鉴权",
+  "answer": "两者是相互独立的关系，各自单独都会导致容器内降级。原因1：容器内的127.0.0.1指向容器自身的loopback而非宿主机网关（[1]）；原因2：网关鉴权绑定宿主登录态，即使把LLM_BASE_URL改成host.docker.internal:8326使网络连通，仍因未配置凭据返回502而降级（[3]、[4]）。文档明确将其称为『容器必然降级的两个独立原因』（[1]、[4]）。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 5
+ },
+ {
+  "id": "f-17",
+  "question": "部署前跑端点自检的成本是多少？",
+  "gold_answer": "约 5 秒，只发 3 次最小调用，近乎免费",
+  "answer": "上下文没有给出部署前跑端点自检的成本。材料只提到「拿到 key 后，先跑自检再部署」可以省一次 3 分钟的等待【1】，以及回灌重试的成本结论见 docs/cost.md【4】，但均未给出自检本身的成本数值。缺少自检的耗时或费用数据。",
+  "human_verdict": "wrong",
+  "human_key_fact_ok": "false",
+  "no": 6
+ },
+ {
+  "id": "f-13",
+  "question": "低内存环境的降级方案为什么选 hashing？",
+  "gold_answer": "零依赖、零下载、确定能跑",
+  "answer": "选 hashing 的理由是\"确定的代价 vs 不确定的收益\"：ONNX 量化版可能省下 300 MB，但需要先验证它能装、能跑、精度下降多少，那是半天到一天的工作，且它不改变 demo 想演示的内容（能跑通 + 能讲清 + 能指出问题）。这不是 ONNX 不好，而是当天没时间验证，该事项已写进 README 的\"已知问题\"清单作为明确待办。此外，降级必须对用户可见：侧栏会显示提示及当前 recommended_min_score（hashing 是 0.0，等于关掉拒答闸门），因为悄悄降级等于骗用户——用户以为在做语义检索，实际只有字面匹配。",
+  "human_verdict": "partially_correct",
+  "human_key_fact_ok": "true",
+  "no": 7
+ },
+ {
+  "id": "f-54",
+  "question": "prompt 实验集为什么不能拿去当 W7 评测集？",
+  "gold_answer": "调参时见过并优化过，评测会虚高",
+  "answer": "因为调 prompt 时会反复看到这 40 条，若 W7 用同一批问题，评测结果会因\"这些题在调 prompt 时见过并针对性优化过\"而虚高，那就不是在测 RAG，而是在测记忆；因此两者不能混用、不能复用（该边界由 check_leakage() 兜住）",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 8
+ },
+ {
+  "id": "f-43",
+  "question": "section_path 存进 metadata 有哪两个实际用途？",
+  "gold_answer": "检索按章节过滤；生成时告诉用户在第几节",
+  "answer": "两个实际用途：一是检索时按章节过滤——section_path 是扁平字符串，可直接进 Chroma 的 where 条件做过滤；二是生成时告诉用户信息出自哪一节（如\"在第 1.2 节\"），即可验证的来源定位。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 9
+ },
+ {
+  "id": "f-40",
+  "question": "四档判定改完之后，两版真正把越界请求挡在门外（合法 JSON 加拒绝话术）的比例各是多少？",
+  "gold_answer": "0.00 → 0.60（笼统搪塞 0.40 → 0.00）",
+  "answer": "上下文不足以确定各版的具体比例。段落[3]只给出四档判定后的两组数字：显式拒绝率 0.00→0.60、笼统搪塞率 0.40→0.00，但未标明 0.00 与 0.60 分别对应 A 版还是 B 版；且「显式拒绝率」是否等同于「合法 JSON 加拒绝话术」也未说明（段落[1]显示 A 版的拒绝是自然语言、解析崩，B 版才是合法 JSON）。缺少各版本显式拒绝率的明确归属及显式拒绝与合法 JSON 输出的对应关系。",
+  "human_verdict": "wrong",
+  "human_key_fact_ok": "false",
+  "no": 10
+ },
+ {
+  "id": "f-50",
+  "question": "PDF 标题启发式的 confidence 这个数衡量什么？",
+  "gold_answer": "命中行/候选大字号行比例，判断判据稳不稳",
+  "answer": "confidence 衡量\"这个判据在这份文档上稳不稳\"：它是命中行 / 候选大字号行的比例，即字号启发式判定出的标题命中数占所有候选大字号行的比例。它衡量的是判据在文档上的可靠程度（是否大部分大字号行确实被识别为标题），而非字号差距（那由 ratio 衡量）。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 11
+ },
+ {
+  "id": "f-12",
+  "question": "上传大小上限配置写在哪才真正生效？",
+  "gold_answer": "[server] 段；写 [client] 会被静默忽略",
+  "answer": "配置要写在 `[server]` 段下才真正生效。如果写错位置，进程仍能正常启动、没有任何错误信号，表现为\"我明明调了上限\"和\"还是传不上去\"同时成立；`tests/test_deploy_config.py::test_streamlit_config_has_no_invalid_keys` 有测试守着这条。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 12
+ },
+ {
+  "id": "f-68",
+  "question": "实验缓存的键由哪些字段构成？",
+  "gold_answer": "model/prompt/schema_json/temperature/max_tokens 的 sha256",
+  "answer": "缓存键由 (model, prompt, schema_json, temperature, max_tokens) 的 sha256 构成，即包含模型、提示词、schema 的 JSON、温度和最大 token 数这五个字段；且缓存键必须包含 schema，否则会拿到结构不兼容的旧结果。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 13
+ },
+ {
+  "id": "m-12",
+  "question": "v2 加引用要求后，预期收益与实际效果差在哪？",
+  "gold_answer": "预期引用更完整，实际 qa-08 类上下文无关题仍 0 引用",
+  "answer": "预期收益是\"引用更完整、可核查\"，实际效果是\"部分实现\"：确实更多条目给了引用，但对 qa-08 这类\"上下文完全无关\"的题，v2 仍然给出 0 条引用（这是正确行为）。即差距在于收益只部分达成——整体引用数量增加，但并非所有条目都带引用。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 14
+ },
+ {
+  "id": "f-26",
+  "question": "什么场景下 LangChain 的 Runnable 层仍有明显优势？",
+  "gold_answer": "多步骤 agent + 工具调用 + 流式 + 内存",
+  "answer": "在「多步骤 agent + 工具调用 + 流式 + 内存」这类场景下，LangChain 的 Runnable 层有明显优势：自研流式需要写 stream/astream 两套，批量要自己写并发控制，组合要手写 pipeline，而 LangChain 在这些场景省下的代码量是实打实的。作者强调其结论只是特定于\"结构化输出\"这一层，并不是说 LangChain 没用。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 15
+ },
+ {
+  "id": "f-38",
+  "question": "四要素里，边界句的特殊作用是什么？",
+  "gold_answer": "唯一能区分「任务」和「闲聊」的一句话",
+  "answer": "在四要素中，边界句的特殊作用在于：没有它，越界请求会被当作正常需求执行；它是唯一能区分\"任务\"和\"闲聊\"的一句话。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 16
+ },
+ {
+  "id": "f-45",
+  "question": "把「有 heading_level」当成节开头这个错，怎么修的？",
+  "gold_answer": "判据改成标题行；level 只用来筛深度",
+  "answer": "修法是把判据改成'标题行'：即 block == \"heading\" 或首行是 ATX 标题的行才作为节的开头；heading_level 只用来筛选'够不够深'，超过 heading_max_level 的标题只算上一节的分点，不再作为新节边界。原错误是因为 loader 把 heading_level 挂在该节每一段上（表示该段属于哪一级，而非该段就是标题），导致每段都成节开头、等于没分组。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 17
+ },
+ {
+  "id": "m-05",
+  "question": "50 页 PDF 全流程里，解析和索引各自花了多久？",
+  "gold_answer": "解析 714ms；索引 1015ms（其中编码 300ms）",
+  "answer": "上下文未给出50页PDF全流程中解析和索引各自的耗时。仅有解析相关的局部数据：pypdf抽取50页全文82.9 ms，pdfplumber对50页全文执行find_tables为164.2 ms，无表格页的单页find_tables为3.3 ms（见[4]）。但缺少：50页全流程中索引（向量化/入库）阶段的具体耗时数据，也没有全流程整体耗时分解。[2]只提到批量入库在15,000条时是'几十秒 vs 几分钟'的对比，并非50页流程的索引耗时。",
+  "human_verdict": "wrong",
+  "human_key_fact_ok": "false",
+  "no": 18
+ },
+ {
+  "id": "f-18",
+  "question": "Streamlit Secrets 里的配置要粘贴到哪一层？",
+  "gold_answer": "根级；放进 [section] 不会变成环境变量",
+  "answer": "Secrets 要粘贴到根级，不要放进 `[section]`。Streamlit 官方文档明确：根级 secrets 会作为环境变量可用（`os.environ[\"db_username\"] == st.secrets[\"db_username\"]`），而 section 里的不会。本项目用 pydantic-settings 读 `LLM_*` 环境变量，所以只要放在根级，不需要改任何代码。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 19
+ },
+ {
+  "id": "f-22",
+  "question": "json_mode 路线失败时，模型的输出实际长什么样？",
+  "gold_answer": "业务字段都对，但没套规定的 JSON 外壳",
+  "answer": "json_mode 路线失败时，模型拿到的是'内容正确、结构不对'的输出，即两个业务字段的值都答对了（平台=Windows、正确命令=curl.exe），只是没套上 {\"fields\": {...}} 这层外壳，随后框架抛出 OutputParserException；这与 json_schema 的失败根因相同，差别仅在报错类型。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 20
+ },
+ {
+  "id": "f-08",
+  "question": "抽取模板遗留的真实待改项是什么？",
+  "gold_answer": "v2 倾向提炼而非照抄，会压缩字段值",
+  "answer": "根据段落[2]，遗留的真实待改项是：v2 模板倾向于\"提炼\"而不是\"照抄\"。模板里虽已写明\"值保持原文原始写法\"，但实测仍有压缩/合并倾向。这是 v2 模板的真实待改项，属于模板问题而非模型能力问题。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 21
+ },
+ {
+  "id": "f-02",
+  "question": "摘要组换 v2 之后失败情况怎么样？",
+  "gold_answer": "7 条超时，失败率 70%",
+  "answer": "摘要组换 v2 后的失败属于参数配置问题而非模板质量问题：`timeout=30s` 太短，导致 7 条超时失败；如果调到 60s，这 7 条超时可能全部变为成功。因此“v2 摘要模板差”的结论只在当前 timeout 配置下成立（依据段落[1]）。",
+  "human_verdict": "partially_correct",
+  "human_key_fact_ok": "true",
+  "no": 22
+ },
+ {
+  "id": "f-07",
+  "question": "抽取组 v1 输得那么惨，根因是什么？",
+  "gold_answer": "不是模型差，是 v1 schema 契约不匹配",
+  "answer": "根因是契约不匹配，而非模型能力差。v1 的 schema 把槽位写死成「主体/时间」（按工单场景设计，即\"联系人+发生时间\"），而这批输入来自技术文档，字段是「版本/路径/要求/算法名」，对不上。模型不是不会抽，是没有槽位可填。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 23
+ },
+ {
+  "id": "f-24",
+  "question": "扁平 schema 对照实验纠正了什么结论？",
+  "gold_answer": "本网关对扁平能强制执行，只是对嵌套不强制",
+  "answer": "对照实验纠正了原先'扁平也照样失败，本网关根本不强制任何格式'的说法，该说法是基于 1 条样本的错误归因 [1]。修正后的结论是：本网关对扁平 schema 能强制执行，对嵌套 schema 不能 [1]。扁平 schema 的 2 条失败不是格式没被强制，而是'形状选错' [1][4]。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 24
+ },
+ {
+  "id": "f-70",
+  "question": "本机网关的鉴权依赖什么？",
+  "gold_answer": "宿主进程的登录态；容器是另一身份，不被认可",
+  "answer": "本机网关（端口 8326）是 DeepSeek Harness 进程内起的，其鉴权跟着宿主进程的登录态走；对应的 LLM_API_KEY 是 DSH 的会话凭据。因此容器作为另一个进程、另一种身份，即使网络可达，网关也不认。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 25
+ },
+ {
+  "id": "f-55",
+  "question": "用量统计怎么拿到而不动定版的函数签名？",
+  "gold_answer": "set_usage_sink 旁路钩子，默认 None 零开销",
+  "answer": "由于 structured_call 的签名是周三定版的（返回 BaseModel），改动会导致后面四周全部返工，但它拿不到 usage，因此加了一个旁路钩子来获取用量，而不动定版签名。",
+  "human_verdict": "partially_correct",
+  "human_key_fact_ok": "false",
+  "no": 26
+ },
+ {
+  "id": "f-77",
+  "question": "v0.3.0 的核心交付是什么？",
+  "gold_answer": "structured_call 签名定版，后续四周共用",
+  "answer": "v0.3.0 是 W3 Prompt 工程周的版本，其核心交付是把「模型输出」从\"祈祷它按格式回\"变成\"有契约、有校验、有可复现对比\"。",
+  "human_verdict": "wrong",
+  "human_key_fact_ok": "false",
+  "no": 27
+ },
+ {
+  "id": "f-14",
+  "question": "部署用的依赖文件必须放在哪里？",
+  "gold_answer": "入口文件所在目录；放根目录会被 uv.lock 抢掉",
+  "answer": "部署用的依赖文件必须放在入口目录（即入口文件所在目录，如 `app/ui/`），而不是仓库根目录。因为 Community Cloud 会先搜索入口文件所在目录，再搜索仓库根目录；若放在根目录，会被优先级更高的 `uv.lock`（优先级高于 `requirements.txt`）抢掉，导致安装完整依赖（含 torch 900 MB），引发超时或 OOM。段落[5]也明确指出：这份文件必须放在入口目录，放根目录会被 `uv.lock` 抢掉。",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 28
+ },
+ {
+  "id": "f-10",
+  "question": "免费层为什么跑不了 bge？",
+  "gold_answer": "模型栈增量 528 MB，加上其余组件 1 GB 无余量",
+  "answer": "模型栈实测增量528 MB，加上Streamlit自身约100 MB与Chroma约50 MB，1 GB上限下没有余量，并发会话或一次大文档索引就会OOM，所以免费层跑不了bge，线上默认降级为hashing",
+  "human_verdict": "correct",
+  "human_key_fact_ok": "true",
+  "no": 29
+ },
+ {
+  "id": "f-25",
+  "question": "从单条样本得出结论这件事，代价是什么？",
+  "gold_answer": "基于 1 条样本的归因写错了整个小节",
+  "answer": "上下文没有说明“从单条样本得出结论”的代价。段落[1]只提到一条样本成功了、但一条样本不能下结论，因此作者补做了10条对照实验，但并未描述这样做或下这种结论的代价是什么。缺少关于单条样本结论的代价的具体信息。",
+  "human_verdict": "wrong",
+  "human_key_fact_ok": "false",
+  "no": 30
+ }
+]
