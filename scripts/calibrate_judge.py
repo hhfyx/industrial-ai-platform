@@ -301,35 +301,43 @@ def faithfulness(n: int = 15) -> None:
     rng = random.Random(SEED + 1)
     picks = rng.sample(recs, min(n, len(recs)))
 
-    out_rows = []
-    for r in picks:
-        item = _find_item(r["id"])
-        ctx_ids = sorted({c["id"] for c in retrieve_contexts(item, 5)})
-        cited = r["citations"]
-        # 程序化判定引用越界（W4 F3 的机器真值，judge 要能对上它）
-        program_invalid = [c for c in cited if c not in ctx_ids]
-        prompt = (
-            "你是 judge。判断【回答】的每一句是否能在【上下文】里找到支撑；"
-            "并列出回答里引用了但不存在的编号。\n"
-            f"【上下文编号】{ctx_ids}\n"
-            f"【回答】{r['answer'][:500]}\n"
-            f"【回答里的引用编号】{cited}"
-        )
-        try:
-            res = asyncio.run(structured_call(prompt, FaithOut))
-            row = {
-                "id": r["id"],
-                "cited": cited,
-                "ctx_ids": ctx_ids,
-                "program_invalid_refs": program_invalid,
-                "judge_invalid_refs": res.invalid_citations,
-                "judge_supported": res.supported,
-                "reason": res.reason,
-                "f3_detected_agree": sorted(res.invalid_citations) == sorted(program_invalid),
-            }
-        except Exception as exc:
-            row = {"id": r["id"], "status": "failed", "error": str(exc)[:100]}
-        out_rows.append(row)
+    # 全部放同一个事件循环：asyncio.run 每次新建 loop，第二次调用会
+    # 撞上 "Event loop is closed"（进程级 client 单例还挂在旧 loop 上）
+    async def _all() -> list[dict]:
+        out_rows: list[dict] = []
+        for r in picks:
+            item = _find_item(r["id"])
+            ctx_ids = sorted({c["id"] for c in retrieve_contexts(item, 5)})
+            cited = r["citations"]
+            # 程序化判定引用越界（W4 F3 的机器真值，judge 要能对上它）
+            program_invalid = [c for c in cited if c not in ctx_ids]
+            prompt = (
+                "你是 judge。判断【回答】的每一句是否能在【上下文】里找到支撑；"
+                "并列出回答里引用了但不存在的编号。\n"
+                f"【上下文编号】{ctx_ids}\n"
+                f"【回答】{r['answer'][:500]}\n"
+                f"【回答里的引用编号】{cited}"
+            )
+            try:
+                res = await structured_call(prompt, FaithOut)
+                out_rows.append(
+                    {
+                        "id": r["id"],
+                        "cited": cited,
+                        "ctx_ids": ctx_ids,
+                        "program_invalid_refs": program_invalid,
+                        "judge_invalid_refs": res.invalid_citations,
+                        "judge_supported": res.supported,
+                        "reason": res.reason,
+                        "f3_detected_agree": sorted(res.invalid_citations)
+                        == sorted(program_invalid),
+                    }
+                )
+            except Exception as exc:
+                out_rows.append({"id": r["id"], "status": "failed", "error": str(exc)[:100]})
+        return out_rows
+
+    out_rows = asyncio.run(_all())
 
     ok = [r for r in out_rows if "status" not in r]
     agree = sum(1 for r in ok if r["f3_detected_agree"])

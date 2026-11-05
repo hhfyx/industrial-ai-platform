@@ -1,0 +1,242 @@
+[
+ {
+  "no": 1,
+  "id": "f-81",
+  "verdict": "correct",
+  "reason": "每次新建store致前两档数据被覆盖，事实一致",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 2,
+  "id": "m-01",
+  "verdict": "correct",
+  "reason": "两处坑均与标准答案一致",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 3,
+  "id": "f-15",
+  "verdict": "correct",
+  "reason": "答案明确为 uv.lock，且说明其优先级更高",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 4,
+  "id": "f-51",
+  "verdict": "wrong",
+  "reason": "未给出标准答案关键理由，答非所问",
+  "key_fact_ok": false,
+  "status": "ok"
+ },
+ {
+  "no": 5,
+  "id": "f-72",
+  "verdict": "correct",
+  "reason": "明确说明两者互相独立，并指出网络与鉴权均需解决",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 6,
+  "id": "f-17",
+  "verdict": "wrong",
+  "reason": "答案否认有成本数据，未包含约5秒、3次调用、近乎免费",
+  "key_fact_ok": false,
+  "status": "ok"
+ },
+ {
+  "no": 7,
+  "id": "f-13",
+  "verdict": "partially_correct",
+  "reason": "结论对，但缺零依赖、零下载、确定能跑要点",
+  "key_fact_ok": false,
+  "status": "ok"
+ },
+ {
+  "no": 8,
+  "id": "f-54",
+  "verdict": "correct",
+  "reason": "已说明调参见过并优化过，导致评测虚高",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 9,
+  "id": "f-43",
+  "verdict": "correct",
+  "reason": "两个用途均与标准答案一致",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 10,
+  "id": "f-40",
+  "verdict": "wrong",
+  "reason": "未给出0.00→0.60，称无法确定，与标准不符",
+  "key_fact_ok": false,
+  "status": "ok"
+ },
+ {
+  "no": 11,
+  "id": "f-50",
+  "verdict": "correct",
+  "reason": "准确说明命中行/候选大字号行比例及判据稳定性",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 12,
+  "id": "f-12",
+  "verdict": "correct",
+  "reason": "写在[server]段生效，写错位置被静默忽略，事实一致",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 13,
+  "id": "f-68",
+  "verdict": "correct",
+  "reason": "五个字段及sha256均与标准答案一致",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 14,
+  "id": "m-12",
+  "verdict": "correct",
+  "reason": "预期更完整，实际qa-08仍0引用且属正确行为",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 15,
+  "id": "f-26",
+  "verdict": "correct",
+  "reason": "答案包含标准答案的全部关键场景",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 16,
+  "id": "f-38",
+  "verdict": "correct",
+  "reason": "包含唯一能区分任务和闲聊的关键事实",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 17,
+  "id": "f-45",
+  "verdict": "correct",
+  "reason": "判据改为标题行，level仅筛深度，事实一致",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 18,
+  "id": "m-05",
+  "verdict": "wrong",
+  "reason": "未给出解析714ms和索引1015ms，关键事实缺失",
+  "key_fact_ok": false,
+  "status": "ok"
+ },
+ {
+  "no": 19,
+  "id": "f-18",
+  "verdict": "correct",
+  "reason": "答案明确根级且section不会变环境变量",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 20,
+  "id": "f-22",
+  "verdict": "correct",
+  "reason": "业务字段对但未套JSON外壳，关键事实一致",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 21,
+  "id": "f-08",
+  "verdict": "correct",
+  "reason": "答案包含v2倾向提炼而非照抄并会压缩字段值这一关键事实",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 22,
+  "id": "f-02",
+  "verdict": "partially_correct",
+  "reason": "有7条超时，但缺失败率70%",
+  "key_fact_ok": false,
+  "status": "ok"
+ },
+ {
+  "no": 23,
+  "id": "f-07",
+  "verdict": "correct",
+  "reason": "指出根因是schema契约不匹配而非模型差",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 24,
+  "id": "f-24",
+  "verdict": "correct",
+  "reason": "明确复述扁平可强制、嵌套不可强制，关键事实一致",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 25,
+  "id": "f-70",
+  "verdict": "correct",
+  "reason": "鉴权依赖宿主登录态，容器另一身份不被认可",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 26,
+  "id": "f-55",
+  "verdict": "partially_correct",
+  "reason": "有旁路钩子；缺具体名和默认零开销",
+  "key_fact_ok": false,
+  "status": "ok"
+ },
+ {
+  "no": 27,
+  "id": "f-77",
+  "verdict": "wrong",
+  "reason": "未提 structured_call 签名定版及后续四周共用",
+  "key_fact_ok": false,
+  "status": "ok"
+ },
+ {
+  "no": 28,
+  "id": "f-14",
+  "verdict": "correct",
+  "reason": "答案与标准答案一致：放入口文件所在目录，根目录会被uv.lock抢掉",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 29,
+  "id": "f-10",
+  "verdict": "correct",
+  "reason": "包含528 MB及1 GB无余量关键事实",
+  "key_fact_ok": true,
+  "status": "ok"
+ },
+ {
+  "no": 30,
+  "id": "f-25",
+  "verdict": "wrong",
+  "reason": "标准代价是写错整个小节，回答却称未说明代价",
+  "key_fact_ok": false,
+  "status": "ok"
+ }
+]

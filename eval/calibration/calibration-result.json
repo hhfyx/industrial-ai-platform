@@ -1,0 +1,43 @@
+{
+ "agree": 30,
+ "total": 30,
+ "rate": 1.0,
+ "key_fact_agree": 28,
+ "confusion": {
+  "correct->correct": 21,
+  "wrong->wrong": 6,
+  "partially_correct->partially_correct": 3
+ },
+ "detail": [
+  "[no1 f-81] 人=correct judge=correct (每次新建store致前两档数据被覆盖，事实一致)",
+  "[no2 m-01] 人=correct judge=correct (两处坑均与标准答案一致)",
+  "[no3 f-15] 人=correct judge=correct (答案明确为 uv.lock，且说明其优先级更高)",
+  "[no4 f-51] 人=wrong judge=wrong (未给出标准答案关键理由，答非所问)",
+  "[no5 f-72] 人=correct judge=correct (明确说明两者互相独立，并指出网络与鉴权均需解决)",
+  "[no6 f-17] 人=wrong judge=wrong (答案否认有成本数据，未包含约5秒、3次调用、近乎免费)",
+  "[no7 f-13] 人=partially_correct judge=partially_correct (结论对，但缺零依赖、零下载、确定能跑要点)",
+  "[no8 f-54] 人=correct judge=correct (已说明调参见过并优化过，导致评测虚高)",
+  "[no9 f-43] 人=correct judge=correct (两个用途均与标准答案一致)",
+  "[no10 f-40] 人=wrong judge=wrong (未给出0.00→0.60，称无法确定，与标准不符)",
+  "[no11 f-50] 人=correct judge=correct (准确说明命中行/候选大字号行比例及判据稳定性)",
+  "[no12 f-12] 人=correct judge=correct (写在[server]段生效，写错位置被静默忽略，事实一致)",
+  "[no13 f-68] 人=correct judge=correct (五个字段及sha256均与标准答案一致)",
+  "[no14 m-12] 人=correct judge=correct (预期更完整，实际qa-08仍0引用且属正确行为)",
+  "[no15 f-26] 人=correct judge=correct (答案包含标准答案的全部关键场景)",
+  "[no16 f-38] 人=correct judge=correct (包含唯一能区分任务和闲聊的关键事实)",
+  "[no17 f-45] 人=correct judge=correct (判据改为标题行，level仅筛深度，事实一致)",
+  "[no18 m-05] 人=wrong judge=wrong (未给出解析714ms和索引1015ms，关键事实缺失)",
+  "[no19 f-18] 人=correct judge=correct (答案明确根级且section不会变环境变量)",
+  "[no20 f-22] 人=correct judge=correct (业务字段对但未套JSON外壳，关键事实一致)",
+  "[no21 f-08] 人=correct judge=correct (答案包含v2倾向提炼而非照抄并会压缩字段值这一关键事实)",
+  "[no22 f-02] 人=partially_correct judge=partially_correct (有7条超时，但缺失败率70%)",
+  "[no23 f-07] 人=correct judge=correct (指出根因是schema契约不匹配而非模型差)",
+  "[no24 f-24] 人=correct judge=correct (明确复述扁平可强制、嵌套不可强制，关键事实一致)",
+  "[no25 f-70] 人=correct judge=correct (鉴权依赖宿主登录态，容器另一身份不被认可)",
+  "[no26 f-55] 人=partially_correct judge=partially_correct (有旁路钩子；缺具体名和默认零开销)",
+  "[no27 f-77] 人=wrong judge=wrong (未提 structured_call 签名定版及后续四周共用)",
+  "[no28 f-14] 人=correct judge=correct (答案与标准答案一致：放入口文件所在目录，根目录会被uv.lo)",
+  "[no29 f-10] 人=correct judge=correct (包含528 MB及1 GB无余量关键事实)",
+  "[no30 f-25] 人=wrong judge=wrong (标准代价是写错整个小节，回答却称未说明代价)"
+ ]
+}
