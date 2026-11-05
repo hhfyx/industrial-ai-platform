@@ -160,6 +160,11 @@ TASKS: dict[str, tuple[str, list[str]]] = {
         "LLM 端点自检：连通/鉴权/模型名/能否出字/能否带材料作答（约 5 秒，近乎免费）",
         ["scripts/check_llm_endpoint.py"],
     ),
+    # ---- W7 周四：一条命令出全部指标 ----
+    "run-eval": (
+        "全链路评测：检索指标 + 生成 + judge（默认 20 条 slice，--questions 换集）",
+        ["scripts/run_eval.py"],
+    ),
     # ---- W7 周一：黄金集校验（出题守门人）----
     "validate-golden": (
         "黄金集校验：格式 + 锚点反查 + 泄题 + 拒答证据（坏数据当场报错）",

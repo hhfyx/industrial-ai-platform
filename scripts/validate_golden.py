@@ -184,15 +184,19 @@ def validate_anchors(items: list[dict[str, Any]], chunks: list[Any]) -> list[str
                 "（README §三：同块能读完的不是多跳）"
             )
 
-    # quote 必须逐字唯一：同一 source 下，两条题的 quote 相同 = 标注重复
+    # quote 必须逐字唯一：**同题型内**两条题引用同一行原文 = 标注重复。
+    # 多跳引用与某条事实题同一行是**合法的** —— 多跳考"两处合并"，
+    # 事实题考"单处事实"，同一行原文可以合法地服务两种考核
+    # （真正的重复判定在隔离测试里：跨集 question 归一化比对 + 换问法检查）。
     seen_quotes: dict[str, str] = {}
     for item in items:
+        kind = item["type"]
         for anchor in item["anchors"] or []:
-            key = f"{anchor.get('source')}::{anchor.get('quote')}"
+            key = (kind, f"{anchor.get('source')}::{anchor.get('quote')}")
             if key in seen_quotes and seen_quotes[key] != str(item["id"]):
                 errors.append(
-                    f"[{item['id']}] quote 与 [{seen_quotes[key]}] 完全相同 —— "
-                    "同一事实被标了两次（换问法也不行，README §〇）"
+                    f"[{item['id']}] {kind} 的 quote 与 [{seen_quotes[key]}] 完全相同 —— "
+                    "同题型同一行原文被标了两次（换问法也不行，README §〇）"
                 )
             seen_quotes.setdefault(key, str(item["id"]))
 

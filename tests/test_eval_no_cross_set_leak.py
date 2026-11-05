@@ -241,9 +241,8 @@ def test_question_set_sizes_are_what_they_are() -> None:
         table-gold     5
         refusal-gold   5
 
-    2026-12-01 追加：`questions-120` 开始出题。定案 120 = 80 事实 + 20 多跳 + 20 拒答。
-    当前 **80 条事实型已入库**（13 份未出题文档，零调参集污染），
-    多跳/拒答分别在三、四周标注 —— 到位后把 80 改成 120。
+    2026-12-02 追加：`questions-120` **定案 120 条全部到位**
+    （80 事实 + 20 多跳 + 20 拒答，周三入库）。
 
     没有任何地方存着 200 条。如果哪天有人加了题，这条会红 ——
     那时请同步更新这个数字（**以及所有引用它总数的文档**）。
@@ -253,14 +252,14 @@ def test_question_set_sizes_are_what_they_are() -> None:
         "retrieval-gold.jsonl": 20,
         "table-gold.jsonl": 5,
         "refusal-gold.jsonl": 5,
-        "questions-120.jsonl": 80,
+        "questions-120.jsonl": 120,
     }
     actual = {name: len(_load(name)) for name in expected}
     assert actual == expected, (
         f"题集规模变了：{actual}（期望 {expected}）。\n"
         "改了题量请同步更新这里，以及文档里引用总数的说法。\n"
-        "questions-120 还差 20 多跳 + 20 拒答 = 120；改数字前先跑跨集比对确认无污染。"
+        "改数字前先跑跨集比对确认无污染。"
     )
-    assert sum(actual.values()) == 160, (
-        f"题目总数是 {sum(actual.values())}，不是 200 —— 引用时请写实数"
+    assert sum(actual.values()) == 200, (
+        f"题目总数是 {sum(actual.values())} —— 引用时请写实数（含 120 报成绩集与 80 调参集）"
     )

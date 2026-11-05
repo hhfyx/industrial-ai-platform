@@ -1,0 +1,273 @@
+{
+  "meta": {
+    "generated_at": "2026-11-05 22:20:28",
+    "questions_file": "eval\\questions-slice20.jsonl",
+    "chunk_chars": 500,
+    "overlap": 50,
+    "strategy": "recursive",
+    "embedder": "bge",
+    "chunks": 1165,
+    "corpus_docs": 1079,
+    "corpus_kind": "raw",
+    "ks": [
+      1,
+      3,
+      5,
+      8,
+      10
+    ],
+    "top_k": 5
+  },
+  "metrics": {
+    "total_questions": 20,
+    "answerable": 14,
+    "refusals": 6,
+    "recall": {
+      "recall@1": {
+        "hits": 2,
+        "total": 14,
+        "rate": 0.1429
+      },
+      "recall@3": {
+        "hits": 4,
+        "total": 14,
+        "rate": 0.2857
+      },
+      "recall@5": {
+        "hits": 6,
+        "total": 14,
+        "rate": 0.4286
+      },
+      "recall@8": {
+        "hits": 7,
+        "total": 14,
+        "rate": 0.5
+      },
+      "recall@10": {
+        "hits": 8,
+        "total": 14,
+        "rate": 0.5714
+      }
+    },
+    "mrr": 0.2663,
+    "by_type": {
+      "fact": {
+        "total": 8,
+        "recall@5": 0.625,
+        "mrr": 0.3896
+      },
+      "multi_hop": {
+        "total": 6,
+        "recall@5": 0.1667,
+        "mrr": 0.1019
+      }
+    },
+    "threshold": 0.575,
+    "top_k": 5,
+    "refusal": {
+      "refused_correctly": 1,
+      "refusal_total": 6,
+      "refusal_accuracy": 0.1667,
+      "false_refusal": [
+        "f-35",
+        "m-11",
+        "m-18"
+      ],
+      "false_accept": [
+        "r-01",
+        "r-03",
+        "r-06",
+        "r-16",
+        "r-18"
+      ],
+      "recall_miss": [
+        "f-31",
+        "f-35",
+        "f-76",
+        "m-02",
+        "m-10",
+        "m-11",
+        "m-16",
+        "m-18"
+      ],
+      "overall_accuracy": 0.35,
+      "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = (top5 内命中且分数过阈 + 正确拒答) / 全部题，它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
+    }
+  },
+  "per_question": [
+    {
+      "id": "f-01",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.6842
+    },
+    {
+      "id": "f-03",
+      "type": "fact",
+      "hit_rank": 4,
+      "anchor_ranks": [
+        4
+      ],
+      "top_score": 0.6898
+    },
+    {
+      "id": "f-22",
+      "type": "fact",
+      "hit_rank": 2,
+      "anchor_ranks": [
+        2
+      ],
+      "top_score": 0.6721
+    },
+    {
+      "id": "f-31",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.6349
+    },
+    {
+      "id": "f-35",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5508
+    },
+    {
+      "id": "f-47",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.6375
+    },
+    {
+      "id": "f-74",
+      "type": "fact",
+      "hit_rank": 5,
+      "anchor_ranks": [
+        5
+      ],
+      "top_score": 0.6515
+    },
+    {
+      "id": "f-76",
+      "type": "fact",
+      "hit_rank": 6,
+      "anchor_ranks": [
+        6
+      ],
+      "top_score": 0.6768
+    },
+    {
+      "id": "m-02",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        1
+      ],
+      "top_score": 0.6013
+    },
+    {
+      "id": "m-10",
+      "type": "multi_hop",
+      "hit_rank": 9,
+      "anchor_ranks": [
+        1,
+        9
+      ],
+      "top_score": 0.5886
+    },
+    {
+      "id": "m-11",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top_score": 0.5499
+    },
+    {
+      "id": "m-16",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top_score": 0.5914
+    },
+    {
+      "id": "m-18",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top_score": 0.5747
+    },
+    {
+      "id": "m-19",
+      "type": "multi_hop",
+      "hit_rank": 2,
+      "anchor_ranks": [
+        1,
+        2
+      ],
+      "top_score": 0.5878
+    },
+    {
+      "id": "r-01",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.6286
+    },
+    {
+      "id": "r-03",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.6068
+    },
+    {
+      "id": "r-06",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5921
+    },
+    {
+      "id": "r-16",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.6114
+    },
+    {
+      "id": "r-18",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.6249
+    },
+    {
+      "id": "r-20",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5691
+    }
+  ]
+}
