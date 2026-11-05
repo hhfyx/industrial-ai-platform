@@ -1,0 +1,32 @@
+{
+ "final_categories": {
+  "④ 生成问题（gold 在 top5 内仍答错/答非所问）": 5,
+  "③ 多跳需跨块": 7,
+  "① 切分断语义/其他未召回": 6,
+  "② 术语/同义词未命中": 3,
+  "① 检索未召回（含多跳连带）": 11
+ },
+ "note_4class": "④ 类 21 条中 16 条实为检索未召回（gold 不在 top5，模型只能答非所问）；真生成问题 5 条: ['f-51', 'f-37', 'f-76', 'f-25', 'f-40']",
+ "layers": {
+  "retrieved_ok": 64,
+  "found_not_ranked": 16,
+  "not_retrieved": 20
+ },
+ "layer_verdicts": {
+  "retrieved_ok": {
+   "correct": 43,
+   "partially_correct": 16,
+   "wrong": 5
+  },
+  "found_not_ranked": {
+   "correct": 6,
+   "partially_correct": 3,
+   "wrong": 7
+  },
+  "not_retrieved": {
+   "wrong": 9,
+   "partially_correct": 8,
+   "correct": 3
+  }
+ }
+}

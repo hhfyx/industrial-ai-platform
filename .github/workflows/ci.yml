@@ -161,6 +161,21 @@ jobs:
             exit 1
           fi
 
+      - name: Eval smoke (slice20, retrieval-only)
+        # **评测管线守护（2026-12-05 加）**：20 条 slice 只跑检索指标，
+        # 零 LLM 成本（--skip-generation）。它防的是三类静默回归：
+        # ① 锚点反查失败（改切分没更新 quote）→ 脚手架 exit 2
+        # ② 语料指纹漂移（白名单改动没走 corpus_fingerprint）→ 块数变化
+        # ③ 指标口径回归（summarize 的恒等式测试之外的真实数据流）
+        # 全量 120 条（含生成 + judge）**不进 CI** —— 要花 LLM 钱，
+        # 走 `make run-eval` 手动触发。
+        run: |
+          if ! uv run python -X utf8 scripts/run_eval.py \
+              --questions eval/questions-slice20.jsonl --skip-generation --no-write; then
+            echo "::error::Eval smoke 失败：检索评测管线回归（锚点/语料/口径）"
+            exit 1
+          fi
+
   docker:
     runs-on: ubuntu-latest
     steps:

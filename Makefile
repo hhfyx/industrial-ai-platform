@@ -118,3 +118,9 @@ latency-profile:  ## 四段占比 + P50/P95 + 三档配置对比（约 10 分钟
 # ------------------------------------------------------------------ W7 周一：部署前自检
 check-llm:  ## LLM 端点自检：连通/鉴权/模型名/出字/带材料作答（约 5 秒）
 	@$(PY) $(UTF8) scripts/tasks.py check-llm
+
+# ---- W7 周六：全量评测入口 ----
+run-eval:  ## 全量 120 条评测：检索 + 生成 + judge（花钱，约 15 分钟）
+	@$(PY) $(UTF8) scripts/tasks.py run-eval --questions eval/questions-120.jsonl
+eval-smoke:  ## CI 同款：20 条 slice 只跑检索（零成本）
+	@$(PY) $(UTF8) scripts/tasks.py run-eval --questions eval/questions-slice20.jsonl --skip-generation --no-write
