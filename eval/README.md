@@ -330,3 +330,35 @@ python -X utf8 scripts/run_retrieval_eval.py --embedder hashing   # 只验证流
    检索退化——把压缩的风险算到检索头上，两个指标都被污染。
 
 指标定义（公式 + 为什么 + 怎么刷 + 防刷）见 [metrics.md](metrics.md)。
+
+---
+
+## 十、W7 事实型题源清单（2026-12-01，可追溯）
+
+> **红线一的落地**：只用从未出过题的文档。2026-12-01 用当前索引核实：
+> 调参集（questions-50 50 条 + retrieval-gold 20 条 + table-gold 5 条 + refusal-gold 5 条）
+> 的全部锚点只落在 13 份"已占用"文档里，与 W7 题源**零交集**。
+> 出题管道 `scripts/build_questions_w7.py` 里的 `FREE_DOCS` 是唯一合法来源清单，
+> 每条题的 `anchors[].source` 必须在其中（校验器 + 跨集隔离测试双重把关）。
+
+| 文档 | 段数 | 已出题（事实型） | 配额依据 |
+| --- | ---: | ---: | --- |
+| prompt-ab.md | 77 | 9 | 最大自由文档，实测数字密集 |
+| deploy-notes.md | 69 | 9 | 坑清单多，每坑一题 |
+| prompt-templates.md | 47 | 8 | 设计决定多且唯一 |
+| system-prompt.md | 47 | 8 | 对抗测试表格数值唯一 |
+| chunking-boundaries.md | 43 | 8 | 修法/定义类唯一表述多 |
+| why-i-use-langchain.md | 64 | 7 | 对照表与归因表唯一 |
+| streamlit-ui.md | 36 | 7 | 实测数值唯一 |
+| structured-output.md | 29 | 6 | 能力边界唯一 |
+| ab-scaffold.md | 42 | 5 | 纪律理由类 |
+| container-networking.md | 13 | 4 | 短文档，只取最实的 |
+| chunking-predictions.md | 10 | 4 | 预判表唯一 |
+| release-notes-v0.3.0.md | 8 | 3 | 短文档 |
+| release-notes-v0.3.1.md | 6 | 2 | 短文档 |
+| **合计** | **491** | **80** | 13 份文档全覆盖，无单章垄断 |
+
+出题方式：人写 question/gold_answer/notes，脚本从 loader 清洗后的原文
+**按 key 定位整行切片**提取 quote —— quote 天然逐字，杜绝手抄错
+（README §六坑二）。落盘前自动过 quote 唯一 + 泄题检查；
+落盘后 validate_golden.py 反查索引；跨集隔离测试锁总量。
