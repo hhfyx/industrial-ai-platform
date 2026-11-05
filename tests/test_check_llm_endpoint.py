@@ -62,6 +62,7 @@ def test_unreachable_endpoint_exits_nonzero() -> None:
         ],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         cwd=str(PROJECT_ROOT),
         timeout=120,
     )
@@ -96,6 +97,7 @@ def test_bad_key_is_reported_as_401_hint() -> None:
         ],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         cwd=str(PROJECT_ROOT),
         timeout=120,
     )
@@ -186,6 +188,7 @@ def test_prompt_key_option_exists() -> None:
         [sys.executable, "-X", "utf8", str(SCRIPT), "--help"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         cwd=str(PROJECT_ROOT),
         timeout=120,
     )
@@ -234,6 +237,7 @@ def test_vendor_key_with_local_endpoint_is_caught_before_request() -> None:
         ],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         cwd=str(PROJECT_ROOT),
         timeout=120,
     )
@@ -266,6 +270,7 @@ def test_provider_preset_sets_endpoint_and_model() -> None:
         [sys.executable, "-X", "utf8", str(SCRIPT), "--help"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         cwd=str(PROJECT_ROOT),
         timeout=120,
     )
