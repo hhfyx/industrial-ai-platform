@@ -1,4 +1,4 @@
-﻿# 结构化抽取 API 契约（docs/api-spec.md）
+# 结构化抽取 API 契约（docs/api-spec.md）
 
 > **这份文档是本项目唯一不能动的东西。**
 > 路径、请求体、响应体、错误码含义冻结在 `v1`；「怎么抽」是可替换的实现。
@@ -234,3 +234,101 @@ RESPONSE_CONTRACT_VIOLATION  500
 | --- | --- | --- | --- |
 | 2026-10-24 | v1 | 初版：POST /api/v1/extract + 规则版实现 | — |
 | 2026-10-27 | v1.1 | 新增**可选**字段 degraded（只在降级时出现）；规则版与 LLM 版共存，LLM 失败自动兜底 | ✅ 向后兼容：老客户端按 4 字段解析不受影响 |
+
+---
+
+# 项目一：缺陷图像生成 API（`POST /api/v1/generate`）
+
+> W8 周三新增的**独立接口线**。本节只追加，上文 extract 契约（§1–6）一个字不改。
+> 复用平台级约定：统一错误体 4 字段、错误码"只追加不改旧值"、`request_id` /
+> `X-Request-ID` 透传、`X-API-Contract` 头 —— 全部与 extract 同源，不新造。
+
+| 项 | 值 |
+| --- | --- |
+| 端点 | `POST /api/v1/generate` |
+| 模式 | **同步**（请求挂起直到出图；异步版 = 202 + task_id，后续按同一契约套壳） |
+| 实现开关 | `GENERATOR_IMPL=fake`（默认，离线）/ `sd`（真机）——服务层签名不变 |
+| 实现标识头 | `X-Generator-Model`（200 时出现） |
+
+## 7. 请求
+
+```http
+POST /api/v1/generate HTTP/1.1
+Content-Type: application/json
+```
+
+### 7.1 请求体（4 个字段，不可增删）
+
+| 字段 | 类型 | 必填 | 约束 | 说明 |
+| --- | --- | --- | --- | --- |
+| `defect_class` | `string` | 是 | 白名单内；去空白后 1–32 字符 | 缺陷类别，白名单见 §7.2 |
+| `count` | `int` | 否 | 1–8，默认 1 | 生成张数。**上限是显存边界，不是产品策略** |
+| `size` | `int` | 否 | `512` 或 `768`，默认 512 | 输出边长（正方形）。其它尺寸出分布外畸形图，契约层直接不收 |
+| `seed` | `int` | 否 | ≥ 0 | 随机种子；传了则同参数可复现 |
+
+- **多传未知键 → 422**（与 extract 同款 `extra="forbid"`）。
+- **`count`/`size` 的上限进契约而不是进文档建议**：`count=1000` 的请求会在
+  GPU 上挂到 OOM 并连带打死排队请求 —— 没有上限的生成接口等于自杀。
+
+### 7.2 缺陷类别白名单
+
+`划痕` · `凹坑` · `气泡` · `裂纹` · `锈蚀` · `污渍`
+
+白名单 = LoRA 适配器目录名。**新类别 = 加权重 + 加白名单，同一个提交**。
+表外类别**不静默用基座模型生成**（调用方以为在生成划痕，实际是随机噪声）——
+返回 `422 UNKNOWN_DEFECT_CLASS`，与 extract"抽不到 = null 不编造"同一产品哲学。
+
+## 8. 成功响应（`200 OK`）
+
+```json
+{
+  "request_id": "…",
+  "images": [
+    {"path": "data/generated/划痕_512_42.png", "size": 512, "seed": 42}
+  ],
+  "elapsed_ms": 12400,
+  "model": "sd15-lora-v0"
+}
+```
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `request_id` | `string` | 与响应头 `X-Request-ID` 一致（平台级约定） |
+| `images[]` | `array` | 长度 = 请求 `count`；顺序即批次顺序 |
+| `images[].path` | `string` | 相对路径，可直接 GET 静态服务取图。**不回 base64**（8 张 768px 的 JSON 会膨胀到 10MB+） |
+| `images[].seed` | `int` | **实际使用**的种子（请求未传时为服务端生成值） |
+| `elapsed_ms` | `int` | 含 GPU 推理与存盘，不含网络往返；响应头 `X-Elapsed-Ms` 同值 |
+| `model` | `string` | 实现标识；`X-Generator-Model` 头同步 |
+
+**没有 `confidence`**：生成的"置信度"不存在，硬造一个会污染两个契约的语义。
+
+## 9. 错误码（本端点新增；形状与 §3 完全一致）
+
+| HTTP | `code` | 触发条件 | 调用方动作 |
+| --- | --- | --- | --- |
+| `422` | `UNKNOWN_DEFECT_CLASS` | 类别不在白名单 | 改类别，不要重试 |
+| `503` | `MODEL_NOT_LOADED` | 权重未加载 / 设备不可用 | 联系维护者；不重试 |
+| `503` | `GPU_OOM` | 显存不足 | **带 `Retry-After` 头**，按它退避后可减参重试 |
+| `504` | `GENERATION_TIMEOUT` | 单次生成超过 180s | 减小 count/size 后重试 |
+| `422` | `INVALID_INPUT` | count/size/seed 越界、空类别、多传键 | 按 `details[].field` 修 |
+| `500` | `INTERNAL_ERROR` | 未预期异常 | 带 `request_id` 报障 |
+
+```
+UNKNOWN_DEFECT_CLASS         422
+MODEL_NOT_LOADED             503
+GPU_OOM                      503
+GENERATION_TIMEOUT           504
+```
+
+## 10. 失败处理的设计立场
+
+- **OOM/超时/权重三类的 HTTP 语义刻意不同**：503（可等）与 504（任务太重）分开，
+  调用方的重试策略才能自动化。
+- **异常路径的额外头跟异常走**：业务异常抛出后路由自己的写头代码不执行，
+  `Retry-After` 由 `AppError.headers` 携带、全局 handler 透传。
+- **同步版先行**：异步版的复杂度在"状态机 + 查询 + 清理"，同步版先把契约、
+  错误码、单测立住 —— 异步版只是给同一份契约套 202 + task_id。
+
+| 日期 | 版本 | 变更 | 兼容性 |
+| --- | --- | --- | --- |
+| 2026-12-09 | 项目一 v0 | 新增 POST /api/v1/generate（同步版）+ 4 个新错误码 | ✅ 新端点，extract 契约零改动 |

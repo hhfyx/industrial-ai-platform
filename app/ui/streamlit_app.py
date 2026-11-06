@@ -51,6 +51,7 @@ from app.rag.indexing import Indexer, IndexReport  # noqa: E402
 from app.rag.loaders import SUPPORTED_EXTENSIONS  # noqa: E402
 from app.rag.query import QAEngine, StreamDone  # noqa: E402
 from app.rag.retrieval import DEFAULT_TOP_K  # noqa: E402
+from app.rag.session_store import SessionStore, new_session_id  # noqa: E402
 from app.rag.stores import get_store  # noqa: E402
 from app.rag.stores.chroma import DEFAULT_COLLECTION  # noqa: E402
 from app.ui.evidence import find_evidence_spans, highlight  # noqa: E402
@@ -87,6 +88,16 @@ def _load_store(backend: str, collection: str) -> Any:  # noqa: ANN401
     if backend == "chroma":
         return get_store("chroma", collection_name=collection)
     return get_store("memory")
+
+
+@st.cache_resource(show_spinner=False)
+def _load_session_store() -> SessionStore:
+    """会话存储进程级单例（sqlite 连接 + 锁）。
+
+    cache_resource 与 embedder/store 同一条理由：连接跨重跑复用；
+    单例由 store 内部锁保护，Streamlit 的多线程调用是安全的。
+    """
+    return SessionStore()
 
 
 def _current_min_score(embedder_name: str) -> str:
@@ -129,6 +140,41 @@ def _init_state() -> None:
     st.session_state.setdefault("timings", [])  # [dict] 每次问答的耗时
     st.session_state.setdefault("pending", None)  # 待处理的提问（见下）
     st.session_state.setdefault("last_error", None)
+    _ensure_session()
+
+
+def _ensure_session() -> None:
+    """会话持久化（W8 周一）：新会话登记，刷新后按 session_id 恢复。
+
+    **恢复只在 messages 为空且库里有时做**：
+    - `st.session_state` 每次交互重跑，但 messages 不空时说明是正常交互帧，
+      恢复会重复灌历史；
+    - messages 空且库里没有 → 是一个真新会话（首次访问或清空过），
+      登记 session 行供 turns 外键引用。
+    恢复后 `session_restored` 置位并在侧栏提示一次 ——
+    静默变出一段历史会让人以为是自己的输入被"记住了"。
+    """
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = new_session_id()
+    store = _load_session_store()
+    sid = st.session_state.session_id
+
+    if not st.session_state.messages:
+        turns = store.load_turns(sid)
+        if turns:
+            st.session_state.messages = turns
+            st.session_state.session_restored = True
+            return
+    if not store.session_exists(sid):
+        store.create_session(sid, title="知识库问答")
+
+
+def _persist_message(message: dict[str, Any]) -> None:
+    """把一条 message dict 镜像进 sqlite。失败不阻塞对话 —— 持久化是增强，不是依赖。"""
+    try:
+        _load_session_store().append_turn(st.session_state.session_id, message)
+    except Exception:  # noqa: BLE001 - 存储失败不该让问答挂掉
+        st.session_state.session_persist_error = True
 
 
 # ============================================================ 侧栏：配置与知识库
@@ -223,6 +269,23 @@ def _render_sidebar(embedder_name: str, backend: str) -> tuple[str, str, int]:
 
         st.divider()
         st.caption("数据来源：`data/uploads/` · 索引库：`data/chroma/`")
+
+        # ---- 会话持久化状态（W8 周一）----
+        # 恢复是一次性提示：静默变出一段历史会让人以为输入被"记住了"。
+        if st.session_state.get("session_restored"):
+            st.caption("🗂 已从上次会话恢复历史。")
+        if st.session_state.get("session_persist_error"):
+            st.warning("⚠️ 会话未能写入本地存储（data/sessions.sqlite），刷新后本次对话将丢失。")
+        new_session_btn = st.button("🆕 开启新会话")
+        if new_session_btn:
+            # 换 session_id 即开新会话；旧会话数据保留在库里（不清库 ——
+            # "清空对话"按钮只清 UI，这里两者语义不同）。
+            st.session_state.session_id = new_session_id()
+            st.session_state.messages = []
+            st.session_state.timings = []
+            st.session_state.session_restored = False
+            _load_session_store().create_session(st.session_state.session_id, title="知识库问答")
+            st.rerun()
 
     return embedder_name, backend, top_k
 
@@ -387,6 +450,37 @@ def _render_chunk_with_evidence(chunk: Any, answer_text: str) -> None:
         st.caption("（未能在原文中定位到支撑句 —— 可能是模型做了较大改写，请人工核对）")
 
 
+def _render_integrity_notice(answer: Any) -> None:
+    """引用完整性的三条可见信号（W8 周二）：降级 / 未引用 / 去重计数。
+
+    | 信号 | 语义 | 严重度 |
+    | --- | --- | --- |
+    | `degraded` | 越界重答一次**仍然**越界 —— 答案有编造成分 | 高（warning） |
+    | `unreferenced` | 提供了但模型没用——预算浪费，不是错误 | 低（caption） |
+    | `dedupe` | 本次上下文去重了几条 overlap 重复 | 信息（caption） |
+
+    三者都不能静默：degraded 静默等于把编造答案当正常答案给出去；
+    unreferenced 与去重计数是"上下文预算花到哪了"的对账凭据。
+    """
+    if getattr(answer, "degraded", False):
+        st.warning(
+            f"⚠️ 引用校验未通过（越界编号 {answer.invalid_refs}，重答后仍越界）。"
+            "以下答案可能含编造成分，请人工核对。"
+        )
+    unreferenced = getattr(answer, "unreferenced", None) or []
+    dedupe = getattr(answer, "dedupe", None) or {}
+    notes: list[str] = []
+    if unreferenced:
+        notes.append(f"编号 {unreferenced} 未被引用（占预算未使用）")
+    removed = dedupe.get("exact_removed", 0) + dedupe.get("near_removed", 0)
+    if removed:
+        notes.append(
+            f"去重 {removed} 条（精确 {dedupe.get('exact_removed', 0)} / 近重复 {dedupe.get('near_removed', 0)}）"
+        )
+    if notes:
+        st.caption(" · ".join(notes))
+
+
 def _render_sources(contexts: list[Any], answer: Any) -> None:
     """「参考来源」：编号 + 文件名 + 页码，可展开看原文并高亮依据句。
 
@@ -488,6 +582,7 @@ async def _stream_answer(
         return
 
     _render_timing_badge(done.timing.as_dict())
+    _render_integrity_notice(done.answer)
     _render_sources(done.contexts if not done.answer.refused else [], done.answer)
 
     # 写进历史：**存的是纯文本 + 引用 + 耗时**，不是 Streamlit 对象。
@@ -523,10 +618,16 @@ async def _stream_answer(
             ],
             "invalid_refs": done.answer.invalid_refs,
             "refused": done.answer.refused,
+            # W8 周二：双向校验与去重的产物随历史落库 —— 重放时"这次为什么
+            # 显示 degraded / 少了几条块"在历史里就有出处。
+            "unreferenced": done.answer.unreferenced,
+            "degraded": done.answer.degraded,
+            "dedupe": done.answer.dedupe,
             "timing": done.timing.as_dict(),
         }
     )
     st.session_state.timings.append(done.timing.as_dict())
+    _persist_message(st.session_state.messages[-1])
 
 
 def _render_history(turns: int) -> None:
@@ -581,7 +682,13 @@ def _render_history(turns: int) -> None:
                                 st.caption("（未能在原文中定位到支撑句，请人工核对）")
                             st.divider()
                 if message.get("invalid_refs"):
-                    st.warning(f"⚠️ 编号 {message['invalid_refs']} 不在检索结果里，已忽略。")
+                    if message.get("degraded"):
+                        st.warning(
+                            f"⚠️ 引用校验未通过（越界编号 {message['invalid_refs']}，重答后仍越界），"
+                            "本答案可能含编造成分。"
+                        )
+                    else:
+                        st.warning(f"⚠️ 编号 {message['invalid_refs']} 不在检索结果里，已忽略。")
 
 
 def _history_for_model(turns: int) -> list[dict[str, str]]:
@@ -685,7 +792,9 @@ def main() -> None:
         return
 
     # 用户消息立刻上屏
-    st.session_state.messages.append({"role": "user", "content": question})
+    user_message: dict[str, Any] = {"role": "user", "content": question}
+    st.session_state.messages.append(user_message)
+    _persist_message(user_message)
     with st.chat_message("user"):
         st.markdown(question)
 

@@ -1,0 +1,10 @@
+{"question": "这个指标在六轮基准里改善了多少倍？", "standalone_question": "TTFT（首字延迟）指标在六轮基准里改善了多少倍？", "needs_clarification": false, "missing": [], "rewrote": true, "degraded": false, "rounds": 1, "elapsed_ms": 3800}
+{"question": "那它的数据目录默认落在哪？", "standalone_question": "Chroma 的数据目录默认落在哪？", "needs_clarification": false, "missing": [], "rewrote": true, "degraded": false, "rounds": 1, "elapsed_ms": 1511}
+{"question": "为什么反复把整篇文档塞回上下文最费钱？", "standalone_question": "为什么在多轮对话中反复把整篇文档塞回上下文（相比RAG只检索片段）最费钱？", "needs_clarification": false, "missing": [], "rewrote": true, "degraded": false, "rounds": 1, "elapsed_ms": 4019}
+{"question": "在自带思维链的模型上再叠加 CoT 提示呢？", "standalone_question": "在自带思维链（CoT）能力的模型上再叠加 CoT 提示，效果/成绩如何？", "needs_clarification": false, "missing": [], "rewrote": true, "degraded": false, "rounds": 1, "elapsed_ms": 3943}
+{"question": "那抽取降级到规则版时为什么仍返回 200？", "standalone_question": "为什么抽取功能降级到规则版时仍返回 HTTP 200 状态码？", "needs_clarification": false, "missing": [], "rewrote": true, "degraded": false, "rounds": 1, "elapsed_ms": 4958}
+{"question": "它和向量维度是什么关系？", "standalone_question": "bge 的 max_seq_length（输入长度上限 512 token）和向量维度是什么关系？", "needs_clarification": false, "missing": [], "rewrote": true, "degraded": false, "rounds": 1, "elapsed_ms": 4835}
+{"question": "上面那个重叠在检索侧的重复代价又是多少？", "standalone_question": "50 字重叠在检索侧的重复代价是多少？", "needs_clarification": false, "missing": [], "rewrote": true, "degraded": false, "rounds": 1, "elapsed_ms": 2726}
+{"question": "再详细点", "standalone_question": "跨页段落只记起始页为什么危险？请更详细地解释。", "needs_clarification": false, "missing": [], "rewrote": true, "degraded": false, "rounds": 1, "elapsed_ms": 2435}
+{"question": "上面那个型号的防护等级呢？", "standalone_question": "上面那个型号的防护等级呢？", "needs_clarification": true, "missing": ["请明确您想查询的是 HX-200 还是 HX-300 的防护等级。"], "rewrote": false, "degraded": false, "rounds": 1, "elapsed_ms": 2538}
+{"question": "它的公差是多少？", "standalone_question": "它的公差是多少？", "needs_clarification": true, "missing": ["请说明“它”指的是哪个对象（如流式首字等待的改善幅度、检索占比等）", "请说明“公差”具体指什么（历史中未提及任何公差相关信息）"], "rewrote": false, "degraded": false, "rounds": 1, "elapsed_ms": 4568}

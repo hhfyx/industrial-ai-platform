@@ -48,6 +48,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Final
 
+from app.rag.generation.dedupe import dedupe_chunks
 from app.rag.schema import Chunk
 
 logger = logging.getLogger(__name__)
@@ -166,7 +167,8 @@ class Answer:
     """**实际被答案引用的**那几条（不是上下文里全部）。顺序按编号升序。"""
 
     invalid_refs: list[int] = field(default_factory=list)
-    """模型引用了但**不在给定编号里**的编号。非空说明这次回答有编造成分。"""
+    """模型引用了但**不在给定编号里**的编号。非空说明这次回答有编造成分。
+    重答后仍越界时 `degraded=True`，本列表保留重答后的越界编号。"""
 
     refused: bool = False
     """是否是"拒答"（检索无结果 / 分数过低）。拒答时**没有调模型**。"""
@@ -179,6 +181,17 @@ class Answer:
 
     top_score: float | None = None
     """检索的最高相似度。用于回答"为什么拒答"（低于阈值时它会是重要证据）。"""
+
+    unreferenced: list[int] = field(default_factory=list)
+    """提供了但**正文从未引用**的编号（双向校验断言③）。
+    不是错误，是预算浪费的证据：这些块占了上下文却没进答案。"""
+
+    degraded: bool = False
+    """越界重答一次后**仍然越界**时为 True。
+    与抽取链路的 degraded 同一语义：结果可用，但可信度要打折展示。"""
+
+    dedupe: dict[str, int] = field(default_factory=dict)
+    """去重计数（`DedupeReport.as_dict()`）。空 dict 表示没跑去重（拒答路径）。"""
 
     def citation_block(self) -> str:
         """渲染成可直接显示的引用列表。没有被引用的编号不显示。"""
@@ -324,6 +337,60 @@ def resolve_citations(text: str, available: Sequence[Citation]) -> tuple[list[Ci
     return valid, invalid
 
 
+def verify_citations(
+    text: str,
+    available: Sequence[Citation],
+) -> dict[str, object]:
+    """双向校验（W8 周二）：对"正文编号"与"引用列表"做三条断言。
+
+    本函数**只判不罚**：返回判定结果，由调用方决定重答/降级。
+    分开的原因是"校验"要在离线测试里逐条锁死，而"罚则"（重答一次、降级）
+    属于生成主流程的编排 —— 混在一起两条都测不了。
+
+    | # | 断言 | 抓的是什么 |
+    | --- | --- | --- |
+    | ① | 正文编号集合 ⊆ 提供的编号集合 | 模型编造编号（W4 的 F3：引用 [7] 而上下文只有 3 条） |
+    | ③ | 每个提供的编号都被正文引用过（或记录未被引用） | 上下文塞了块模型却没用——浪费预算的证据，不是错误 |
+
+    断言②（引用列表按 chunk_id 回查块）在 `resolve_and_verify` 里，
+    因为它需要 `resolve_citations` 的产物。
+    """
+    provided = {c.index: c for c in available}
+    body_refs = set(extract_refs(text))
+
+    # ① 正文编号 ⊆ 提供编号
+    out_of_bounds = sorted(body_refs - set(provided))
+
+    # ③ 未被引用的编号（提示预算浪费，不是错误）
+    unreferenced = sorted(set(provided) - body_refs)
+
+    return {
+        "body_refs": sorted(body_refs),
+        "out_of_bounds": out_of_bounds,  # 断言①
+        "unreferenced": unreferenced,  # 断言③
+    }
+
+
+def resolve_and_verify(
+    text: str,
+    available: Sequence[Citation],
+    chunks_by_id: Mapping[str, Chunk],
+) -> dict[str, object]:
+    """`resolve_citations` + 三条断言的完整判定（含断言②）。
+
+    `chunks_by_id` 是本次检索返回块的 `{chunk_id: Chunk}` 映射。
+    断言②的实现：引用列表每个编号对应的 `chunk_id` 必须能在这个映射里找到 ——
+    找不到说明引用层的编号与块错位（那不是模型的问题，是我们的接线问题，
+    也是 W4 demo 现场"编号 [2] 显示成 [3] 原文"那类事故的判定入口）。
+    """
+    result = verify_citations(text, available)
+    citations, _ = resolve_citations(text, available)
+    unresolvable = [c.index for c in citations if c.chunk_id not in chunks_by_id]
+    result["citations"] = citations
+    result["unresolvable_refs"] = unresolvable  # 断言②
+    return result
+
+
 async def generate_answer(
     question: str,
     chunks: Sequence[Chunk],
@@ -336,7 +403,7 @@ async def generate_answer(
     max_tokens: int = 800,
     extra_request: dict[str, object] | None = None,
 ) -> Answer:
-    """拼上下文 → 调模型 → 解析引用。
+    """拼上下文（先去重）→ 调模型 → 双向校验引用 → 越界重答一次 → 仍越界降级。
 
     ## 两道拒答闸门，都在模型之前
 
@@ -348,8 +415,27 @@ async def generate_answer(
     `scores` 是检索分数（与 `chunks` 一一对应）。不传就跳过分数闸门 ——
     那是给"只想测引用逻辑"的调用方留的口子，生产路径必须传。
 
+    ## 去重（W8 周二）
+
+    在闸门之后、拼上下文之前做两级去重（`dedupe_chunks`）：
+    chunk_id 精确去重 + overlap 近重复合并，保留分数高者，计数进
+    `Answer.dedupe`。**去重后编号由 `build_context` 从 1 重排**
+    （它本来就用 `len(citations)+1` 分配编号，空洞天然不会出现 ——
+    "去重留空洞"那条坑被编号分配方式结构性挡住，而不是靠事后补）。
+
+    ## 越界处理的三级火箭（W8 周二，替代"只标记不处理"）
+
+    | 级 | 行为 | 触发 |
+    | --- | --- | --- |
+    | 1 | 重答一次：把越界编号明确回灌，要求只许用列出的编号 | 首答有越界编号 |
+    | 2 | 降级：接受重答结果但仍越界 → 保留正文 + `degraded=True` | 重答仍越界 |
+    | 3 | （保留旧行为）只标记 `invalid_refs` | —— |
+
+    一次越界就整次失败代价过高（答案本身可能有用），但"看着有编造成分"
+    的答案也不该静默通过 —— 重答一次是两者的平衡，与 `structured_call`
+    的 max_repair=2 同一哲学：修得回来的别让用户干等。
+
     **拒答是代码的决定，不是模型的**：`REFUSAL_TEXT` 是固定字符串。
-    让模型自己说"我不知道"不可靠 —— 它倾向于尽力回答。
     """
     # ---- 闸门 1：空结果
     if not chunks:
@@ -357,10 +443,25 @@ async def generate_answer(
 
     top_score = max(scores) if scores else None
 
-    # ---- 闸门 2：分数过低
+    # ---- 闸门 2：分数过低（用**原始** scores 判 —— 去重只删低分副本，最高分不变）
     if top_score is not None and top_score < min_score:
         logger.info("拒答：最高分 %.4f < 阈值 %.4f", top_score, min_score)
         return Answer(text=REFUSAL_TEXT, refused=True, top_score=top_score)
+
+    # ---- 去重（带计数）。只在长度对齐时才把分数交给去重层 ——
+    #      历史调用点允许只传 1 个分数做闸门用（scores 语义从未强制等长），
+    #      不对齐时按同分去重（保先出现），并告警而不是抛：
+    #      去重是增强，不该因为分数没对齐把整次问答打挂。
+    dedupe_scores: list[float] | None = None
+    if scores is not None:
+        if len(scores) == len(chunks):
+            dedupe_scores = list(scores)
+        else:
+            logger.warning(
+                "scores 长度(%d)与 chunks(%d)不一致，去重按同分处理", len(scores), len(chunks)
+            )
+    report = dedupe_chunks(chunks, dedupe_scores)
+    chunks = report.chunks
 
     context, available = build_context(chunks, max_chars=max_context_chars)
     if not available:
@@ -371,18 +472,50 @@ async def generate_answer(
     available_ids = "、".join(f"[{c.index}]" for c in available)
     prompt = ANSWER_PROMPT.format(context=context, question=question, available=available_ids)
 
-    response = await client.chat.completions.create(  # type: ignore[attr-defined]
-        model=model,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.0,
-        max_tokens=max_tokens,
-        **(extra_request or {}),
-    )
-    text = (response.choices[0].message.content or "").strip()
-    citations, invalid = resolve_citations(text, available)
+    async def _ask(user_prompt: str) -> str:
+        response = await client.chat.completions.create(  # type: ignore[attr-defined]
+            model=model,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.0,
+            max_tokens=max_tokens,
+            **(extra_request or {}),
+        )
+        return (response.choices[0].message.content or "").strip()
+
+    text = await _ask(prompt)
+
+    # ---- 双向校验（三条断言）----
+    chunks_by_id = {c.id: c for c in chunks}
+    verdict = resolve_and_verify(text, available, chunks_by_id)
+    citations: list[Citation] = verdict["citations"]
+    invalid: list[int] = verdict["out_of_bounds"]
+    unreferenced: list[int] = verdict["unreferenced"]
+    unresolvable: list[int] = verdict["unresolvable_refs"]
+
+    # ---- 越界 → 重答一次 → 仍越界降级
+    degraded = False
+    if invalid or unresolvable:
+        logger.warning("首答越界 %s / 断链 %s，回灌重答一次", invalid, unresolvable)
+        retry_prompt = (
+            prompt
+            + "\n\n## 修正要求\n\n你上一次的回答引用了不存在的编号 "
+            + "、".join(f"[{i}]" for i in sorted({*invalid, *unresolvable}))
+            + f"。**只允许引用这些编号**：{available_ids}。请重新作答，"
+            "其余内容保持不变，只修正引用编号。"
+        )
+        text = await _ask(retry_prompt)
+        verdict = resolve_and_verify(text, available, chunks_by_id)
+        citations = verdict["citations"]
+        invalid = verdict["out_of_bounds"]
+        unreferenced = verdict["unreferenced"]
+        unresolvable = verdict["unresolvable_refs"]
+        if invalid or unresolvable:
+            # 仍越界：接受答案但标记降级 —— 用户能看到答案，也知道它有编造成分。
+            degraded = True
+            logger.warning("重答后仍越界 %s，标记 degraded", invalid)
 
     return Answer(
         text=text,
@@ -392,6 +525,9 @@ async def generate_answer(
         context_chars=len(context),
         used_chunks=len(available),
         top_score=top_score,
+        unreferenced=unreferenced,
+        degraded=degraded,
+        dedupe=report.as_dict(),
     )
 
 
@@ -406,5 +542,7 @@ __all__ = [
     "build_context",
     "extract_refs",
     "generate_answer",
+    "resolve_and_verify",
     "resolve_citations",
+    "verify_citations",
 ]

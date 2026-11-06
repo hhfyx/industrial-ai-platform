@@ -1,0 +1,78 @@
+# 项目一（缺陷图像生成）的 GPU 镜像 —— **独立文件，不与项目二的 CPU 版共享**。
+#
+# 为什么不写在现有 Dockerfile 里：两个项目的运行时诉求相反——
+#   CPU 版（Dockerfile）：python:3.11-slim 三阶段瘦身到 ~150 MB，无 CUDA；
+#   GPU 版（本文件）：CUDA runtime 底座就 2~3 GB，塞进同一个文件意味着
+#   "起项目二也要拖一份 CUDA"。分开文件 + 分开 compose（compose-gpu.yml），
+#   `docker compose up` 各起各的，互不误伤。
+#
+# 构建与运行：
+#   docker build -f Dockerfile.gpu -t industrial-generator:v0.1 .
+#   docker compose -f compose-gpu.yml up -d
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# 三个关键决定（每条都是体积/正确性上的真坑）：
+
+# ① 基础镜像用 -runtime 而不是 -devel：
+#    devel 带 nvcc/cuda 工具链/静态库（~6 GB 额外），那是"编译自定义 CUDA 算子"
+#    才需要的。diffusers 只在运行时调 GPU —— runtime 版够用，体积差好几 GB。
+#    版本组合写死（不写 latest）：torch 2.8.0 + cu128 对应 CUDA 12.8 运行时，
+#    py3.11 与项目二一致。改任何一项 = 显卡驱动兼容性重新实测。
+#    （wheel 里 torch 自带 CUDA 运行库，镜像内不需要系统级 cudatoolkit。）
+FROM pytorch/pytorch:2.8.0-cuda12.8-cudnn9-runtime AS base
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    HF_HOME=/models/hf \
+    # diffusers/transformers 在 HF_HUB_OFFLINE=1 时跳过联网校验，
+    # 权重走 volume 挂载（绝不进镜像）—— 断网容器才能起。
+    HF_HUB_OFFLINE=1
+
+WORKDIR /app
+
+# 系统依赖最小集：libgl/libglib 是 opencv 系图像库的运行时依赖（存盘图像处理用）。
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
+ && rm -rf /var/lib/apt/lists/*
+
+# ② Python 依赖：GPU 版的差异只在这里 —— 装生成栈，不装 RAG 栈。
+#    torch **不由 pip 装**（base 镜像已带与 CUDA 对齐的版本，pip 再装会拉 CPU 版
+#    覆盖掉，或拉一个体积巨大的重复 cu wheel）。这里的 pin 与 FROM 行必须一起改。
+COPY docker/gpu-requirements.txt /tmp/gpu-requirements.txt
+RUN pip install --no-cache-dir \
+      --extra-index-url https://download.pytorch.org/whl/cu128 \
+      "torch==2.8.0+cu128" \
+      -r /tmp/gpu-requirements.txt \
+ && rm /tmp/gpu-requirements.txt
+
+# 应用源码（与 CPU 版同一套 app/，服务层实现由 GENERATOR_IMPL=sd 切换）
+COPY app ./app
+COPY docker/healthcheck.py ./healthcheck.py
+
+# ③ 非 root 用户（uid 与 CPU 版一致 10001，运维排障时两边对得上）。
+#    /models 与 /app/data/generated 在 compose 里挂 volume，
+#    宿主机侧 chown 不强求 —— 容器内写不进时的报错信息里带 uid，好查。
+RUN groupadd --gid 10001 app \
+ && useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin app \
+ && mkdir -p /models/hf /app/data/generated \
+ && chown -R 10001:10001 /models /app/data
+
+USER 10001:10001
+
+EXPOSE 8000
+
+# 权重不进镜像的另一半：镜像里只有**空目录**，真实权重由 compose 挂进来。
+# （这里没有 VOLUME 指令 —— 匿名卷会让"忘记挂载"静默变成空权重目录，
+#  503 MODEL_NOT_LOADED 比"看起来正常但什么都没生成"更好查。）
+ENV GENERATOR_IMPL=sd \
+    SD_WEIGHTS_DIR=/models/sd15
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=5 \
+    CMD ["python", "/app/healthcheck.py"]
+
+# start-period=120s 的理由：SD1.5 权重加载 + 图优化实测要 30~90s（视盘速），
+# 5s 的默认值会让容器在"还在加载权重"时被判定不健康而重启 —— 加载期必须豁免。
+
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

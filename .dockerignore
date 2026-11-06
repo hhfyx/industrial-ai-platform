@@ -39,7 +39,23 @@ LICENSE
 Thumbs.db
 desktop.ini
 
+# --- 权重与数据（W8 周五，项目一）---
+# 模型权重**绝不进镜像**：SD1.5 + LoRA 是几十 GB 级，进镜像等于体积爆炸，
+# 且换权重要重 build。它们由 compose 的 volume 挂载（见 compose-gpu.yml）。
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+checkpoints/
+models/
+data/
+.cache/
+# HF 缓存目录的另一种常见命名
+huggingface/
+
 # --- 构建相关：Docker 自己读，不需要塞进上下文 ---
 Dockerfile
+Dockerfile.gpu
 docker-compose.yml
+compose-gpu.yml
 .dockerignore

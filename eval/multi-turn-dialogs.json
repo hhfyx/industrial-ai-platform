@@ -1,0 +1,122 @@
+[
+  {
+    "id": "mt-01",
+    "turns": [
+      {"role": "user", "content": "首字延迟这个指标的口径是怎么定的？"},
+      {"role": "assistant", "content": "TTFT（Time To First Token）= 从发起请求到收到第一个\"非空 content\"的时间。六轮基准里流式把首字等待从 3209 ms 改善到 1567 ms，约 2.0×。"}
+    ],
+    "follow_up": "这个指标在六轮基准里改善了多少倍？",
+    "rewritten_reference": "TTFT 首字延迟在六轮基准里改善了多少倍？",
+    "ambiguity": "none",
+    "anchors": [{"source": "sse.md", "quote": "| **TTFT** | **3209 ms** | **1567 ms** | **体感提升约 2.0×** |"}],
+    "note": "指代型：\"这个指标\" → TTFT。改写正确应命中 f-07 的锚点"
+  },
+  {
+    "id": "mt-02",
+    "turns": [
+      {"role": "user", "content": "Chroma 返回的 distance 和相似度是什么关系？"},
+      {"role": "assistant", "content": "cosine 距离 = 1 - 余弦相似度，越小越像，方向与相似度相反。"}
+    ],
+    "follow_up": "那它的数据目录默认落在哪？",
+    "rewritten_reference": "Chroma 的数据目录默认落在哪？",
+    "ambiguity": "none",
+    "anchors": [{"source": "chroma-store.md", "quote": "相对项目根（`data/chroma`），**不是 `~/.cache/chroma`**"}],
+    "note": "指代型：\"它\" → Chroma"
+  },
+  {
+    "id": "mt-03",
+    "turns": [
+      {"role": "user", "content": "同样一次提问，整本塞入相对 RAG 的输入与成本差多少？"},
+      {"role": "assistant", "content": "输入差 10.0x、成本差 9.26x，每千次差 159.76 元。"}
+    ],
+    "follow_up": "为什么反复把整篇文档塞回上下文最费钱？",
+    "rewritten_reference": "为什么反复把整篇文档塞回上下文最费钱？",
+    "ambiguity": "none",
+    "anchors": [{"source": "cost.md", "quote": "**② 长文档的回灌代价最大（4.2 倍），因为输入本来就贵。**"}],
+    "note": "对照基准：追问本身已独立完整，改写后应与原问相同（rewrote=False），检验改写不画蛇添足"
+  },
+  {
+    "id": "mt-04",
+    "turns": [
+      {"role": "user", "content": "四类提示范式里哪个胜出，成绩多少？"},
+      {"role": "assistant", "content": "Winner：Few-shot（示例集 X 逆序），16/20 = 80%，字段级 93.3%。"}
+    ],
+    "follow_up": "在自带思维链的模型上再叠加 CoT 提示呢？",
+    "rewritten_reference": "在自带思维链的模型上再叠加 CoT 提示，收益与代价如何？",
+    "ambiguity": "none",
+    "anchors": [{"source": "prompt-patterns.md", "quote": "花了 42 倍输出 token，换来的是**准确率下降**。"}],
+    "note": "省略型：\"呢\"承载上下文方向（收益与代价）。改写应补全问题本体"
+  },
+  {
+    "id": "mt-05",
+    "turns": [
+      {"role": "user", "content": "正文超过长度上限时返回什么错误码？"},
+      {"role": "assistant", "content": "没有 413：正文超长属于校验失败，返回 422 + field: text。"}
+    ],
+    "follow_up": "那抽取降级到规则版时为什么仍返回 200？",
+    "rewritten_reference": "抽取降级到规则版时为什么仍返回 200？",
+    "ambiguity": "none",
+    "anchors": [{"source": "api-spec.md", "quote": "这两种情况**仍然返回 200 和完整结果**（这是刻意的）"}],
+    "note": "话题延续：上一轮是错误码语境。改写应去掉\"那\"与语境依赖"
+  },
+  {
+    "id": "mt-06",
+    "turns": [
+      {"role": "user", "content": "bge 的输入长度上限是多少 token？"},
+      {"role": "assistant", "content": "max_seq_length 512 token（与向量维度 512 是两件事）。"}
+    ],
+    "follow_up": "它和向量维度是什么关系？",
+    "rewritten_reference": "bge 的输入长度上限 512 token 和向量维度 512 是什么关系？",
+    "ambiguity": "none",
+    "anchors": [{"source": "embedding.md", "quote": "**max_seq_length 512 token** | 输入的 token 上限"}],
+    "note": "指代型：\"它\" → 输入长度上限。检索命中同一文档块，检验改写不偏移"
+  },
+  {
+    "id": "mt-07",
+    "turns": [
+      {"role": "user", "content": "50 字重叠的存储代价是多少？"},
+      {"role": "assistant", "content": "冗余率 9.4%（2128 字 → 2328 字）。"}
+    ],
+    "follow_up": "上面那个重叠在检索侧的重复代价又是多少？",
+    "rewritten_reference": "50 字重叠在检索侧的重复内容率是多少？",
+    "ambiguity": "none",
+    "anchors": [{"source": "chunking-quality.md", "quote": "**代价是单调的**：重复内容率 5.5% → 8.0% → 11.0%，每档 +2.5~3pp。"}],
+    "note": "指代型：\"上面那个重叠\" → 50 字重叠。任务点名的\"上面那个型号\"模式"
+  },
+  {
+    "id": "mt-08",
+    "turns": [
+      {"role": "user", "content": "跨页段落只记起始页为什么危险？"},
+      {"role": "assistant", "content": "起始页是半个真话：用户点进 p6 找不到后半截，点进 p7 找不到前半截。pages 字段才记覆盖范围。"}
+    ],
+    "follow_up": "再详细点",
+    "rewritten_reference": "跨页段落只记起始页的页码风险有哪些细节？",
+    "ambiguity": "none",
+    "anchors": [{"source": "document-parsing.md", "quote": "\"起始页\"是半个真话，而半个真话在 demo 现场比完全没页码更容易被点穿"}],
+    "note": "任务点名：\"再详细点\"。零信息追问，改写必须从历史重建问题本体"
+  },
+  {
+    "id": "mt-09",
+    "turns": [
+      {"role": "user", "content": "对比一下 HX-200 和 HX-300 两款伺服电机的扭矩"},
+      {"role": "assistant", "content": "HX-200 的额定扭矩是 0.64 N·m，HX-300 是 1.2 N·m，后者约为前者的 1.9 倍。"}
+    ],
+    "follow_up": "上面那个型号的防护等级呢？",
+    "rewritten_reference": null,
+    "ambiguity": "ambiguous",
+    "anchors": [],
+    "note": "任务点名的歧义样本：历史里有两个型号，\"上面那个\"指代不明。改写层应 needs_clarification=true，非交互路径用原问。**单独一行统计，不计入改写收益/损失的分母**"
+  },
+  {
+    "id": "mt-10",
+    "turns": [
+      {"role": "user", "content": "六轮基准里流式对首字等待的改善幅度是多少？"},
+      {"role": "assistant", "content": "3209 ms → 1567 ms，体感约 2.0×。但检索只占首 token 的 0.36%~0.80%，优化检索对 TTFT 几乎无用。"}
+    ],
+    "follow_up": "它的公差是多少？",
+    "rewritten_reference": null,
+    "ambiguity": "ambiguous",
+    "anchors": [],
+    "note": "任务点名的\"它的公差\"模式：历史里没有公差相关内容，改写层应 needs_clarification=true 而不是幻觉先行词。**单独一行统计**"
+  }
+]

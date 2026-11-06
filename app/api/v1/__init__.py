@@ -10,6 +10,7 @@ from fastapi import APIRouter
 
 from app.api.v1.chat import router as chat_router
 from app.api.v1.extract import router as extract_router
+from app.api.v1.generate import router as generate_router
 from app.api.v1.stream import router as stream_router
 from app.api.v1.summarize import router as summarize_router
 
@@ -22,5 +23,7 @@ router.include_router(stream_router)
 router.include_router(chat_router)
 # 文档摘要是本周主交付：上传 → loader → map-reduce → SSE
 router.include_router(summarize_router)
+# 缺陷图像生成（项目一 · W8 周三）：同步版先立契约，异步版后续套 202 + task_id
+router.include_router(generate_router)
 
 __all__ = ["router"]

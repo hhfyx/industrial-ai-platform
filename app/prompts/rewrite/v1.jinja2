@@ -1,0 +1,100 @@
+{#
+  改写模板 v1 —— 多轮对话的指代消解（standalone question 改写）
+
+  用途
+  ----
+  把"依赖上下文才完整"的用户问题改写成一条**独立问题**，供检索层使用。
+  用于 RAG 多轮链路（W8 周一）：改写结果只改变**检索输入**，
+  不触碰 retrieve() 内部 —— 那是 W6 冻结的契约，W9 还要把它包成 Agent 工具。
+
+  入参
+  ----
+    question         : str        用户当前问题原文（可能含"它/上面那个/再详细点"）
+    history          : list[dict] 对话历史，每项 {"role": "user"|"assistant", "content": str}
+                                  **只含纯文本**；citations/timing 等展示字段不进 prompt
+    max_history_chars: int        历史文本的字符预算（**字符近似口径**，见下）
+
+  字符预算口径（自述，不是 token）
+  ----------------
+  本仓库现有预算全是**字符口径**（如 pipeline.max_context_chars）。
+  本模板的 max_history_chars 由调用方按「总输入预算 × 30% 折算字符数」算出，
+  调用方负责在传入前截断（从最旧截起），模板不再自行裁剪 ——
+  裁剪策略（最近 3 轮原文 + 更早的摘要）是调用方的职责。
+  口径注明"字符近似"：不引 tokenizer，等真实工业语料出现字符近似误判再议。
+
+  输出 schema
+  -----------
+  app/prompts/rewrite/schema.py::RewriteResult
+    {standalone_question: str, needs_clarification: bool,
+     missing: list[str], rolling_summary: str}
+
+  一条输入输出示例
+  ----------------
+  输入：
+    question = "它的公差是多少？"
+    history = [
+      {"role": "user", "content": "介绍一下 HX-200 型伺服电机"},
+      {"role": "assistant", "content": "HX-200 是一款 200W 伺服电机，额定扭矩 0.64 N·m……"},
+    ]
+  输出：
+    {"standalone_question": "HX-200 型伺服电机的公差是多少？",
+     "needs_clarification": false, "missing": [], "rolling_summary": ""}
+
+  另一种输入（歧义）：
+    question = "上面那个型号的防护等级呢？"
+    history = [  ← 历史里出现了两个型号，"上面那个"指代不明
+      {"role": "user", "content": "对比一下 HX-200 和 HX-300"},
+      {"role": "assistant", "content": "HX-200 扭矩 0.64 N·m，HX-300 扭矩 1.2 N·m……"},
+    ]
+  输出：
+    {"standalone_question": "上面那个型号的防护等级呢？",
+     "needs_clarification": true, "missing": ["指的是 HX-200 还是 HX-300"],
+     "rolling_summary": ""}
+
+  已知失败场景
+  ------------
+  1. **首轮不该改写**：历史为空时"它"没有先行词，任何改写都是编造。
+     调用方必须在进入本模板之前就短路（`history` 为空 → 直接用原问），
+     模板收到的 history 均不为空 —— 但模型仍可能在首轮场景下幻觉出先行词，
+     缓解是规则第 1 条 + 调用方短路双保险。
+  2. **改写成功时顺手填 missing**：模型爱在 missing 里写"缺上下文"。
+     校验层（query_rewrite.py）会把 needs_clarification=false 时的
+     missing 强制清空，不依赖模型自觉。
+  3. **rolling_summary 在短历史时硬写**：模型可能不遵守"3 轮内输出空串"。
+     调用方按轮数判空：历史 ≤ 3 轮时忽略该字段，不落盘。
+  4. **改写改变了问题的本体**：把"再详细点"扩写成与历史答案无关的新问题。
+     规则第 4 条约束"改写只能补指代，不得改变意图方向"。
+
+  纪律：本模板不含任何业务词（不提具体产品名、条款名），
+  所有业务内容都通过 question / history 参数进入。
+#}
+你是多轮问答系统里的"问题改写器"。你的任务只有一个：把用户的当前问题改写成一条**独立问题**，让检索系统脱离对话历史也能准确理解它在问什么。
+
+## 规则
+
+1. **只能补指代，不得改变意图**：把"它 / 上面那个 / 这个条款 / 再详细点"等
+   指代与省略，替换成对话历史中明确的对象；问题本体的方向（问什么属性、
+   求什么操作）必须保持不变。
+2. **先行词只来自对话历史**：历史里没有的信息不要补 —— 补出来就是编造。
+3. **指代歧义到无法确定时，不要猜**：`needs_clarification` 填 `true`，
+   在 `missing` 里列出还需要用户补充什么（每项一句话），
+   `standalone_question` 此时原样填用户的问题。
+4. **改写成功时**：`needs_clarification` 填 `false`，`missing` 必须是空数组。
+5. **历史摘要**：对话历史超过 3 轮时，用两三句话概括**更早轮次**的主题与
+   已确认的关键信息填入 `rolling_summary`；不超过 3 轮时输出空字符串 `""`。
+
+## 对话历史
+
+{% for m in history %}
+{{ m.role }}: {{ m.content }}
+{% endfor %}
+
+## 当前问题
+
+{{ question }}
+
+## 输出
+
+只输出一个 JSON 对象，不要解释、不要代码围栏：
+
+{"standalone_question": "...", "needs_clarification": false, "missing": [], "rolling_summary": ""}

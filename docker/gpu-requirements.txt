@@ -1,0 +1,19 @@
+# GPU 版 Python 依赖（torch 除外 —— 基础镜像已带与 CUDA 对齐的版本，
+# 这里再装 torch 会覆盖成错误变体；pin 与 Dockerfile.gpu 的 FROM 行同步改）。
+#
+# 下限写法与项目 pyproject 一致；真机装完用 `pip freeze` 把实际版本
+# 回填成 == pin（GPU 镜像要可复现，>= 在 cu 轮子上迟早出兼容事故）。
+diffusers>=0.36.0
+transformers>=4.57.0
+accelerate>=1.12.0
+safetensors>=0.7.0
+# API 服务栈（与 pyproject 同版本下限；GPU 镜像不装 RAG 那一套，
+# 但 app.main 的路由链 import 了 openai/chat/stream 等模块 —— 全链可导入是
+# "镜像能起"的前提，缺一个就是 uvicorn 启动即崩）。
+fastapi>=0.128.8
+uvicorn[standard]>=0.39.0
+pydantic>=2.13.5
+pydantic-settings>=2.11.0
+openai>=3.37.0
+jinja2>=3.1.6
+python-multipart>=0.0.32

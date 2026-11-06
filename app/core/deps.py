@@ -28,6 +28,7 @@ from app.core.config import get_settings
 from app.core.errors import REQUEST_ID_ATTR
 from app.core.llm.client import get_llm_client
 from app.services.extractor import ExtractionOutput, RuleExtractor
+from app.services.generator import FakeGenerator, Generator
 from app.services.llm_extractor import LlmExtractor
 
 # 实现选择开关：默认 llm；设成 rule 退回规则版。
@@ -109,13 +110,52 @@ def get_request_id(request: Request) -> str:
 RequestIdDep = Annotated[str, Depends(get_request_id)]
 
 
+# ---------------------------------------------------------------- 图像生成（项目一 · W8 周三）
+#
+# 与 `get_extractor` 同一条装配纪律：路由只认 `Generator` 协议，
+# 换实现改这一处。默认 FakeGenerator（离线可跑）；
+# 真机部署时设 GENERATOR_IMPL=sd 切换 —— 应急开关是改配置，不是改代码。
+
+GENERATOR_IMPL_ENV = "GENERATOR_IMPL"
+
+
+@lru_cache(maxsize=1)
+def get_generator() -> Generator:
+    """当前生效的图像生成器（进程级单例）。
+
+    真实现的构造（加载 SD 权重）是几十秒级的重操作，必须单例；
+    FakeGenerator 构造几乎零成本，单例也无害 —— 统一走 lru_cache。
+    """
+    impl = os.environ.get(GENERATOR_IMPL_ENV, "fake").strip().lower()
+    if impl == "fake":
+        return FakeGenerator()
+    # "sd" 或任何其它值都走真实现：它的构造会立刻检查权重/设备，
+    # 不可用时抛 GeneratorUnavailableError → 503 MODEL_NOT_LOADED（错误码表里有它）
+    from app.services.generator import SdLoraGenerator
+
+    return SdLoraGenerator()
+
+
+def reset_generator_cache() -> None:
+    """清掉单例缓存。测试里切换实现后必须调用（与 reset_extractor_cache 同款）。"""
+    get_generator.cache_clear()
+
+
+GeneratorDep = Annotated[Generator, Depends(get_generator)]
+
+
 __all__ = [
     "DISABLE_REASONING_ENV",
     "EXTRACTOR_IMPL_ENV",
+    "GENERATOR_IMPL_ENV",
     "Extractor",
     "ExtractorDep",
+    "Generator",
+    "GeneratorDep",
     "RequestIdDep",
     "get_extractor",
+    "get_generator",
     "get_request_id",
     "reset_extractor_cache",
+    "reset_generator_cache",
 ]

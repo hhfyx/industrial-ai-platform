@@ -1,0 +1,279 @@
+{
+  "summary": {
+    "scored": 8,
+    "hit_a": 2,
+    "hit_b": 3,
+    "hit5_a": 0.25,
+    "hit5_b": 0.375,
+    "mrr_a": 0.1875,
+    "mrr_b": 0.375,
+    "lift": 1,
+    "degraded_rows": 0,
+    "ambiguous_rows": 2,
+    "ambiguous_correct": 2,
+    "dry_run": false
+  },
+  "rows": [
+    {
+      "id": "mt-01",
+      "type": "scored",
+      "follow_up": "这个指标在六轮基准里改善了多少倍？",
+      "standalone": "TTFT（首字延迟）指标在六轮基准里改善了多少倍？",
+      "rewrote": true,
+      "degraded": false,
+      "rewrite_ms": 3801,
+      "a_query": "这个指标在六轮基准里改善了多少倍？",
+      "a_hit_rank": null,
+      "a_scores": [
+        0.256,
+        0.2542,
+        0.2533,
+        0.2312,
+        0.2136
+      ],
+      "b_query": "TTFT（首字延迟）指标在六轮基准里改善了多少倍？",
+      "b_hit_rank": null,
+      "b_scores": [
+        0.2895,
+        0.2341,
+        0.2252,
+        0.2149,
+        0.2118
+      ],
+      "delta_rank": 0,
+      "note": "指代型：\"这个指标\" → TTFT。改写正确应命中 f-07 的锚点"
+    },
+    {
+      "id": "mt-02",
+      "type": "scored",
+      "follow_up": "那它的数据目录默认落在哪？",
+      "standalone": "Chroma 的数据目录默认落在哪？",
+      "rewrote": true,
+      "degraded": false,
+      "rewrite_ms": 1512,
+      "a_query": "那它的数据目录默认落在哪？",
+      "a_hit_rank": 2,
+      "a_scores": [
+        0.385,
+        0.3519,
+        0.3226,
+        0.3208,
+        0.3119
+      ],
+      "b_query": "Chroma 的数据目录默认落在哪？",
+      "b_hit_rank": 1,
+      "b_scores": [
+        0.3632,
+        0.2929,
+        0.2889,
+        0.2888,
+        0.2841
+      ],
+      "delta_rank": -1,
+      "note": "指代型：\"它\" → Chroma"
+    },
+    {
+      "id": "mt-03",
+      "type": "scored",
+      "follow_up": "为什么反复把整篇文档塞回上下文最费钱？",
+      "standalone": "为什么在多轮对话中反复把整篇文档塞回上下文（相比RAG只检索片段）最费钱？",
+      "rewrote": true,
+      "degraded": false,
+      "rewrite_ms": 4020,
+      "a_query": "为什么反复把整篇文档塞回上下文最费钱？",
+      "a_hit_rank": null,
+      "a_scores": [
+        0.3326,
+        0.2999,
+        0.2915,
+        0.2816,
+        0.2543
+      ],
+      "b_query": "为什么在多轮对话中反复把整篇文档塞回上下文（相比RAG只检索片段）最费钱？",
+      "b_hit_rank": null,
+      "b_scores": [
+        0.3844,
+        0.355,
+        0.294,
+        0.2748,
+        0.2649
+      ],
+      "delta_rank": 0,
+      "note": "对照基准：追问本身已独立完整，改写后应与原问相同（rewrote=False），检验改写不画蛇添足"
+    },
+    {
+      "id": "mt-04",
+      "type": "scored",
+      "follow_up": "在自带思维链的模型上再叠加 CoT 提示呢？",
+      "standalone": "在自带思维链（CoT）能力的模型上再叠加 CoT 提示，效果/成绩如何？",
+      "rewrote": true,
+      "degraded": false,
+      "rewrite_ms": 3943,
+      "a_query": "在自带思维链的模型上再叠加 CoT 提示呢？",
+      "a_hit_rank": null,
+      "a_scores": [
+        0.4262,
+        0.4056,
+        0.3877,
+        0.3769,
+        0.3471
+      ],
+      "b_query": "在自带思维链（CoT）能力的模型上再叠加 CoT 提示，效果/成绩如何？",
+      "b_hit_rank": null,
+      "b_scores": [
+        0.3683,
+        0.3579,
+        0.3388,
+        0.3328,
+        0.3283
+      ],
+      "delta_rank": 0,
+      "note": "省略型：\"呢\"承载上下文方向（收益与代价）。改写应补全问题本体"
+    },
+    {
+      "id": "mt-05",
+      "type": "scored",
+      "follow_up": "那抽取降级到规则版时为什么仍返回 200？",
+      "standalone": "为什么抽取功能降级到规则版时仍返回 HTTP 200 状态码？",
+      "rewrote": true,
+      "degraded": false,
+      "rewrite_ms": 4959,
+      "a_query": "那抽取降级到规则版时为什么仍返回 200？",
+      "a_hit_rank": null,
+      "a_scores": [
+        0.3978,
+        0.355,
+        0.3137,
+        0.3096,
+        0.3084
+      ],
+      "b_query": "为什么抽取功能降级到规则版时仍返回 HTTP 200 状态码？",
+      "b_hit_rank": null,
+      "b_scores": [
+        0.3577,
+        0.33,
+        0.3282,
+        0.299,
+        0.2845
+      ],
+      "delta_rank": 0,
+      "note": "话题延续：上一轮是错误码语境。改写应去掉\"那\"与语境依赖"
+    },
+    {
+      "id": "mt-06",
+      "type": "scored",
+      "follow_up": "它和向量维度是什么关系？",
+      "standalone": "bge 的 max_seq_length（输入长度上限 512 token）和向量维度是什么关系？",
+      "rewrote": true,
+      "degraded": false,
+      "rewrite_ms": 4836,
+      "a_query": "它和向量维度是什么关系？",
+      "a_hit_rank": null,
+      "a_scores": [
+        0.3228,
+        0.3149,
+        0.3046,
+        0.2896,
+        0.2798
+      ],
+      "b_query": "bge 的 max_seq_length（输入长度上限 512 token）和向量维度是什么关系？",
+      "b_hit_rank": 1,
+      "b_scores": [
+        0.3967,
+        0.315,
+        0.3131,
+        0.3049,
+        0.2927
+      ],
+      "delta_rank": -98,
+      "note": "指代型：\"它\" → 输入长度上限。检索命中同一文档块，检验改写不偏移"
+    },
+    {
+      "id": "mt-07",
+      "type": "scored",
+      "follow_up": "上面那个重叠在检索侧的重复代价又是多少？",
+      "standalone": "50 字重叠在检索侧的重复代价是多少？",
+      "rewrote": true,
+      "degraded": false,
+      "rewrite_ms": 2726,
+      "a_query": "上面那个重叠在检索侧的重复代价又是多少？",
+      "a_hit_rank": 1,
+      "a_scores": [
+        0.3628,
+        0.3272,
+        0.2993,
+        0.2899,
+        0.277
+      ],
+      "b_query": "50 字重叠在检索侧的重复代价是多少？",
+      "b_hit_rank": 1,
+      "b_scores": [
+        0.4212,
+        0.3685,
+        0.3563,
+        0.339,
+        0.3383
+      ],
+      "delta_rank": 0,
+      "note": "指代型：\"上面那个重叠\" → 50 字重叠。任务点名的\"上面那个型号\"模式"
+    },
+    {
+      "id": "mt-08",
+      "type": "scored",
+      "follow_up": "再详细点",
+      "standalone": "跨页段落只记起始页为什么危险？请更详细地解释。",
+      "rewrote": true,
+      "degraded": false,
+      "rewrite_ms": 2435,
+      "a_query": "再详细点",
+      "a_hit_rank": null,
+      "a_scores": [
+        0.3341,
+        0.2182,
+        0.2076,
+        0.2013,
+        0.1997
+      ],
+      "b_query": "跨页段落只记起始页为什么危险？请更详细地解释。",
+      "b_hit_rank": null,
+      "b_scores": [
+        0.3618,
+        0.3308,
+        0.3192,
+        0.3181,
+        0.2731
+      ],
+      "delta_rank": 0,
+      "note": "任务点名：\"再详细点\"。零信息追问，改写必须从历史重建问题本体"
+    },
+    {
+      "id": "mt-09",
+      "type": "ambiguous",
+      "follow_up": "上面那个型号的防护等级呢？",
+      "rewritten": null,
+      "needs_clarification": true,
+      "missing": [
+        "请明确您想查询的是 HX-200 还是 HX-300 的防护等级。"
+      ],
+      "expected_needs_clarification": true,
+      "correct_flag": true,
+      "degraded": false,
+      "note": "任务点名的歧义样本：历史里有两个型号，\"上面那个\"指代不明。改写层应 needs_clarification=true，非交互路径用原问。**单独一行统计，不计入改写收益/损失的分母**"
+    },
+    {
+      "id": "mt-10",
+      "type": "ambiguous",
+      "follow_up": "它的公差是多少？",
+      "rewritten": null,
+      "needs_clarification": true,
+      "missing": [
+        "请说明“它”指的是哪个对象（如流式首字等待的改善幅度、检索占比等）",
+        "请说明“公差”具体指什么（历史中未提及任何公差相关信息）"
+      ],
+      "expected_needs_clarification": true,
+      "correct_flag": true,
+      "degraded": false,
+      "note": "任务点名的\"它的公差\"模式：历史里没有公差相关内容，改写层应 needs_clarification=true 而不是幻觉先行词。**单独一行统计**"
+    }
+  ]
+}

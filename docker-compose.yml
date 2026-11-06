@@ -1,9 +1,22 @@
 # 一条命令起服务：docker compose up --build -d
 # 停：docker compose down
+#
+# W8 周六升级：data/chroma 挂具名 volume 持久化 ——
+#   之前 api 容器重建 = 索引全丢（匿名层随容器销毁）；
+#   现在 chroma 数据在 volume 里，api 随便重建、up -d --build 不再毁库。
+#
+# 为什么 chroma 不是独立 service（诚实说明，与任务书的"api + chroma 双服务"的差异）：
+#   代码里 ChromaStore 用的是 **内嵌 PersistentClient**（app/rag/stores/chroma.py），
+#   不是 HttpClient —— chroma 以库的形态长在 api 进程里。
+#   拆独立容器 = 引入 chromadb/chroma 服务器镜像 + 把 stores 层改成 HttpClient
+#   + 全部 store 测试重写，这是一次 stores 接口的契约级改动，不是编排层改动。
+#   本次按"数据持久化 + 健康语义"落地（volume + 启动自检），双容器拆分记入待办，
+#   触发条件：多 api 副本共享一个库、或 chroma 需要独立伸缩时。
+#   —— 把"两个容器"当成本身的目的，是编排的形式主义；这里选择写清楚为什么。
 services:
   api:
     build: .
-    image: industrial-ai:v0.1
+    image: industrial-ai:v0.2
     container_name: industrial-ai-api
     ports:
       # 宿主机 8000 → 容器 8000。这里写死，是故意的：容器内监听端口由 .env 的 PORT
@@ -13,11 +26,33 @@ services:
     env_file:
       # 变量在运行时注入，不进镜像层（.info: .env 在 .dockerignore 里）
       - .env
+    volumes:
+      # chroma 持久化：具名 volume（不是 bind mount）——
+      # bind mount 会把宿主机目录的属主/权限问题带进非 root 容器（uid 10001），
+      # 具名 volume 由 Docker 管理属主，首次挂载自动初始化。
+      - chroma-data:/app/data/chroma
+      # 会话库（W8 周一 session_store）同样持久化：刷新/重建容器历史不丢
+      - sessions-data:/app/data/sessions
+      # 上传文件（索引源文件留底）
+      - uploads-data:/app/data/uploads
     restart: unless-stopped
     healthcheck:
       # 探容器内部 127.0.0.1:8000/health，不是探宿主机
       test: ["CMD", "python", "/app/healthcheck.py"]
       interval: 30s
       timeout: 3s
-      start_period: 5s
+      start_period: 15s
       retries: 3
+
+volumes:
+  chroma-data:
+  sessions-data:
+  uploads-data:
+
+# W1 的 F4 题在本文件的落地说明：
+#   "容器健康 ≠ 依赖就绪"——healthcheck 探的是 api 进程自己，
+#   而 chroma 是内嵌库，它的"就绪"表现为 api 首次 store 操作成功。
+#   内嵌模式下没有第二个容器可以 depends_on，所以"依赖就绪"退化为
+#   api 自己的 start_period（15s：覆盖 python 启动 + 首次 import chroma）。
+#   F4 的完整形态（depends_on: service_healthy）在双容器拆分时补上，
+#   那时 depends_on: { chroma: { condition: service_healthy } } 才有真实的探针对象。

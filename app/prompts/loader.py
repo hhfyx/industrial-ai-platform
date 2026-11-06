@@ -56,7 +56,9 @@ from pydantic import BaseModel
 PROMPTS_DIR = Path(__file__).resolve().parent
 
 # 模板类别白名单。新增类别必须显式加到这里，避免手滑建出拼错名字的目录。
-CATEGORIES: frozenset[str] = frozenset({"qa", "summarize", "classify", "extract"})
+# `rewrite`：W8 周一新增 —— 多轮对话的指代消解改写层，
+# 与 qa/extract 同构（同一套 loader / 版本解析 / 硬编码检查）。
+CATEGORIES: frozenset[str] = frozenset({"qa", "summarize", "classify", "extract", "rewrite"})
 
 BLOCKLIST_FILE = PROMPTS_DIR / "hardcoded_blocklist.txt"
 
@@ -72,6 +74,9 @@ OPTIONAL_DEFAULTS: dict[str, dict[str, object]] = {
     "summarize": {"must_keep": [], "segments": [], "max_chars": 200},
     "classify": {"fallback": "其他", "max_reason_chars": 30},
     "extract": {"entity_hint": "", "allow_infer": False},
+    # `max_history_chars` 只出现在模板头注释里（自述口径），正文不引用它 ——
+    # 真正的截断在调用方（query_rewrite）做，模板收到的一定是已裁剪的历史。
+    "rewrite": {"max_history_chars": 0},
 }
 
 # 中文串字面量：用于硬编码检查

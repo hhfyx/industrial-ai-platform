@@ -48,6 +48,10 @@ class AppError(Exception):
 
     不用 `HTTPException` 的原因很实际：它的 `detail` 只能塞字符串，
     而契约要求 `code` 可被程序判断（`INVALID_INPUT` vs `INTERNAL_ERROR`）。
+
+    `headers`：可选的附加响应头（如 OOM 的 `Retry-After`）。
+    业务异常发生在路由体内，此时**路由自己的 `response` 参数还没机会写头**
+    （异常一抛，后面的代码不执行），所以"异常路径的额外头"只能跟着异常走。
     """
 
     def __init__(
@@ -57,12 +61,14 @@ class AppError(Exception):
         *,
         status_code: int = 422,
         details: list[ErrorDetail] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(message)
         self.code = code
         self.message = message
         self.status_code = status_code
         self.details = details or []
+        self.headers = headers or {}
 
 
 def _request_id_of(request: Request) -> str:
@@ -86,6 +92,7 @@ def _error_response(
     code: str,
     message: str,
     details: list[ErrorDetail] | None = None,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     """统一错误响应的唯一出口：body 形状与响应头都在这里定。"""
     request_id = _request_id_of(request)
@@ -102,6 +109,7 @@ def _error_response(
             # Exception handler 在中间件之外，头只能自己补（api-spec.md §2.4）
             REQUEST_ID_HEADER: request_id,
             CONTRACT_HEADER: CONTRACT_VERSION,
+            **(headers or {}),
         },
     )
 
@@ -145,6 +153,7 @@ async def app_error_handler(request: Request, exc: Exception) -> JSONResponse:
         code=exc.code,
         message=exc.message,
         details=exc.details,
+        headers=exc.headers,
     )
 
 

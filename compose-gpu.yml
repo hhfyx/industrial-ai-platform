@@ -1,0 +1,74 @@
+# 项目一（缺陷图像生成）的 compose —— **独立文件，与项目二的 docker-compose.yml 分开**。
+#
+# 为什么不同文件：`docker compose up` 默认读当前目录的 compose 文件。
+# 共用一个文件时，"起个问答服务"会把 6GB 显存的 GPU 容器也拉起来；
+# 分开后两边各起各的：
+#   项目一：docker compose -f compose-gpu.yml up -d
+#   项目二：docker compose up -d
+#
+# 前置条件（缺一容器起不来，且报错不好懂，先在这里说清）：
+#   1. NVIDIA 驱动 ≥ 555（CUDA 12.8 兼容线）
+#   2. Docker GPU 直通已配好（Windows: Docker Desktop WSL2 后端 + WSL 内 nvidia-smi 可用）
+#      验证：docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu24.04 nvidia-smi
+#   3. 权重目录已就位（见 volumes 注释）
+#
+# 启动：docker compose -f compose-gpu.yml up -d
+# 日志：docker compose -f compose-gpu.yml logs -f generator
+services:
+  generator:
+    build:
+      context: .
+      dockerfile: Dockerfile.gpu
+    image: industrial-generator:v0.1
+    container_name: industrial-generator
+    ports:
+      # 与项目二(8000)错开：两个 compose 同时跑时不打架
+      - "8001:8000"
+    environment:
+      GENERATOR_IMPL: sd
+      SD_WEIGHTS_DIR: /models/sd15
+      HF_HOME: /models/hf
+      PORT: "8000"
+      # LLMSettings.api_key 是必填字段（app.main 导入链会读配置），
+      # GPU 容器不做问答但进程要能起 —— 占位值即可，不产生真实调用。
+      LLM_API_KEY: "sk-not-used-in-gpu-container"
+    volumes:
+      # ── 权重：volume 挂载，绝不进镜像 ──
+      # 宿主机目录结构（提前放好）：
+      #   D:\git\网页\industrial-ai-platform\models\sd15\
+      #     ├── stable-diffusion-v1-5\        （SD1.5 基座，~4 GB）
+      #     └── lora\<类别>.safetensors        （每缺陷类别一个适配器）
+      # Windows 路径写法按 Docker Desktop 的盘符共享（D: 盘须在 Shared Drives 里）。
+      - ./models/sd15:/models/sd15:ro
+      # HF 缓存可写（首次 tokenize/配置读取需要）
+      - generator-hf-cache:/models/hf
+      # 生成图落盘（容器内 /app/data/generated，宿主机可直接取图）
+      - ./data/generated:/app/data/generated
+    restart: unless-stopped
+    # GPU 资源声明：compose v2 用 deploy.resources（docker compose 与 swarm 通吃）。
+    # device_ids 写死 0 号卡 —— 本机唯一 GPU；多卡机器按需改。
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: ["gpu"]
+    healthcheck:
+      # 与镜像内 HEALTHCHECK 一致；compose 这里覆盖更宽松的窗口（权重加载慢）
+      test: ["CMD", "python", "/app/healthcheck.py"]
+      interval: 30s
+      timeout: 5s
+      start_period: 150s
+      retries: 5
+    # 资源上限：6GB 卡上 SD1.5+LoRA 实测峰值 ~4.5GB（FP16），留系统余量。
+    # container 层面限内存防"日志疯涨吃光宿主机"，GPU 本身靠单 worker 排队保护。
+    mem_limit: 6g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  generator-hf-cache:

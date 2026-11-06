@@ -1,0 +1,562 @@
+{
+  "meta": {
+    "generated_at": "2026-11-06 12:18:39",
+    "questions_file": "eval\\questions-50.jsonl",
+    "chunk_chars": 500,
+    "overlap": 50,
+    "strategy": "recursive",
+    "embedder": "bge",
+    "chunks": 1179,
+    "corpus_docs": 1093,
+    "corpus_kind": "raw",
+    "ks": [
+      1,
+      3,
+      5,
+      8,
+      10
+    ],
+    "top_k": 5
+  },
+  "metrics": {
+    "total_questions": 50,
+    "answerable": 40,
+    "refusals": 10,
+    "recall": {
+      "recall@1": {
+        "hits": 6,
+        "total": 40,
+        "rate": 0.15
+      },
+      "recall@3": {
+        "hits": 13,
+        "total": 40,
+        "rate": 0.325
+      },
+      "recall@5": {
+        "hits": 16,
+        "total": 40,
+        "rate": 0.4
+      },
+      "recall@8": {
+        "hits": 18,
+        "total": 40,
+        "rate": 0.45
+      },
+      "recall@10": {
+        "hits": 18,
+        "total": 40,
+        "rate": 0.45
+      }
+    },
+    "mrr": 0.2515,
+    "by_type": {
+      "fact": {
+        "total": 30,
+        "recall@5": 0.4333,
+        "mrr": 0.3111
+      },
+      "multi_hop": {
+        "total": 10,
+        "recall@5": 0.3,
+        "mrr": 0.0725
+      }
+    },
+    "threshold": 0.575,
+    "top_k": 5,
+    "refusal": {
+      "refused_correctly": 4,
+      "refusal_total": 10,
+      "refusal_accuracy": 0.4,
+      "false_refusal": [
+        "f-01",
+        "f-03",
+        "f-04",
+        "f-07",
+        "f-09",
+        "f-15",
+        "f-22",
+        "f-26",
+        "m-03"
+      ],
+      "false_accept": [
+        "r-01",
+        "r-03",
+        "r-04",
+        "r-06",
+        "r-07",
+        "r-09"
+      ],
+      "recall_miss": [
+        "f-01",
+        "f-02",
+        "f-03",
+        "f-04",
+        "f-05",
+        "f-07",
+        "f-08",
+        "f-09",
+        "f-10",
+        "f-18",
+        "f-19",
+        "f-20",
+        "f-22",
+        "f-25",
+        "f-26",
+        "f-27",
+        "f-30",
+        "m-01",
+        "m-02",
+        "m-03",
+        "m-04",
+        "m-05",
+        "m-06",
+        "m-08"
+      ],
+      "overall_accuracy": 0.38,
+      "note": "三者的口径都对齐到 top_k=5（线上实际使用的检索条数）：false_refusal 只统计「top1 低于阈值」的条数；recall_miss 是「top5 内没命中」的条数，属于召回问题、不是拒答问题；overall_accuracy = (top5 内命中且分数过阈 + 正确拒答) / 全部题，它把「该答没答」和「该拒没拒」混在一个数里，仅作粗略参考"
+    }
+  },
+  "per_question": [
+    {
+      "id": "f-01",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5379
+    },
+    {
+      "id": "f-02",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.6423
+    },
+    {
+      "id": "f-03",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5281
+    },
+    {
+      "id": "f-04",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.534
+    },
+    {
+      "id": "f-05",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5915
+    },
+    {
+      "id": "f-06",
+      "type": "fact",
+      "hit_rank": 2,
+      "anchor_ranks": [
+        2
+      ],
+      "top_score": 0.6691
+    },
+    {
+      "id": "f-07",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5657
+    },
+    {
+      "id": "f-08",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5983
+    },
+    {
+      "id": "f-09",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5592
+    },
+    {
+      "id": "f-10",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.6009
+    },
+    {
+      "id": "f-11",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.6493
+    },
+    {
+      "id": "f-12",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.6146
+    },
+    {
+      "id": "f-13",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.6754
+    },
+    {
+      "id": "f-14",
+      "type": "fact",
+      "hit_rank": 3,
+      "anchor_ranks": [
+        3
+      ],
+      "top_score": 0.6733
+    },
+    {
+      "id": "f-15",
+      "type": "fact",
+      "hit_rank": 3,
+      "anchor_ranks": [
+        3
+      ],
+      "top_score": 0.5384
+    },
+    {
+      "id": "f-16",
+      "type": "fact",
+      "hit_rank": 2,
+      "anchor_ranks": [
+        2
+      ],
+      "top_score": 0.5832
+    },
+    {
+      "id": "f-17",
+      "type": "fact",
+      "hit_rank": 2,
+      "anchor_ranks": [
+        2
+      ],
+      "top_score": 0.6405
+    },
+    {
+      "id": "f-18",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.6372
+    },
+    {
+      "id": "f-19",
+      "type": "fact",
+      "hit_rank": 6,
+      "anchor_ranks": [
+        6
+      ],
+      "top_score": 0.6257
+    },
+    {
+      "id": "f-20",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.647
+    },
+    {
+      "id": "f-21",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.6377
+    },
+    {
+      "id": "f-22",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5727
+    },
+    {
+      "id": "f-23",
+      "type": "fact",
+      "hit_rank": 2,
+      "anchor_ranks": [
+        2
+      ],
+      "top_score": 0.614
+    },
+    {
+      "id": "f-24",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.5755
+    },
+    {
+      "id": "f-25",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.6303
+    },
+    {
+      "id": "f-26",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.5157
+    },
+    {
+      "id": "f-27",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.6037
+    },
+    {
+      "id": "f-28",
+      "type": "fact",
+      "hit_rank": 2,
+      "anchor_ranks": [
+        2
+      ],
+      "top_score": 0.7207
+    },
+    {
+      "id": "f-29",
+      "type": "fact",
+      "hit_rank": 1,
+      "anchor_ranks": [
+        1
+      ],
+      "top_score": 0.5882
+    },
+    {
+      "id": "f-30",
+      "type": "fact",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null
+      ],
+      "top_score": 0.595
+    },
+    {
+      "id": "m-01",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        1,
+        null
+      ],
+      "top_score": 0.6986
+    },
+    {
+      "id": "m-02",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        8,
+        null
+      ],
+      "top_score": 0.6058
+    },
+    {
+      "id": "m-03",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        10
+      ],
+      "top_score": 0.5655
+    },
+    {
+      "id": "m-04",
+      "type": "multi_hop",
+      "hit_rank": 8,
+      "anchor_ranks": [
+        8,
+        7
+      ],
+      "top_score": 0.6299
+    },
+    {
+      "id": "m-05",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        1
+      ],
+      "top_score": 0.6757
+    },
+    {
+      "id": "m-06",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top_score": 0.662
+    },
+    {
+      "id": "m-07",
+      "type": "multi_hop",
+      "hit_rank": 5,
+      "anchor_ranks": [
+        1,
+        5
+      ],
+      "top_score": 0.6025
+    },
+    {
+      "id": "m-08",
+      "type": "multi_hop",
+      "hit_rank": null,
+      "anchor_ranks": [
+        null,
+        null
+      ],
+      "top_score": 0.6666
+    },
+    {
+      "id": "m-09",
+      "type": "multi_hop",
+      "hit_rank": 5,
+      "anchor_ranks": [
+        3,
+        5
+      ],
+      "top_score": 0.7011
+    },
+    {
+      "id": "m-10",
+      "type": "multi_hop",
+      "hit_rank": 5,
+      "anchor_ranks": [
+        4,
+        5
+      ],
+      "top_score": 0.6806
+    },
+    {
+      "id": "r-01",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.6288
+    },
+    {
+      "id": "r-02",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5748
+    },
+    {
+      "id": "r-03",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5912
+    },
+    {
+      "id": "r-04",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5756
+    },
+    {
+      "id": "r-05",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5612
+    },
+    {
+      "id": "r-06",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.6042
+    },
+    {
+      "id": "r-07",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5976
+    },
+    {
+      "id": "r-08",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5396
+    },
+    {
+      "id": "r-09",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5785
+    },
+    {
+      "id": "r-10",
+      "type": "refusal",
+      "hit_rank": null,
+      "anchor_ranks": [],
+      "top_score": 0.5478
+    }
+  ]
+}
