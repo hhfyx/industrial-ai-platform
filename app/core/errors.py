@@ -29,6 +29,7 @@ from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.core.logging import count_error
 from app.schemas.extract import ErrorDetail, ErrorResponse
 
 logger = logging.getLogger(__name__)
@@ -94,7 +95,12 @@ def _error_response(
     details: list[ErrorDetail] | None = None,
     headers: dict[str, str] | None = None,
 ) -> JSONResponse:
-    """统一错误响应的唯一出口：body 形状与响应头都在这里定。"""
+    """统一错误响应的唯一出口：body 形状与响应头都在这里定。
+
+    错误分类计数也在这里做（W8 周日）：**唯一出口 = 唯一计数点**——
+    四个 handler 都从这走，在 handler 里各加一遍会漏（新增 handler 忘加）或重（多层 handler）。
+    """
+    count_error(code)
     request_id = _request_id_of(request)
     payload = ErrorResponse(
         code=code,

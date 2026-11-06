@@ -18,6 +18,7 @@ import uuid
 from fastapi import FastAPI, Request, Response
 
 from app.core.errors import CONTRACT_HEADER, CONTRACT_VERSION, REQUEST_ID_ATTR, REQUEST_ID_HEADER
+from app.core.logging import set_request_id
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,8 @@ async def request_context_middleware(request: Request, call_next):
     incoming = request.headers.get(REQUEST_ID_HEADER)
     request_id = incoming.strip() if incoming and incoming.strip() else str(uuid.uuid4())
     setattr(request.state, REQUEST_ID_ATTR, request_id)
+    # 同步进 contextvar：全链路的 JSON 日志都带这个 id（W8 周日，request_id 贯穿）
+    set_request_id(request_id)
 
     start = time.perf_counter()
     response: Response = await call_next(request)

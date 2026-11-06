@@ -41,8 +41,12 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_DB_PATH: str = "data/sessions.sqlite"
-"""默认库文件位置（相对项目根）。独立文件，**不混进** embedding 缓存库。"""
+DEFAULT_DB_PATH: str = "data/sessions/sessions.sqlite"
+"""默认库文件位置（相对项目根）。**放在 sessions/ 子目录里不是随手**：
+docker-compose 把 `data/sessions/` 挂成持久 volume（W8 周六）——
+库文件在挂载点**之内**才随 volume 存活；放在 `data/` 下则容器重建即丢
+（实测踩过：库落在 /app/data/sessions.sqlite，volume 挂的是 /app/data/sessions/，
+重建容器历史全丢）。独立文件，**不混进** embedding 缓存库。"""
 
 
 def _project_root() -> Path:

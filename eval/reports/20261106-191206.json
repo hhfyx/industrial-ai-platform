@@ -1,0 +1,327 @@
+{
+  "meta": {
+    "generated_at": "2026-11-06 19:09:57",
+    "questions": "eval\\questions-slice20.jsonl",
+    "n_questions": 20,
+    "commit": "8f201e62af6a6b9fb63e7c4cc2e7684548af6634",
+    "metrics_version": "metrics@2026-11-30",
+    "prompt_version": "v1",
+    "threshold": 0.575,
+    "top_k": 5
+  },
+  "retrieval": {
+    "metrics": {
+      "recall@1": {
+        "hits": 2,
+        "total": 14,
+        "rate": 0.1429
+      },
+      "recall@5": {
+        "hits": 6,
+        "total": 14,
+        "rate": 0.4286
+      },
+      "mrr": 0.2663,
+      "ndcg@5": {
+        "overall": 0.4053,
+        "fact": 0.4311,
+        "multi_hop": 0.371
+      },
+      "refusal_three_way": {
+        "correct_refusals": 1,
+        "refusal_total": 6,
+        "false_refusals": 3,
+        "false_accepts": 5
+      }
+    },
+    "source_meta": {
+      "generated_at": "2026-11-06 19:10:11",
+      "questions_file": "eval\\questions-slice20.jsonl",
+      "chunk_chars": 500,
+      "overlap": 50,
+      "strategy": "recursive",
+      "embedder": "bge",
+      "chunks": 1197,
+      "corpus_docs": 1109,
+      "corpus_kind": "raw",
+      "ks": [
+        1,
+        3,
+        5,
+        8,
+        10
+      ],
+      "top_k": 5
+    }
+  },
+  "generation": {
+    "records": [
+      {
+        "id": "f-01",
+        "type": "fact",
+        "question": "四类模板 A/B 里最容易混的是哪两个意图类别，混了几次？",
+        "gen_status": "ok",
+        "answer": "最容易混的是「功能咨询」→「故障报修」，两个版本都是这一对，各混 1 次。",
+        "citations": [
+          1
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "意图对与次数均与标准答案一致"
+      },
+      {
+        "id": "f-03",
+        "type": "fact",
+        "question": "抽取组 v2 大幅胜出，真实原因是什么？",
+        "gen_status": "ok",
+        "answer": "真实原因是\"契约修复\"而非\"写得更好\"：v1 的 schema 把槽位写死成「主体」「时间」（按工单场景设计，即\"联系人+发生时间\"），而这批输入来自技术文档，字段是「版本/路径/要求/算法名」，模型不是不会抽，是没有槽位可填；v2 胜出靠的是修复了字段契约对不上的问题，而不是模板写得好。",
+        "citations": [
+          1,
+          4
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "核心事实一致，但附加了大量原文锚点外的细节"
+      },
+      {
+        "id": "f-22",
+        "type": "fact",
+        "question": "json_mode 路线失败时，模型的输出实际长什么样？",
+        "gen_status": "ok",
+        "answer": "模型输出的内容是正确的，只是结构不对：形如 {\"平台\": \"Windows\", \"正确命令\": \"curl.exe\"}，两个字段的值完全正确，只是没有套上 {\"fields\": {...}} 这层嵌套壳。json_mode 只保证\"是合法 JSON\"，不保证\"是我的形状\"，随后框架抛出 OutputParserException，与 json_schema 的失败根因相同，差别只在报错类型，10 条全部因此失败。",
+        "citations": [
+          2,
+          5
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "核心事实对，但含多余细节如报错类型、10条失败"
+      },
+      {
+        "id": "f-31",
+        "type": "fact",
+        "question": "给模板加新版本的正确流程是什么？",
+        "gen_status": "ok",
+        "answer": "上下文没有给出给模板新增版本（如 v2）的具体流程。材料只提到：版本机制有测试覆盖（环境变量切换、显式传参），但'真正新增一个 v2 并切换'的完整流程没走过；另外新增第五类模板时需同步改 load_schema 中固定属性名的元组（手工点）。缺少新增模板版本的具体步骤、目录/文件命名规范、切换方式及验证要求等信息。",
+        "citations": [
+          1,
+          5
+        ],
+        "uncertain": true,
+        "judge_status": "ok",
+        "verdict": "wrong",
+        "judge_reason": "答非所问，原文明确给出新增v2不改v1的流程"
+      },
+      {
+        "id": "f-35",
+        "type": "fact",
+        "question": "这组 prompt A/B 实验里，两版之间唯一动过的东西是什么？",
+        "gen_status": "ok",
+        "answer": "上下文只提到存在两版 prompt 及其对抗测试实验（[3]），但没有说明两版之间唯一被改动的是什么变量（例如是四要素中的某一个还是其他改动），因此无法确定。",
+        "citations": [
+          3
+        ],
+        "uncertain": true,
+        "judge_status": "ok",
+        "verdict": "wrong",
+        "judge_reason": "未答出唯一变量为约束密度，答非所问"
+      },
+      {
+        "id": "f-47",
+        "type": "fact",
+        "question": "切分器对代码块做常规 strip 会破坏什么？",
+        "gen_status": "ok",
+        "answer": "会破坏 Python 的结构性信息。段落[1]指出，代码的'句子'不是中文句号，切分器对每一块执行 strip() 时会吃掉 Python 唯一的结构性信息——即缩进（因为 Python 靠缩进表达结构，strip 会剥离这些缩进）。因此代码块应保留每行原始缩进，只去掉整块首尾的空行。",
+        "citations": [
+          1
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "核心事实一致：strip吃掉缩进这一结构信息"
+      },
+      {
+        "id": "f-74",
+        "type": "fact",
+        "question": "按文档结构标记来切分的策略，预判会在哪种文档上吃亏？",
+        "gen_status": "ok",
+        "answer": "按标题层级（结构标记）切分预判会在以下文档上吃亏：(1) PDF——页是渲染单位，文件里没有\"标题\"概念，heading_level 一律缺失，按标题切要么退化成按页切（每页一块可能跨 3 个主题），要么靠启发式猜标题，猜测准确率是天花板【1】【5】；(2) 标题粒度极不均匀的文档——如\"## 一、整体架构\"下 3000 字、\"## 三、部署\"下 30 字，会产出巨大块加迷你块，结构边界不等于检索粒度【5】；(3) 标题只作装饰的文档（\"第 1 节\"\"Part A\"\"附录\"）——标题里没有主题词，块与块之间没有可区分的信息，引用时报\"第 3 节\"等于没报【5】。",
+        "citations": [
+          1,
+          5
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "含正确要点但额外补充多种情况，超出标准答案"
+      },
+      {
+        "id": "f-76",
+        "type": "fact",
+        "question": "三种切分策略的预判排序是怎样的？",
+        "gen_status": "ok",
+        "answer": "上下文没有给出三种切分策略预判排序的具体内容。段落[2]提到存在一份'三策略预判'文件（chunking-predictions.md），但只说明了该文件的性质（先写后测、测后不改）和目的，并未写明三种策略各自的预判排序结论；要回答此问题，需要该预判文件中关于三种策略优劣排序的具体内容。",
+        "citations": [
+          2
+        ],
+        "uncertain": true,
+        "judge_status": "ok",
+        "verdict": "wrong",
+        "judge_reason": "答非所答，未给出排序，与锚点矛盾"
+      },
+      {
+        "id": "m-02",
+        "type": "multi_hop",
+        "question": "部署依赖文件的两个坑合起来看，最终方案落在哪里？",
+        "gen_status": "ok",
+        "answer": "无法确定最终方案。上下文只提到坑5.1的一部分：部署依赖文件必须放在入口目录，放在根目录会被 uv.lock 抢掉，且原计划在 Cloud 的 Advanced settings 中指定 requirements-deploy.txt 的说法被指出两处都错，但材料未给出这两个坑的具体展开，也没有说明最终采用的方案（如文件名、放置位置、指定方式）落在哪里。缺少'最终方案'的明确描述。",
+        "citations": [
+          1
+        ],
+        "uncertain": true,
+        "judge_status": "ok",
+        "verdict": "wrong",
+        "judge_reason": "称无法确定方案，遗漏334KB坑，答非所问"
+      },
+      {
+        "id": "m-10",
+        "type": "multi_hop",
+        "question": "问答组 v2 掉分的机制和最典型的那条各是什么？",
+        "gen_status": "ok",
+        "answer": "机制：v2 要求\"先输出缺少信息、再输出答案\"的两步走结构，使模型在有把握回答的题上也过度保守，先把\"缺什么\"列出来、答案被压缩，要点覆盖下降——不是 prompt 写得差，而是\"分步\"结构本身的代价。最典型的失分题是 qa-02：prompt 精简 30% 只省 11.8%，v1 能完整答出 3 个要点，v2 只答了\"成本结构决定优化上限\"，把\"输入占 39%、30%×39%≈11.8%\"这些关键数字丢了。",
+        "citations": [
+          1
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "机制正确，但遗漏1.00→0.33数字且多余11.8%细节"
+      },
+      {
+        "id": "m-11",
+        "type": "multi_hop",
+        "question": "分类混淆的机制和用户输入的特征是什么？",
+        "gen_status": "ok",
+        "answer": "上下文仅指出混淆矩阵中最容易混淆的两个类别是「功能咨询」→「故障报修」，两个版本各混 1 次，但未说明混淆的机制（为什么会混）以及用户输入的具体特征（哪些输入特征导致混淆），缺少这部分信息，无法回答。",
+        "citations": [
+          2
+        ],
+        "uncertain": true,
+        "judge_status": "ok",
+        "verdict": "wrong",
+        "judge_reason": "答非所问，称无法回答而拒绝给出机制"
+      },
+      {
+        "id": "m-16",
+        "type": "multi_hop",
+        "question": "w4 清单切分不合并的根因与修法各是什么？",
+        "gen_status": "ok",
+        "answer": "上下文中没有关于 w4 清单切分不合并的信息。给定材料只涉及标题切分、section_path、层级信息销毁、部署修复的4个问题和标量归一修复，缺少 w4 清单切分不合并的根因与修法的内容，因此无法回答。",
+        "citations": [],
+        "uncertain": true,
+        "judge_status": "ok",
+        "verdict": "wrong",
+        "judge_reason": "答非所问，称无相关信息而拒绝回答"
+      },
+      {
+        "id": "m-18",
+        "type": "multi_hop",
+        "question": "_freeze 崩 ctx.id 的根因和修法各是什么？",
+        "gen_status": "ok",
+        "answer": "根因可从上下文得知：lru_cache 要求参数可哈希，因此把参数字典 _freeze 成元组，但同一份冻结后的值既当缓存键、又当渲染参数传给模板，导致模板里的 ctx.id 报错（见段落1）。但修复方法（修法）在给定上下文中没有说明，缺少关于如何解决该问题的信息。",
+        "citations": [
+          1
+        ],
+        "uncertain": true,
+        "judge_status": "ok",
+        "verdict": "partially_correct",
+        "judge_reason": "根因对，但遗漏修法（thaw回dict）"
+      },
+      {
+        "id": "m-19",
+        "type": "multi_hop",
+        "question": "探针实验里模型自创字段与枚举缺失的关系是什么？",
+        "gen_status": "ok",
+        "answer": "根据[1]，探针给模型的是完整 schema（含4个required字段和3组enum），但结果模型自创了category/priority/summary/tags/suggested_team等字段，四个required字段一个都没出现。[2]进一步给出实证：模型在看不到枚举时会自创枚举值（如\"category\":\"故障报修\"）；而给出枚举清单后，实测单次调用直接命中\"功能异常\"。因此两者关系是：枚举未渲染进prompt时，模型会自创字段和枚举值；枚举渲染进去后，模型能正确命中，说明枚举必须渲染进prompt以避免模型自创。",
+        "citations": [
+          1,
+          2
+        ],
+        "uncertain": false,
+        "judge_status": "ok",
+        "verdict": "correct",
+        "judge_reason": "核心事实与锚点一致，无数字单位否定词错误"
+      },
+      {
+        "id": "r-01",
+        "type": "refusal",
+        "question": "pgvector 的 HNSW 索引建图参数 efConstruction 一般怎么取？",
+        "gen_status": "na_excluded",
+        "judge_status": "na_excluded",
+        "note": "拒答题由检索侧阈值三分类判定，不进生成指标分母"
+      },
+      {
+        "id": "r-03",
+        "type": "refusal",
+        "question": "LlamaIndex 的句子窗口检索怎么配置？",
+        "gen_status": "na_excluded",
+        "judge_status": "na_excluded",
+        "note": "拒答题由检索侧阈值三分类判定，不进生成指标分母"
+      },
+      {
+        "id": "r-06",
+        "type": "refusal",
+        "question": "PostgreSQL 里 pg_trgm 和全文检索怎么选？",
+        "gen_status": "na_excluded",
+        "judge_status": "na_excluded",
+        "note": "拒答题由检索侧阈值三分类判定，不进生成指标分母"
+      },
+      {
+        "id": "r-16",
+        "type": "refusal",
+        "question": "Redis 的 LFU 淘汰策略参数怎么调？",
+        "gen_status": "na_excluded",
+        "judge_status": "na_excluded",
+        "note": "拒答题由检索侧阈值三分类判定，不进生成指标分母"
+      },
+      {
+        "id": "r-18",
+        "type": "refusal",
+        "question": "DVC 的数据集版本管理怎么和 git 配合？",
+        "gen_status": "na_excluded",
+        "judge_status": "na_excluded",
+        "note": "拒答题由检索侧阈值三分类判定，不进生成指标分母"
+      },
+      {
+        "id": "r-20",
+        "type": "refusal",
+        "question": "FAISS 的 IVF-PQ 索引两阶段量化原理是什么？",
+        "gen_status": "na_excluded",
+        "judge_status": "na_excluded",
+        "note": "拒答题由检索侧阈值三分类判定，不进生成指标分母"
+      }
+    ],
+    "elapsed_sec": 114.0,
+    "summary": {
+      "n_total": 20,
+      "n_excluded_na": 6,
+      "n_measured": 14,
+      "verdict_counts": {
+        "correct": 3,
+        "partially_correct": 5,
+        "wrong": 6
+      },
+      "answer_score": 0.3929,
+      "failures": {
+        "retrieve": [],
+        "prompt": [],
+        "generate": [],
+        "judge_parse": []
+      },
+      "n_failures": 0
+    }
+  }
+}

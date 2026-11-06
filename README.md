@@ -1,7 +1,15 @@
-# industrial-ai-platform
+﻿# industrial-ai-platform
 
 **一个从"调模型"长到"能查、能引、能拒答"的文档知识库平台。**
 **（W6 实测后正式改名：语料是技术文档，不是工业文档 —— 见下方「关于 industrial 这个名字」）**
+
+> **本仓库有两个项目**（同一套工程底座，部署独立）：
+>
+> | | 入口 | README |
+> | --- | --- | --- |
+> | **项目二：文档知识库 RAG 平台**（本文件） | `app/ui/streamlit_app.py` · `POST /api/v1/*` | 就在这里 |
+> | **项目一：缺陷图像生成服务**（SD+LoRA · FastAPI 异步队列） | `POST /api/v1/generate*` | [docs/README-generator.md](docs/README-generator.md) |
+> | **部署变体口径**（哪版数字对应哪版系统） | —— | [docs/deploy-variant.md](docs/deploy-variant.md) |
 
 > ### 关于 `industrial` 这个名字（**必读**）
 >
@@ -26,16 +34,17 @@
 
 | 能力 | 入口 | 一句话 |
 | --- | --- | --- |
-| **知识库问答**（主交付） | `app/ui/streamlit_app.py` | 上传文档 → 检索 → **答案带 `[n]` 引用** → 点开看原文高亮 |
+| **知识库问答**（主交付） | `app/ui/streamlit_app.py` | 上传文档 → 检索 → **答案带 `[n]` 引用** → 点开看原文高亮；**多轮对话（W8）：指代消解改写 + 会话持久化** |
 | 结构化抽取 | `POST /api/v1/extract` | 抽不到就是 `null`，永不编造（有原文回指校验） |
 | 超长文档摘要 | `POST /api/v1/summarize/stream` | map-reduce + 流式，50 页 ≈ 1 秒索引 |
 | 流式对话 | `POST /api/v1/chat/stream` | SSE 逐字，TTFT 有口径 |
+| **缺陷图像生成**（项目一） | `POST /api/v1/generate/async` | SD+LoRA · 异步队列 · 单 worker 保护 GPU —— 见 [README-generator](docs/README-generator.md) |
 
 重点不在"调通几个接口"，而在四件能拿证据说话的事：
 
 - **接口不变、实现可换**：同一份 `v1` 契约，底下从正则换成真实模型（再换成
   JSON Schema 强约束 + 校验回灌），`tests/test_api.py` **一行未改**。
-- **测试能离线跑绿**：**974 个测试，拔掉网线也全绿** —— 这是"实现真的可替换"
+- **测试能离线跑绿**：**1047 个测试，拔掉网线也全绿** —— 这是"实现真的可替换"
   无法伪造的证据。
 - **延迟拆开打点**：一次问答拆成 **五段**（编码 / 向量 / BM25 / 精排 / 压缩）。
   W6 实测：精排占检索全链路 **98.2%**，向量只占 0.7%。
@@ -43,13 +52,15 @@
 
 | 项目 | 值 |
 | --- | --- |
-| 端点 | `extract` · `extract/stream` · `chat/stream` · `summarize/stream` |
+| 端点 | `extract` · `extract/stream` · `chat/stream` · `summarize/stream` · `generate`（项目一） |
 | Web UI | Streamlit（`:8501`）· 免费层**自动降级**为字面检索（见 [deploy-notes](docs/deploy-notes.md)） |
 | 核心契约 | `POST /api/v1/extract`，`v1.1`（冻结；新增可选字段 `degraded`） |
-| 测试 | **974 个，全离线**（拔网线也全绿） |
+| 测试 | **1047 个，全离线**（拔网线也全绿） |
 | 检索 | bge-small-zh（512 维）· ChromaDB · cosine · **可选：BM25 / RRF 融合 / Cross-Encoder 精排 / 上下文压缩（四层全部默认关闭，理由见下）** |
+| **W8 新增：引用完整性** | 答案编号双向校验（越界重答一次→仍越界标 degraded）· 上下文去重（chunk_id + overlap 近重复，带计数）· 编号重排无空洞 |
+| **W8 新增：会话持久化** | sessions/turns 两表 sqlite · UI 刷新按 session_id 恢复 · turns 列与 message dict 零转换 |
 | 运行时 | Python 3.11 + uvicorn + Streamlit，非 root（uid 10001） |
-| 当前版本 | **v0.6.0**（W7：120 条黄金评测集 + 全量评测 + judge 校准） |
+| 当前版本 | **v1.0.0**（W8：多轮改写 + 引用完整性 + 生成服务 + 双线部署） |
 
 ---
 
@@ -266,7 +277,7 @@ scripts/             smoke_llm · demo_tools · consume_sse · cost · cost_mode
                      rag_bench（五个耗时数字 + 检索占首 token 多少）
                      regression_w4（跨层回归：API/prompts/summarize/CLI/AB）
 static/index.html    前端单页（fetch + ReadableStream，含中断/重试）
-tests/               567 个**全离线**测试
+tests/               1047 个**全离线**测试
   ├── fake_llm.py    FakeLLMClient（可复用，支持固定回复/脚本/异常/流式）
   ├── conftest.py    autouse: 默认注入离线规则版（拔网线也全绿）
   ├── test_rag_skeleton.py  RAG 骨架 48 条：结构不变量 + 三段链路
@@ -362,7 +373,7 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 | Recall@5 | **40.0%**（16/40） | 当时语料 **1288 段 / 1365 块** + 50 条评测集 |
 
 > ⚠️ **上面这个 1365 块是历史快照，不是当前值。** 当前是
-> **26 篇 / 475 段 / 838 块**（`chunk_chars=500, overlap=50`），
+> **26 篇 / 479 段 / 844 块**（`chunk_chars=500, overlap=50`），
 > 用 `python -X utf8 scripts/corpus_stats.py` 现算。
 >
 > 2026-11-04 核实发现同一件事在文档里有四个数字（1365 / 1364 / 1160 / 1592），
@@ -766,7 +777,7 @@ W2 做完之后：
 | 断言 | 状态 |
 | --- | --- |
 | `tests/test_api.py` 一行未改 | ✅ |
-| 全套 567 个测试仍全绿（**断网也是**） | ✅ 567 passed |
+| 全套测试仍全绿（**断网也是**） | ✅ W2 时 567 passed；当前 **1047 passed**（W8） |
 | 响应体正常时仍是 4 字段 | ✅ 实测无 `degraded` 键 |
 | 降级时可多 1 个可选字段 | ✅ `degraded: true`，v1.1 向后兼容 |
 | 规则版仍可用 | ✅ `EXTRACTOR_IMPL=rule` 一键回退 |

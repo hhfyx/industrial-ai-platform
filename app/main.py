@@ -77,6 +77,22 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/metrics", tags=["ops"])
+def metrics() -> dict[str, object]:
+    """错误分类计数（W8 周日）。
+
+    进程内计数器，单实例演示服务的轻量可观测——
+    上 Prometheus 的时机是"有第二个实例"那天（见 logging.py 的说明）。
+    """
+    from app.core.logging import error_counts, get_request_id
+
+    return {
+        "errors": error_counts(),
+        # 当前进程最近一次请求的 id（诊断用：容器日志里 grep 它）
+        "last_request_id": get_request_id(),
+    }
+
+
 # ---------------------------------------------------------------- 静态前端
 #
 # `mount` 放在最后：StaticFiles 挂在 "/" 会兜住所有未匹配路径，
