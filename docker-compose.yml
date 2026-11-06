@@ -26,6 +26,11 @@ services:
     env_file:
       # 变量在运行时注入，不进镜像层（.info: .env 在 .dockerignore 里）
       - .env
+    environment:
+      # .env 里的 LLM_BASE_URL 是宿主机回环（127.0.0.1:8326）—— 容器内的
+      # 127.0.0.1 是容器自己，连不到宿主机网关。host.docker.internal 是
+      # Docker Desktop 提供的宿主机别名（Linux 容器访问宿主机服务的标准方式）。
+      LLM_BASE_URL: http://host.docker.internal:8326/v1
     volumes:
       # chroma 持久化：具名 volume（不是 bind mount）——
       # bind mount 会把宿主机目录的属主/权限问题带进非 root 容器（uid 10001），

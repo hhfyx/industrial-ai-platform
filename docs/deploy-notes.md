@@ -594,3 +594,51 @@ W4 之前 chroma 跑在 api 进程内（`data/chroma` 本地目录），单容�
 
 升级见 [`docker-compose.yml`](../docker-compose.yml)（api + chroma 双服务 +
 两个 volume + depends_on 条件就绪）。验证结果见下文 §容器全链路验证。
+
+## 容器全链路验证（2026-12-12，方案 B 实测）
+
+> **环境**：Docker Desktop（WSL2 后端）· 镜像 `industrial-ai:v0.2` ·
+> chroma 内嵌 + 具名 volume · LLM 走宿主机网关（`host.docker.internal:8326`，glm-5.3）
+> 语料：工业缺陷生成模型全链路报告.md（21.9 KB → 60 段 → 68 块）
+
+### 五个耗时（全链路，bge FP16 + 真实 LLM）
+
+| # | 环节 | 耗时 | 口径 |
+| --- | --- | --- | --- |
+| 1 | 索引（含 chroma 首次建库） | **2.2 s** | 60 段 → 68 块 + 向量化 + 入库 |
+| 2 | 单问全链路（检索+生成） | **3,985 ms** | 检索 ~10ms，其余是 LLM 生成 |
+| 3 | 多轮改写调用 | **7,552 ms** | structured_call（含网关排队；改写把「它的分布」扩成完整问题） |
+| 4 | 二轮问答（改写后检索） | **4,734 ms** | 命中分布表，引用 [4][5] |
+| 5 | 10 并发 wall | **6.7 s** | 0 错误 0 拒答，见下方压测表 |
+
+### 10 并发压测（16:30 格）
+
+| 指标 | 数值 |
+| --- | --- |
+| 错误率 | **0/10** |
+| 拒答 | 0 |
+| P50 | **4,282 ms** |
+| P95 | **6,594 ms** |
+| min / max | 2,023 / 6,614 ms |
+| wall（10 条全部完成） | 6.7 s |
+
+**瓶颈段判定：上游 LLM 网关，不是本地**。证据：10 条并发 wall（6.7s）
+≈ 最慢单条（6.6s）——请求几乎同时完成，说明它们在上游排队；
+本地检索 ~10ms/条、CPU 占用极低。**结论：并发瓶颈在网关的并发度，
+扩容方向是网关加并发配额或换更大网关，不是给 api 容器加副本。**
+
+### 本次部署修掉的 4 个新坑（都是容器特有，本地测不出）
+
+| # | 现象 | 报错原文 | 根因 | 修法 |
+| --- | --- | --- | --- | --- |
+| 1 | 容器反复重启（Restarting (1)） | `ModuleNotFoundError: No module named 'openai'` | GPU 镜像只装了"生成栈"，但 `app.main` 的 import 链会拉 chat/stream 路由 → openai | `gpu-requirements.txt` 补齐 import 链（openai/jinja2/python-multipart）——**镜像能起 = 全链可导入** |
+| 2 | 起动即崩 `Restarting (1)` | `ValidationError for LLMSettings: api_key Field required` | `app.main` 导入链读 Settings，api_key 必填；GPU 容器不做问答但进程要起 | compose 里 `LLM_API_KEY` 占位值（不产生真实调用） |
+| 3 | 索引时 chroma 崩 | `chromadb.errors.InternalError: (code: 14) unable to open database file` | 具名 volume 首次挂载继承**挂载点属主**；镜像里 `data/` 是 root 的，uid 10001 进程写 sqlite 被拒 | Dockerfile 里 `mkdir -p data/{chroma,sessions,uploads} && chown 10001` —— **volume 属主问题必须在镜像里解**，不是 compose 里 |
+| 4 | 容器内问答挂起 | 连接超时（无报错，表现为"模型慢"） | `.env` 的 `LLM_BASE_URL=127.0.0.1:8326` 在容器里指向容器自己 | compose `environment` 覆盖为 `http://host.docker.internal:8326/v1` |
+
+### 双向校验在线上真实工作了（附注）
+
+压测日志里出现一条：`答案引用了不存在的编号 [64]（可用：[1..5]）→ 重答后仍越界 → 标记 degraded`。
+这是 W8 周二的引用完整性层在真实 LLM 输出上的第一次实战拦截——
+glm-5.3 在某条压测问题里编造了 [64]，重答没修好，降级标记生效。
+**校验层在本地测试全绿之外，第一次证明了它在脏输出面前的价值。**

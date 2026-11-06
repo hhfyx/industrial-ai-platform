@@ -79,9 +79,14 @@ RUN set -eux; \
            /usr/lib/x86_64-linux-gnu/libdb-5.3.so; \
     find /usr/local/lib/python3.11 -name '__pycache__' -type d -prune -exec rm -rf '{}' +
 
-# 非 root 用户：固定 uid/gid，方便宿主机排障时对得上
+# 非 root 用户：固定 uid/gid，方便宿主机排障时对得上。
+# data/ 子目录预先创建并 chown 给 app —— 具名 volume 首次挂载空目录时，
+# Docker 会**继承挂载点（含属主）**初始化 volume；不 chown 的话 volume 是 root 的，
+# uid 10001 进程写 sqlite 直接 (code: 14) unable to open database file（实测）。
 RUN groupadd --gid 10001 app \
- && useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin app
+ && useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin app \
+ && mkdir -p /app/data/chroma /app/data/sessions /app/data/uploads \
+ && chown -R 10001:10001 /app/data
 
 # ---------------------------------------------------------------- runtime
 # 从 scratch 接住上面那个删干净的文件系统：这一层才真实反映"删掉的东西没了"
