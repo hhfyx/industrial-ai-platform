@@ -1,4 +1,4 @@
-﻿# industrial-ai-platform
+# industrial-ai-platform
 
 **一个从"调模型"长到"能查、能引、能拒答"的文档知识库平台。**
 **（W6 实测后正式改名：语料是技术文档，不是工业文档 —— 见下方「关于 industrial 这个名字」）**
@@ -211,8 +211,37 @@ POST /api/v1/extract
    run_retrieval_eval  一次出 Recall@k / MRR / 拒答准确率
    tasks.py            一条命令：python -X utf8 scripts/tasks.py
                         eval-retrieval │ build-bm25 │ bm25-compare   │
-└─────────────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────┘
+
+  ★ W9 新增：Agent 层（质检域 · ReAct 循环）      app/core/llm/
+    react_loop.py      Thought→Action→Observation 循环
+                       三保险丝：max_steps=12 / 单步超时(模型45s·工具10s)
+                       / 重复调用全局计数（2 次警告 3 次熔断）
+    agent_registry.py  4 工具统一注册表 —— schema 与 executor 同源
+                       （防"模型看到的工具 ≠ 实际执行的工具"，W9 P0）
+    real_tools.py      检索薄包装（RAG 真管线）+ 只读 SQL 四道闸
+                       （SELECT 模板/参数化/表列白名单/LIMIT + mode=ro）
+    side_effect_tools.py 报告落盘 + 通知 HTTP（先落账本再执行，
+                       三层幂等防线，重试同 key 不重复投递）
+    eval_tasks.py + scripts/run_eval_agent.py
+                       10 任务判据先写 → 轨迹 JSON → 基线数字 → 归因表
 ```
+
+### Agent 层基线（W9 · 10 任务 · trae/qwen-3.5）
+
+![Agent 演示：一个任务从提问到判定到报告到通知（轨迹重演，约 21 秒循环）](docs/agent-demo.gif)
+
+| 指标 | 值 | 说明 |
+| --- | --- | --- |
+| 判据成功率 | **9/10 (90%)** | 判据先写跑后不改；唯一 × 是判据误伤（诚实拒绝被记为编造） |
+| 平均步数 | 2.4–2.6 | simple 2 步 · complex 4–5 步 |
+| 平均 token | 7.1k–8.1k | observation 800 字有界包装压住乘法项 |
+| 平均延迟 | 12.8–14.9s | 每步一次模型调用，复杂任务 26–41s |
+| 工具错误率 | 11–14% | 其中模型参数错 **0**（白名单+Pydantic 拦截）；其余为环境性失败 |
+
+> 完整设计（为什么手写循环 / 四要素 / 四类失败模式 / 成本结构 / 边界）：
+> [docs/agent-design.md](docs/agent-design.md)（定稿）。
+> 轨迹可回放：`qa_runs_w9*/trajectories/*.json`（10 任务 × 3 轮）。
 
 **跨层规则是硬的**：
 
@@ -373,7 +402,7 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 | Recall@5 | **40.0%**（16/40） | 当时语料 **1288 段 / 1365 块** + 50 条评测集 |
 
 > ⚠️ **上面这个 1365 块是历史快照，不是当前值。** 当前是
-> **26 篇 / 479 段 / 844 块**（`chunk_chars=500, overlap=50`），
+> **26 篇 / 480 段 / 847 块**（`chunk_chars=500, overlap=50`），
 > 用 `python -X utf8 scripts/corpus_stats.py` 现算。
 >
 > 2026-11-04 核实发现同一件事在文档里有四个数字（1365 / 1364 / 1160 / 1592），
