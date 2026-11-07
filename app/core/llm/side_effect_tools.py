@@ -244,14 +244,21 @@ def notify_http(
         )
 
     # ---- 第一层：账本拦截（先落记录的读取面）----
+    # 拦截规则（周六首轮改进，改动 #1）：只有**已确认送达**的记录才拦。
+    # in_flight（意图已记、结果未知——比如上一次端点不可达）不拦，
+    # 复用同 key 重发是安全的：接收端按 key 去重（第二层防线），
+    # 真重发过也不会重复。旧规则"key 存在即拦"实测造成的假象：
+    # T8 里模型看到"已投递过"就向上报告"已送达"，而首次投递从未成功。
     ledger = _load_ledger()
-    if idempotency_key in ledger:
-        first = ledger[idempotency_key]
+    previous = ledger.get(idempotency_key)
+    if previous is not None and previous.get("result", {}).get("delivered") is True:
         raise ToolExecutionError(
-            f"idempotency_key {idempotency_key!r} 已投递过"
-            f"（首次 delivered={first.get('result', {}).get('delivered')}），本次为重复投递，已拦截",
+            f"idempotency_key {idempotency_key!r} 已成功投递过，本次为重复投递，已拦截",
             kind="conflict",
         )
+    if previous is not None:
+        # in_flight / 未确认：允许复用同 key 重发（接收端去重兜底），不换新键
+        pass
 
     # ---- 先落记录（状态=进行中），再执行 ----
     _append_ledger(

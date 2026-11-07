@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import re
 import sqlite3
 import time
@@ -386,6 +387,16 @@ class ReadOnlySQLTool:
                     f"查无批次 {args.where_batch_id!r}；已知批次：{list(_KNOWN_BATCHES)}",
                     kind="not_found",
                 )
+            # 周六首轮改进（改动 #2）：批次存在但**指标过滤**无匹配 →
+            # hint 明说"该批次没有这个指标的数据"，并提示"转述 0 行结果
+            # 就是正确答案"。首轮 T10 实测：模型收到 0 行后多花一步
+            # 全查再自己归纳——hint 直接给结论能省一步。
+            if args.where_metric:
+                data["hint"] = (
+                    f"批次 {args.where_batch_id} 存在，但没有指标 {args.where_metric!r} 的检测记录。"
+                    "0 行就是这个问题的答案：如实告知用户该批次没有此指标数据，"
+                    "不要编造数值。可去掉 where_metric 查看该批次已有的指标。"
+                )
         return data
 
 
@@ -474,7 +485,12 @@ async def execute_sql_tool(raw_arguments: str) -> dict[str, Any]:
         return _qa_sql_tool_error(
             "invalid_arg", "参数不符合工具签名", "query_metrics_sql", {"fields": fields}
         )
-    tool = ReadOnlySQLTool(_DEFAULT_DB_PATH)
+    # 数据库路径：环境变量优先（部署时注入），缺省用模块旁的演示库
+    # （首次使用时自动建库 —— 演示数据与 qa_tools 的假数据一致）。
+    db_path = os.environ.get("QA_METRICS_DB_PATH") or str(_DEFAULT_DB_PATH)
+    if not Path(db_path).exists():
+        build_demo_db(db_path)
+    tool = ReadOnlySQLTool(db_path)
     try:
         data = await tool.execute(args)
     except ToolExecutionError as exc:

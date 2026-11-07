@@ -127,14 +127,22 @@ _FINAL_RE: Final[re.Pattern[str]] = re.compile(r"Final Answer\s*:\s*(.+)", re.DO
 
 @dataclass
 class StepRecord:
-    """一步的审计记录。`steps` 是排查"模型为什么走这条路"的第一现场。"""
+    """一步的审计记录。`steps` 是排查"模型为什么走这条路"的第一现场。
+
+    周六轨迹日志的字段就在这里：`model_ms`（模型延迟）、`tokens`（该步
+    usage 增量）是 W10 对比基线的数据来源 —— 没有它们，"平均延迟/token"
+    只能靠总量倒推，无法定位哪一步慢。
+    """
 
     step: int
     mode: str  # "fc" | "text" | "final" | "parse_error"
     thought: str = ""
     actions: list[dict[str, Any]] = field(default_factory=list)
-    # 每个 action: {"tool", "args", "ok", "kind", "chars", "executed"}
+    # 每个 action: {"tool", "args", "ok", "kind", "chars", "executed", ...}
     note: str = ""
+    model_ms: int = 0  # 该步模型调用的延迟（毫秒）
+    tokens: dict[str, int] = field(default_factory=dict)  # 该步的 usage 增量
+    observation: str = ""  # 该步回灌的 observation 摘要（截断后），轨迹可读性用
 
 
 @dataclass
@@ -361,6 +369,7 @@ async def run_react_loop(
         if tools is not None:
             payload["tools"] = tools
 
+        model_started = time.perf_counter()
         try:
             async with asyncio.timeout(model_timeout):
                 response = await client.chat.completions.create(**payload)
@@ -370,6 +379,16 @@ async def run_react_loop(
                 f"[无法完成] 第 {step_no} 步模型调用超过 {model_timeout}s 被中断。\n"
                 f"已完成部分：\n{_partial_progress(steps)}",
             )
+        model_ms = int((time.perf_counter() - model_started) * 1000)
+        step_usage = (
+            {
+                "prompt_tokens": response.usage.prompt_tokens,
+                "completion_tokens": response.usage.completion_tokens,
+                "total_tokens": response.usage.total_tokens,
+            }
+            if response.usage is not None
+            else {}
+        )
         _accumulate_usage(response)
         message = response.choices[0].message
 
@@ -377,7 +396,9 @@ async def run_react_loop(
         if message.tool_calls:
             messages.append(_assistant_tool_calls_message(message))
             thought = (message.content or "").strip()
-            record = StepRecord(step=step_no, mode="fc", thought=thought)
+            record = StepRecord(
+                step=step_no, mode="fc", thought=thought, model_ms=model_ms, tokens=step_usage
+            )
             steps.append(record)
 
             terminated: str | None = None
@@ -442,13 +463,21 @@ async def run_react_loop(
                     tool_messages.extend(build_tool_messages([call], [wrapped]))
                     continue
 
-                # --- 真正执行（带单步超时；同步工具扔线程池，别挂住事件循环）---
+                # --- 真正执行（带单步超时）---
+                # executor 可能是同步函数（W2 风格，扔线程池）或异步函数
+                # （统一信封风格，直接 await）—— 周六接 4 真工具时发现的
+                # 接口分歧：inspect 判断而不是让调用方二选一。
                 started = time.perf_counter()
                 try:
-                    raw_result = await asyncio.wait_for(
-                        asyncio.to_thread(run_tool, name, raw_args),
-                        timeout=tool_timeout,
-                    )
+                    if asyncio.iscoroutinefunction(run_tool):
+                        raw_result = await asyncio.wait_for(
+                            run_tool(name, raw_args), timeout=tool_timeout
+                        )
+                    else:
+                        raw_result = await asyncio.wait_for(
+                            asyncio.to_thread(run_tool, name, raw_args),
+                            timeout=tool_timeout,
+                        )
                 except TimeoutError:
                     raw_result = {
                         "ok": False,
@@ -511,15 +540,22 @@ async def run_react_loop(
             if action is not None:
                 # 文本模式：observation 以 user 消息回灌（没有 tool_call_id 可配对，
                 # role="tool" 会因"没有出处"被网关 400 —— 这是文本模式的协议代价）
-                record = StepRecord(step=step_no, mode="text", thought="")
+                record = StepRecord(
+                    step=step_no, mode="text", thought="", model_ms=model_ms, tokens=step_usage
+                )
                 steps.append(record)
                 # 文本模式与 FC 模式共用同一个超时与失败连击逻辑；
                 # 这里漏接 TimeoutError 会让一次工具卡死炸掉整个循环。
                 try:
-                    raw_result = await asyncio.wait_for(
-                        asyncio.to_thread(run_tool, action["name"], action["arguments"]),
-                        timeout=tool_timeout,
-                    )
+                    if asyncio.iscoroutinefunction(run_tool):
+                        raw_result = await asyncio.wait_for(
+                            run_tool(action["name"], action["arguments"]), timeout=tool_timeout
+                        )
+                    else:
+                        raw_result = await asyncio.wait_for(
+                            asyncio.to_thread(run_tool, action["name"], action["arguments"]),
+                            timeout=tool_timeout,
+                        )
                 except TimeoutError:
                     raw_result = {
                         "ok": False,
@@ -587,6 +623,8 @@ async def run_react_loop(
                         step=step_no,
                         mode="parse_error",
                         note=f"解析失败第 {parse_fail_streak} 次，已回灌错误要求重试",
+                        model_ms=model_ms,
+                        tokens=step_usage,
                     )
                 )
                 continue
@@ -594,7 +632,15 @@ async def run_react_loop(
         # ---- ④ 最终答案 ----
         explicit = parse_final_answer(content)
         answer = explicit if explicit is not None else content.strip()
-        steps.append(StepRecord(step=step_no, mode="final", thought=answer[:120]))
+        steps.append(
+            StepRecord(
+                step=step_no,
+                mode="final",
+                thought=answer[:120],
+                model_ms=model_ms,
+                tokens=step_usage,
+            )
+        )
         return _finish("completed", answer)
 
     # ---- 步数耗尽：模型仍在要工具，交出半成品，不假装完成 ----

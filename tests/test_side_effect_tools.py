@@ -198,7 +198,7 @@ def test_idempotent_same_key_blocked_by_ledger(receiver: _MockReceiver, reports_
     """验收③：同 key 调两次 → 第二次账本拦截（conflict），接收端只收到一次。"""
     first = notify_http("supervisor", "第一次", "idem-double-key", endpoint=receiver.url())
     assert first["delivered"] is True
-    with pytest.raises(ToolExecutionError, match="已投递过") as exc_info:
+    with pytest.raises(ToolExecutionError, match="已成功投递过") as exc_info:
         notify_http("supervisor", "第二次（同 key）", "idem-double-key", endpoint=receiver.url())
     assert exc_info.value.kind == "conflict"
     # mock 端确实只处理了一次
@@ -254,7 +254,7 @@ def test_side_effect_order_record_before_send(receiver: _MockReceiver, reports_d
 def test_retry_does_not_duplicate_effect(receiver: _MockReceiver, reports_dir: Path) -> None:
     """重试不重复：第一次成功后，任何形式的重试都不会再发。"""
     notify_http("team", "成功一次", "no-dup-key", endpoint=receiver.url())
-    with pytest.raises(ToolExecutionError, match="conflict|已投递过"):
+    with pytest.raises(ToolExecutionError, match="已成功投递过"):
         notify_http("team", "重试（同 key）", "no-dup-key", endpoint=receiver.url())
     assert len(receiver.received) == 1  # 效果只发生一次
 
