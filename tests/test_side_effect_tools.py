@@ -216,11 +216,14 @@ def test_idempotent_receiver_side_dedup(receiver: _MockReceiver, reports_dir: Pa
     ).encode()
     import urllib.request
 
+    # 断网演练（死代理环境）下 urlopen 会把发往 127.0.0.1 的请求扔进代理——
+    # 与被测代码 _post_json 修的是同一个问题（回环不走代理）。
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     for _ in range(2):
         req = urllib.request.Request(
             receiver.url(), data=payload, headers={"Content-Type": "application/json"}
         )
-        urllib.request.urlopen(req, timeout=5)
+        opener.open(req, timeout=5)
     assert len(receiver.received) == 2  # 两次请求都被记录（审计）
     assert receiver.received[0]["duplicate_at_receiver"] is False  # 第一次不是重复
     assert receiver.received[1]["duplicate_at_receiver"] is True  # 第二次被标记为重复

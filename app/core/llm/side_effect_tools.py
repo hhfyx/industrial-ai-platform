@@ -209,14 +209,29 @@ def _mark_ledger_result(idempotency_key: str, result: dict[str, Any]) -> None:
 
 
 def _post_json(endpoint: str, payload: dict[str, Any], timeout: float = 5.0) -> dict[str, Any]:
-    """同步 HTTP POST（urllib，无新依赖）。供 to_thread 调用。"""
+    """同步 HTTP POST（urllib，无新依赖）。供 to_thread 调用。
+
+    **回环地址必须绕过系统代理**（W6 周日 httpx 同款问题的 urllib 翻版）：
+    urlopen 默认读环境代理（HTTP_PROXY/HTTPS_PROXY），断网演练（死代理）
+    或真实代理场景下，发往 127.0.0.1 mock 端的请求会被扔进代理再弹回来，
+    表现为"端点不可达"。判据与 client.py 一致：目标是本机 → 不走代理。
+    """
+    from urllib.parse import urlparse
+
+    host = (urlparse(endpoint).hostname or "").lower()
+    is_loopback = host in ("127.0.0.1", "localhost", "::1", "0.0.0.0")
     req = urllib.request.Request(
         endpoint,
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
         headers={"Content-Type": "application/json; charset=utf-8"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    if is_loopback:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        resp_ctx = opener.open(req, timeout=timeout)
+    else:
+        resp_ctx = urllib.request.urlopen(req, timeout=timeout)
+    with resp_ctx as resp:
         body = resp.read().decode("utf-8", errors="replace")
     return json.loads(body) if body.strip() else {"status": "no-body"}
 
