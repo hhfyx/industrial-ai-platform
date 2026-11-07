@@ -71,3 +71,7 @@ desktop.ini
 
 # Logs
 *.log
+
+# 周六评测产物与演示库（本地生成，不入库）
+qa_runs*/
+app/core/llm/_qa_demo.sqlite
