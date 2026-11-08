@@ -217,12 +217,11 @@ POST /api/v1/extract
     react_loop.py      Thought→Action→Observation 循环
                        三保险丝：max_steps=12 / 单步超时(模型45s·工具10s)
                        / 重复调用全局计数（2 次警告 3 次熔断）
-    agent_registry.py  4 工具统一注册表 —— schema 与 executor 同源
-                       （防"模型看到的工具 ≠ 实际执行的工具"，W9 P0）
-    real_tools.py      检索薄包装（RAG 真管线）+ 只读 SQL 四道闸
-                       （SELECT 模板/参数化/表列白名单/LIMIT + mode=ro）
-    side_effect_tools.py 报告落盘 + 通知 HTTP（先落账本再执行，
-                       三层幂等防线，重试同 key 不重复投递）
+  ★ W10 新增：LangGraph 图版（同一行为，声明式载体）  app/core/llm/
+    agent_graph.py     model_step↔tools 回环图 + 纯函数路由
+                       checkpointer 可插拔 · interrupt 人机中断 · 六种停止原因同语义
+    scripts/run_eval_agent_graph.py   同一 10 任务判据的图版 harness
+    scripts/query_graph_state.py      图执行进度查询（W12 服务化接口）
     eval_tasks.py + scripts/run_eval_agent.py
                        10 任务判据先写 → 轨迹 JSON → 基线数字 → 归因表
 ```
@@ -239,9 +238,22 @@ POST /api/v1/extract
 | 平均延迟 | 12.8–14.9s | 每步一次模型调用，复杂任务 26–41s |
 | 工具错误率 | 11–14% | 其中模型参数错 **0**（白名单+Pydantic 拦截）；其余为环境性失败 |
 
-> 完整设计（为什么手写循环 / 四要素 / 四类失败模式 / 成本结构 / 边界）：
-> [docs/agent-design.md](docs/agent-design.md)（定稿）。
-> 轨迹可回放：`qa_runs_w9*/trajectories/*.json`（10 任务 × 3 轮）。
+### W10：手写循环 → LangGraph（同判据对照，迁移 token 成本实测为 0）
+
+| | W9 手写循环 | W10 LangGraph 图版 |
+| --- | --- | --- |
+| 判据成功率 | 90% | **90%**（三轮一致，同判据同任务） |
+| 平均 token | 8072 | 7455（-7.7%，纯行为波动，图零额外调用） |
+| 持久化/恢复 | 自写账本 + 自定义状态机 | checkpointer + thread_id，硬杀后精确续跑 |
+| 人机中断 | 无（要自建） | `interrupt()`/`Command(resume)`，重执行语义见架构文档 |
+| 进度查询 | print 日志 | `query_progress()`：当前节点/步数/是否等待人工/部分结果 |
+
+> 取舍证据（三处更好 + 两处碍事，每条带实测）：
+> [docs/langgraph-vs-handwritten.md](docs/langgraph-vs-handwritten.md)。
+> 架构与字段表：[docs/agent-architecture.md](docs/agent-architecture.md)。
+> 人机中断演示（interrupt → 批准 → 继续）：录制脚本
+> [docs/gif-script-w10.md](docs/gif-script-w10.md)。
+> 轨迹可回放：`qa_runs_w9*/`、`qa_runs_w10*/trajectories/*.json`（各 10 任务 × 3 轮）。
 
 **跨层规则是硬的**：
 
@@ -402,7 +414,7 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 | Recall@5 | **40.0%**（16/40） | 当时语料 **1288 段 / 1365 块** + 50 条评测集 |
 
 > ⚠️ **上面这个 1365 块是历史快照，不是当前值。** 当前是
-> **26 篇 / 480 段 / 847 块**（`chunk_chars=500, overlap=50`），
+> **26 篇 / 482 段 / 850 块**（`chunk_chars=500, overlap=50`），
 > 用 `python -X utf8 scripts/corpus_stats.py` 现算。
 >
 > 2026-11-04 核实发现同一件事在文档里有四个数字（1365 / 1364 / 1160 / 1592），
