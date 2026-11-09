@@ -212,6 +212,7 @@ def _action_record(
     retryable: bool | None = None,
     chars: int = 0,
     executed: bool = True,
+    retried: bool = False,
 ) -> dict[str, Any]:
     """一条工具调用审计记录（W11 周一：加了错误埋点的四个字段）。
 
@@ -221,10 +222,15 @@ def _action_record(
     | --- | --- | --- |
     | 既有 | tool / args / ok / kind / chars / ms | 人看轨迹、熔断器 |
     | **W11 新增** | error_type / retryable / latency_ms | `scripts/error_stats.py` 出分布表 |
+    | **W11 周二** | retried | 演练要能看见"同一次调用被执行了两次" |
 
     `latency_ms` 与 `ms` 是同一个数（`ms` 是 W9 的老字段，轨迹对比脚本在读，
     不能删）。两个都留是刻意的：改老字段名会让 W10 的基线对比脚本静默失配，
     而**静默失配**正是 W10 复盘里最贵的坑。
+
+    `retried=True` 表示这条记录来自**重试节点**而不是模型的首次请求。
+    超时演练的验收是"轨迹可见 2 次调用" —— 没有这个标记，两次调用看不出
+    哪次是代码自己重试的，会被误读成"模型调了两次"。
 
     成功调用也落 `error_type=None` / `retryable=None`：分布表要能算
     "错误调用 / 全部调用"，分母必须是所有调用，不能只有失败的。
@@ -241,6 +247,8 @@ def _action_record(
         "retryable": retryable,
         "executed": executed,
     }
+    if retried:
+        record["retried"] = True
     return record
 
 
@@ -259,6 +267,26 @@ def _envelope_meta(raw_result: dict[str, Any]) -> tuple[str | None, bool | None]
     if retryable is None:
         retryable = is_retryable(error_type)
     return error_type, bool(retryable)
+
+
+def is_async_executor(fn: Any) -> bool:
+    """判定 executor 是协程函数还是同步函数。
+
+    **不能只用 `asyncio.iscoroutinefunction(fn)`**：它对"可调用对象"返回 False，
+    哪怕它的 `__call__` 是 `async def`。例如 `FaultInjector`（测试里的故障注入器）
+    或任何 `functools.partial` 包过的协程函数 —— 一旦判错，代码会走
+    `asyncio.to_thread(fn, ...)` 分支，await 回来的东西是**一个协程对象**
+    而不是结果 dict，随后 `raw_result.get(...)` 直接 AttributeError。
+
+    这个 bug 是 W11 周二写故障注入时踩出来的，而且它**只在用可调用对象做
+    executor 时出现** —— 真实注册表传的是普通 async 函数，所以线上一直没暴露。
+    但"executor 可以是任意可调用"是接口约定（原文注释就写着两种都支持），
+    所以就该按约定判定，而不是按"目前恰好传的是什么"。
+    """
+    if asyncio.iscoroutinefunction(fn):
+        return True
+    call = getattr(fn, "__call__", None)  # noqa: B004 - 显式取 dunder，非笔误
+    return asyncio.iscoroutinefunction(call)
 
 
 def wrap_observation(
@@ -586,7 +614,7 @@ async def run_react_loop(
                 # 接口分歧：inspect 判断而不是让调用方二选一。
                 started = time.perf_counter()
                 try:
-                    if asyncio.iscoroutinefunction(run_tool):
+                    if is_async_executor(run_tool):
                         raw_result = await asyncio.wait_for(
                             run_tool(name, raw_args), timeout=tool_timeout
                         )
@@ -667,7 +695,7 @@ async def run_react_loop(
                 # 这里漏接 TimeoutError 会让一次工具卡死炸掉整个循环。
                 text_started = time.perf_counter()
                 try:
-                    if asyncio.iscoroutinefunction(run_tool):
+                    if is_async_executor(run_tool):
                         raw_result = await asyncio.wait_for(
                             run_tool(action["name"], action["arguments"]), timeout=tool_timeout
                         )

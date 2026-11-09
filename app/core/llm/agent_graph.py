@@ -13,16 +13,30 @@ extra_request、重复熔断（全局计数）、同类失败连击、文本降�
 
 ## 节点
 
-    START → model_step → route_after_model ─┬→ tools → route_after_tools ─┬→ model_step（回环）
-                pending_mode 决定            │                │             └→ finalize_budget（业务预算优雅退出）
-                ├ fc/text_action → tools     └ parse_error → parse_retry → model_step
-                └ final → finalize → END
+    START → model_step → route_after_model ─┬→ tools → route_after_tools ─┬→ retry ──┐
+                pending_mode 决定            │                │             ├→ degrade → finalize_degraded
+                ├ fc/text_action → tools     │                │             └→ model_step（回环）
+                └ final → finalize → END     │
+                └ parse_error → parse_retry → model_step
 
 - model_step：唯一调模型的地方（对应 W9 循环体 ①）
 - tools：执行 pending_calls（重复熔断 + 失败连击 + 超时，对应 ②③）
+- **retry**（W11 周二新增）：代码退避重试（timeout / internal），带 jitter
+- **degrade**（W11 周二新增）：预算用尽或不可重试 → 结构化降级，**不再进 LLM**
 - parse_retry：文本 Action 解析失败的回灌重试（对应 ③'）
-- finalize / finalize_budget：六种 stopped_reason 语义与 W9 一致
+- finalize / finalize_budget / finalize_degraded：停止原因语义
 - 路由函数是纯函数（周三的纪律）；预算判定在路由里，不靠异常
+
+## 为什么 retry 是**节点**而不是循环里的 for
+
+W10 的 C4：局部变量在崩溃恢复后会归零。如果重试用 `for attempt in range(2)`
+写在 tools 节点里，进程在两次重试之间崩掉、从 checkpoint 恢复时，
+`attempt` 会重新从 0 开始 —— **重试预算在恢复后失效**，变成"重试到成功"。
+把计数放进 state（`retry_counts`）并且让每一次重试都成为一次图推进，
+恢复时 LangGraph 才能把它一起带回来。
+
+同理，`retry` 节点自己不做 sleep 判断之外的决策：它读 `pending_decisions`
+（tools 算好的），**照着执行**。判定与执行分开，才有"不起图也能单测路由"。
 
 ## State 里放什么（周二的纪律）
 
@@ -42,7 +56,7 @@ from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
 
 from app.core.llm.agent_registry import AGENT_TOOLS_SCHEMA, execute_agent_tool
-from app.core.llm.error_contract import apply_retry_budget, tool_error
+from app.core.llm.error_contract import tool_error
 from app.core.llm.react_loop import (
     _ACTION_HINT_RE,
     MAX_STEPS,
@@ -54,8 +68,16 @@ from app.core.llm.react_loop import (
     _action_record,
     _envelope_meta,
     _partial_progress,
+    is_async_executor,
     parse_text_action,
     wrap_observation,
+)
+from app.core.llm.recovery import (
+    RETRY_MAX_DELAY_S,
+    build_degrade_payload,
+    decide,
+    render_degrade_text,
+    spec_of,
 )
 from app.core.llm.tool_loop import _assistant_tool_calls_message
 from app.core.llm.tools import build_tool_messages
@@ -80,6 +102,10 @@ class AgentGraphState(TypedDict, total=False):
     prev_failure_key: str
     parse_fail_streak: int
     retry_counts: dict  # W11：(tool,error_type) → 已重试次数（重试预算）
+    pending_decisions: list  # W11 周二：tools/retry 算好的处置决定（路由照着走）
+    retry_queue: list  # W11 周二：待代码退避重试的调用（[{call, delay_s}]）
+    unresolved: list  # W11 周二：确定没解决的能力（进降级 missing）
+    degrade_payload: dict  # W11 周二：{answer, missing, degraded, reason}
     stopped_reason: str
     final_answer: str
 
@@ -123,6 +149,50 @@ def _as_step_records(state: AgentGraphState) -> list:
 
 
 # ============================================================ 图
+
+
+def _route_after_model(state: AgentGraphState) -> str:
+    """模型步之后：有工具调用去 tools，解析失败去 parse_retry，否则收尾。"""
+    if state.get("stopped_reason"):
+        return "finalize"
+    mode = state.get("pending_mode", "final")
+    if mode in ("fc", "text_action"):
+        return "tools"
+    if mode == "parse_error":
+        return "parse_retry"
+    return "finalize"
+
+
+def _route_after_tools(state: AgentGraphState) -> str:
+    """工具步之后：预算用尽 → degrade，有排队重试 → retry，否则回模型。
+
+    **判降级优先于判重试**：一次批内多个调用时，可能一个还能重试、
+    另一个已经用尽。用尽的那个意味着任务缺了一块，先降级收场，
+    不要用"继续重试"把它盖过去。
+    """
+    if state.get("stopped_reason"):
+        return "finalize"
+    decisions = state.get("pending_decisions", [])
+    if any(d.get("action") == "degrade" for d in decisions):
+        return "degrade"
+    if state.get("retry_queue"):
+        return "retry"
+    if state.get("step_no", 0) >= state.get("max_steps", MAX_STEPS):
+        # 业务预算在路由里判：优雅退出（部分结果），不是异常
+        return "finalize_budget"
+    return "model_step"
+
+
+def _route_after_retry(state: AgentGraphState) -> str:
+    """重试节点之后：还能再试 → retry，用尽 → degrade，否则交回模型。"""
+    if state.get("stopped_reason"):
+        return "finalize"
+    decisions = state.get("pending_decisions", [])
+    if any(d.get("action") == "degrade" for d in decisions):
+        return "degrade"
+    if state.get("retry_queue"):
+        return "retry"
+    return "model_step"
 
 
 def build_agent_graph(client: Any, *, executor: Any | None = None):
@@ -259,6 +329,9 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
         step_no = state["step_no"]
         actions: list[dict] = []
         tool_messages: list[dict] = []
+        decisions: list[dict] = []
+        retry_queue: list[dict] = []
+        unresolved: list[str] = list(state.get("unresolved", []))
         terminated: str | None = None
         occurrence = 0
 
@@ -321,7 +394,7 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
 
             started = time.perf_counter()
             try:
-                if asyncio.iscoroutinefunction(run_tool):
+                if is_async_executor(run_tool):
                     raw_result = await asyncio.wait_for(
                         run_tool(name, raw_args), timeout=TOOL_STEP_TIMEOUT_S
                     )
@@ -334,7 +407,6 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
                     name, "timeout", f"工具执行超过 {TOOL_STEP_TIMEOUT_S}s 被强制中断"
                 )
             elapsed_ms = int((time.perf_counter() - started) * 1000)
-            raw_result = apply_retry_budget(raw_result, retry_counts)
 
             if raw_result.get("ok"):
                 failure_streak, prev_failure_key = 0, ""
@@ -344,6 +416,36 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
                 prev_failure_key = fkey
                 if failure_streak >= UNREPAIRABLE_FAILURE_LIMIT:
                     terminated = "unrepairable_failure"
+                # W11 周二：**判定在这里做，执行交给 retry/degrade 节点**。
+                # decide() 会累加 retry_counts —— 计数只在这一处发生，
+                # 两条执行路径不会各数一遍。
+                decision = decide(raw_result, retry_counts)
+                decisions.append(
+                    {
+                        "action": decision.action,
+                        "error_type": decision.error_type,
+                        "tool": decision.tool,
+                        "attempt": decision.attempt,
+                        "limit": decision.limit,
+                        "delay_s": decision.delay_s,
+                        "reason": decision.reason,
+                    }
+                )
+                if decision.action == "auto_retry":
+                    retry_queue.append(
+                        {
+                            "call": {
+                                "name": name,
+                                "arguments": raw_args,
+                                "id": call.get("id", "call_0"),
+                            },
+                            "delay_s": decision.delay_s,
+                        }
+                    )
+                if decision.action in ("degrade", "skip_and_tell") and (
+                    spec_of(decision.error_type).degrade_when_unresolved
+                ):
+                    unresolved.append(f"{name}（{decision.error_type}：{decision.reason}）")
 
             wrapped = wrap_observation(raw_result)
             error_type, retryable = _envelope_meta(raw_result)
@@ -382,6 +484,9 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
             "failure_streak": failure_streak,
             "prev_failure_key": prev_failure_key,
             "retry_counts": retry_counts,
+            "pending_decisions": decisions,
+            "retry_queue": retry_queue,
+            "unresolved": unresolved,
         }
         if terminated == "repeat_loop":
             out["stopped_reason"] = "repeat_loop"
@@ -396,6 +501,156 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
                 f"已超过自愈上限，按熔断规则停止。\n已完成部分：\n{_partial_progress(_as_step_records(state))}"
             )
         return out
+
+    # ============================================================ W11 周二：重试与降级节点
+
+    async def retry_node(state: AgentGraphState) -> dict:
+        """代码退避重试队列里的调用（timeout / internal）。
+
+        **这是"代码执行重试"的唯一实现处**。三件事按顺序做：
+
+        1. 退避等待 —— 用 `asyncio.sleep`，不是同步 sleep（同步 sleep 会堵住
+           整个事件循环，20 任务的墙钟时间会假性变长）；
+        2. 重新执行同一个调用（同工具同参数，模型没有参与）；
+        3. 结果**按新的尝试重新判定**：还可能再降级、也可能成功。
+
+        第 3 步是闭环：重试成功就不该进降级；重试仍失败就要么再试
+        （预算允许）、要么降级。判定仍然调用 `decide()`，计数继续累加 ——
+        所以"最多重试 N 次"在图被中断恢复后依然成立（计数在 state 里）。
+        """
+        queue = list(state.get("retry_queue", []))
+        if not queue:
+            return {"retry_queue": [], "pending_decisions": []}
+
+        retry_counts = dict(state.get("retry_counts", {}))
+        action_seen = dict(state.get("action_seen", {}))
+        unresolved = list(state.get("unresolved", []))
+        step_no = state.get("step_no", 0)
+        actions: list[dict] = []
+        tool_messages: list[dict] = []
+        decisions: list[dict] = []
+        again: list[dict] = []
+
+        for item in queue:
+            call = item["call"]
+            delay = item.get("delay_s")
+            if delay:
+                await asyncio.sleep(min(float(delay), RETRY_MAX_DELAY_S))
+            name, raw_args = call["name"], call["arguments"]
+            started = time.perf_counter()
+            try:
+                if is_async_executor(run_tool):
+                    raw_result = await asyncio.wait_for(
+                        run_tool(name, raw_args), timeout=TOOL_STEP_TIMEOUT_S
+                    )
+                else:
+                    raw_result = await asyncio.wait_for(
+                        asyncio.to_thread(run_tool, name, raw_args), timeout=TOOL_STEP_TIMEOUT_S
+                    )
+            except TimeoutError:
+                raw_result = tool_error(
+                    name, "timeout", f"工具执行超过 {TOOL_STEP_TIMEOUT_S}s 被强制中断"
+                )
+            elapsed_ms = int((time.perf_counter() - started) * 1000)
+
+            wrapped = wrap_observation(raw_result)
+            error_type, retryable = _envelope_meta(raw_result)
+            actions.append(
+                _action_record(
+                    tool=name,
+                    args=raw_args[:120],
+                    ok=bool(raw_result.get("ok")),
+                    kind=wrapped["kind"],
+                    latency_ms=elapsed_ms,
+                    error_type=error_type,
+                    retryable=retryable,
+                    chars=wrapped["chars"],
+                    retried=True,
+                )
+            )
+            tool_messages.extend(build_tool_messages([_FakeCall(call)], [wrapped]))
+
+            if raw_result.get("ok"):
+                continue
+
+            decision = decide(raw_result, retry_counts)
+            decisions.append(
+                {
+                    "action": decision.action,
+                    "error_type": decision.error_type,
+                    "tool": decision.tool,
+                    "attempt": decision.attempt,
+                    "limit": decision.limit,
+                    "delay_s": decision.delay_s,
+                    "reason": decision.reason,
+                }
+            )
+            if decision.action == "auto_retry":
+                again.append({"call": call, "delay_s": decision.delay_s})
+            elif decision.action in ("degrade", "skip_and_tell") and (
+                spec_of(decision.error_type).degrade_when_unresolved
+            ):
+                unresolved.append(f"{name}（{decision.error_type}：{decision.reason}）")
+
+        out: dict[str, Any] = {
+            "messages": tool_messages,
+            "steps": [
+                {
+                    "step": step_no,
+                    "mode": "retry",
+                    "thought": "",
+                    "model_ms": 0,
+                    "tokens": {},
+                    "actions": actions,
+                    "observation": (
+                        json.dumps(actions[-1], ensure_ascii=False)[:_OBS_IN_TRACE]
+                        if actions
+                        else ""
+                    ),
+                }
+            ],
+            "retry_counts": retry_counts,
+            "action_seen": action_seen,
+            "retry_queue": again,
+            "pending_decisions": decisions,
+            "unresolved": unresolved,
+        }
+        return out
+
+    def degrade_node(state: AgentGraphState) -> dict:
+        """构造降级答案并终止。**不再调一次 LLM**。
+
+        今天的坑（写在任务原文里）：把降级写成"随便给个通用回答"。
+        用户看到一个看起来正常但内容错误的答案，比明确说"查不到"危险得多。
+        所以这里只做一件事：把**已有事实**和**缺什么**分开放进
+        `{answer, missing, degraded, reason}`，然后原样交给用户。
+
+        不再进 LLM 是刻意的：让它"润色一下部分结论"，缺的那块就会被顺手补上。
+        """
+        decisions = list(state.get("pending_decisions", []))
+        last = decisions[-1] if decisions else {}
+        reason = str(last.get("error_type") or "internal")
+        merged = _merged_steps(state)
+        all_actions = [a for m in merged for a in m.get("actions", [])]
+        payload = build_degrade_payload(
+            reason=reason,
+            actions=all_actions,
+            unresolved=list(state.get("unresolved", [])),
+        )
+        return {
+            "degrade_payload": payload,
+            "stopped_reason": "degraded",
+            "final_answer": render_degrade_text(payload),
+        }
+
+    def finalize_degraded(state: AgentGraphState) -> dict:
+        """降级终点：补 assistant 消息，让 messages 与 final_answer 一致。
+
+        与 `finalize` 分开是刻意的：`finalize` 收的是模型自己说的最终答案，
+        这里收的是**代码拼的**降级文本。两者混在一个节点里，轨迹上就分不清
+        "这条答案是模型给的还是我们给的" —— 而那正是降级最重要的信息。
+        """
+        return {"messages": [{"role": "assistant", "content": state.get("final_answer", "")}]}
 
     def parse_retry(state: AgentGraphState) -> dict:
         """对应 W9 ③'：解析失败回灌重试；连续 2 次 → 终止。"""
@@ -439,44 +694,52 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
         }
 
     # ============================================================ 路由（纯函数）
-
-    def route_after_model(state: AgentGraphState) -> str:
-        if state.get("stopped_reason"):
-            return "finalize"
-        mode = state.get("pending_mode", "final")
-        if mode in ("fc", "text_action"):
-            return "tools"
-        if mode == "parse_error":
-            return "parse_retry"
-        return "finalize"
-
-    def route_after_tools(state: AgentGraphState) -> str:
-        if state.get("stopped_reason"):
-            return "finalize"
-        if state.get("step_no", 0) >= state.get("max_steps", MAX_STEPS):
-            # 业务预算在路由里判：优雅退出（部分结果），不是异常
-            return "finalize_budget"
-        return "model_step"
+    #
+    # W11 周二：这三个函数从闭包里提出来成为模块级函数 `_route_after_*`。
+    # 理由与 W10 周一「路由是纯函数、不起图就能单测」同源：它们只读 state，
+    # 不碰 client、不碰 executor。放在闭包里，测试就只能通过跑整张图来验证
+    # 一条边 —— 那是"用集成测试测一个 if"，慢且难定位。
 
     g = StateGraph(AgentGraphState)
     g.add_node("model_step", model_step)
     g.add_node("tools", tools_node)
+    g.add_node("retry", retry_node)
+    g.add_node("degrade", degrade_node)
     g.add_node("parse_retry", parse_retry)
     g.add_node("finalize", finalize)
+    g.add_node("finalize_degraded", finalize_degraded)
     g.add_node("finalize_budget", finalize_budget)
     g.add_edge(START, "model_step")
     g.add_conditional_edges(
         "model_step",
-        route_after_model,
+        _route_after_model,
         {"tools": "tools", "parse_retry": "parse_retry", "finalize": "finalize"},
     )
     g.add_conditional_edges(
         "tools",
-        route_after_tools,
-        {"model_step": "model_step", "finalize_budget": "finalize_budget", "finalize": "finalize"},
+        _route_after_tools,
+        {
+            "model_step": "model_step",
+            "retry": "retry",
+            "degrade": "degrade",
+            "finalize_budget": "finalize_budget",
+            "finalize": "finalize",
+        },
     )
+    g.add_conditional_edges(
+        "retry",
+        _route_after_retry,
+        {
+            "retry": "retry",
+            "degrade": "degrade",
+            "model_step": "model_step",
+            "finalize": "finalize",
+        },
+    )
+    g.add_edge("degrade", "finalize_degraded")
     g.add_edge("parse_retry", "model_step")
     g.add_edge("finalize", END)
+    g.add_edge("finalize_degraded", END)
     g.add_edge("finalize_budget", END)
     return g.compile()
 

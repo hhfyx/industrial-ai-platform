@@ -1,9 +1,10 @@
-# 错误分类与可恢复性（W11 周一 12/28）
+# 错误分类与可恢复性（W11 周一–周二）
 
 > **一句话**：把"能不能重试"从模型手里拿回来，交给代码。
-> 契约在 `app/core/llm/error_contract.py`，四个工具全部接到它上面，
-> 分布表在 `scripts/error_stats.py`，20 条路径的单测在
-> `tests/test_error_paths_w11.py`。
+> 周一：分类 + `retryable` 由代码判定（`error_contract.py`）。
+> 周二：策略矩阵 + 图上 retry/degrade 两个节点 + 故障注入演练（`recovery.py`）。
+> 分布表 `scripts/error_stats.py`，契约测试 `tests/test_error_paths_w11.py`，
+> 恢复演练 `tests/test_recovery_w11.py`。
 
 ## 一、五类定义（20:00–20:25）
 
@@ -188,7 +189,7 @@ hint/retryable，分布表和模型侧行为都会在那一处悄悄退化。
 `Path.write_text` 抛 `PermissionError` 注入，而不是折腾文件系统
 —— 真实环境的触发是只读挂载 / ACL / 杀软，抛的都是同一个 `OSError` 家族。
 
-## 六、结果
+## 六、周一结果
 
 - 全套 **1168 passed**（新增 26 条：20 条路径 + 3 条契约纪律 + 3 条重试预算）
 - `ruff check` / `ruff format` 全通过
@@ -203,15 +204,102 @@ hint/retryable，分布表和模型侧行为都会在那一处悄悄退化。
 | `test_retry_budget_is_per_tool_and_type` | 按 (tool, error_type) 计累计，拦得住"换措辞重试同一个坏工具" |
 | `test_retry_budget_never_touches_non_retryable_or_success` | 不可重试的错误不计数、成功结果原样返回（无副作用）|
 
-## 七、明天要接的（W11 周二：重试与降级）
+## 七、周二接续：重试、降级与故障注入
 
-今天只做了"分类 + 让代码能判定"，还没做"代码真的按它执行完一整条链路"：
+周一定的是"每一类错误可不可恢复"，周二定的是"谁来恢复、几次、收不了场怎么办"。
+矩阵与实现在 `app/core/llm/recovery.py`，节点在 `agent_graph.py`，
+注入骨架在 `tests/fault_injection.py`，全部演练在 `tests/test_recovery_w11.py`。
 
-1. `apply_retry_budget` 已接进循环（`react_loop`）与图（`agent_graph`），
-   预算本身有测试，但**端到端**没测：还没有一条"模型连续两次超时，
-   第二次收到的 observation 明确说不能重试"的完整循环测试；
-2. 降级链还没建：检索失败该退到什么？报告写不成该给用户什么？
-3. `retry_after` 目前只是**写进 observation 让模型自己等**，
-   循环侧没有真正的 `await sleep`（同步阻塞会让 20 任务的总耗时造假）。
-   要不要在循环层做退避，取决于明天的预算实验 —— 但无论如何，
-   **分类与预算这两层今天是闭合的**，退避做不做都不影响它们的正确性。
+### 7.1 策略矩阵（先写表，再写节点）
+
+| error_type | 动作 | 谁执行 | 上限 | 退避 | 用尽后 |
+| --- | --- | --- | --- | --- | --- |
+| `invalid_json` / `invalid_arg` / `unknown_tool` | 改参重试 | **模型** | 1 | — | 交回模型 |
+| `not_found` / `empty_result` | 换关键词/换对象 | **模型** | 1 | — | 交回模型 |
+| `timeout` / `internal` | 退避重试 | **代码** | 1 | 0.5s 基数 + 50% jitter，封顶 2s | **降级** |
+| `not_permitted` | 跳过并告知 | 代码 | 0 | — | **降级** |
+| `conflict` | 跳过并报告 | 代码 | 0 | — | 不降级（效果已发生）|
+
+**"谁执行"这一列才是关键，不是"重试几次"。**
+
+参数错必须**模型**改 —— 代码不知道正确的参数是什么，替它改就是编造。
+超时/内部异常必须**代码**重试 —— 模型对"刚发生的超时"没有元信息（周一的
+必答问题），让它决定就是让它猜；而且代码重试能退避 + 抖动，模型重试
+只能"换个说法再调一次"，那是撞运气。
+
+每一格的上限都不是装饰：没有上限的重试就是"重试到成功"，而 W9 的 B7
+已经判过——那是**会自己续费的故障**。
+
+### 7.2 一个字段装不下两件事
+
+`limit=0` 的格子有两个（权限错、幂等冲突），但**收场完全不同**：
+
+- 权限错 → 这块数据**永远拿不到**，是任务的必需部分 → 最终**降级**；
+- 幂等冲突 → 效果**已经发生**，任务其实完成了 → 跳过并把"已完成"报上去。
+
+所以 `RecoverySpec` 里 `action`（这一刻做什么）与
+`degrade_when_unresolved`（最终没解决算不算缺口）是两个字段。
+第一版只有一个字段，结果权限错被写成"跳过后继续"，模型拿同样的参数
+再撞一次，最终以 `repeat_loop` 退出——轨迹上看起来像模型乱来，
+实际是矩阵没给收场方式。**这个 bug 是演练三跑出来的，不是想出来的。**
+
+### 7.3 为什么 retry 是**节点**而不是循环里的 for
+
+W10 的 C4 记得很清楚：**局部变量在崩溃恢复后会归零**。
+如果重试用 `for attempt in range(2)` 写在 tools 节点里，进程在两次重试之间
+崩掉、从 checkpoint 恢复时，`attempt` 重新从 0 开始——重试预算在恢复后
+失效，退化成"重试到成功"。
+
+把计数放进 state（`retry_counts`）、让每次重试都成为一次图推进，
+LangGraph 恢复时才能把它一起带回来。
+
+### 7.4 降级答案的四个字段，与今天的坑
+
+```
+{answer: 部分结论, missing: [缺什么], degraded: true, reason: error_type}
+```
+
+**最多人写坏的地方不是字段，是让 LLM"润色一下部分结论"。**
+一旦这么做，缺的那块就会被它顺手补上——答案看起来完整了，可信度反而归零。
+所以 `degrade_node` 里**没有第二模型调用**：`answer` 只从"哪些工具成功了"
+拼出来，一个数值都不复述。
+
+`missing` 这一项第一版写成"与失败调用求交集"，结果**恒为空**——
+降级退化成"只说失败、不说缺什么"。现在 `unresolved` 是权威清单，
+直接替换而不是求交集。测试 `test_degrade_payload_unresolved_is_authoritative`
+就是那个 bug 的墓碑。
+
+### 7.5 三条演练（轨迹可见）
+
+| 演练 | 剧本 | 轨迹证据 |
+| --- | --- | --- |
+| 超时 → 退避后成功 | 第 1 次注入 timeout | 同工具 **2 条** action：第 1 条 `error_type=timeout`，第 2 条 `ok=True` 且 `retried=True`；`stopped=completed` |
+| 空结果 → 换关键词 | 第 1 次注入 empty | 2 条 action 都是 `ok=True`（空结果不是失败，**不触发 retry 节点**），两条 `args` 不同 |
+| 内部异常 ×2 → 降级 | 前 2 次注入 internal | 2 条 action 都失败、第 2 条 `retried=True`；`stopped=degraded`；`degrade_payload` 四字段齐全 |
+
+`retried=True` 这个标记是演练验收的关键：没有它，两条 action 看不出
+哪条是代码重试的，会被误读成"模型调了两次"。
+
+### 7.6 顺带抓到的一个真 bug
+
+写故障注入时发现：`asyncio.iscoroutinefunction()` 对**可调用对象**返回
+False，哪怕它的 `__call__` 是 `async def`。于是 `FaultInjector` 实例做
+executor 时走了 `asyncio.to_thread` 分支，await 回来的是**协程对象**，
+随后 `.get()` 直接 AttributeError。
+
+这个 bug 只在"用可调用对象做 executor"时出现——真实注册表传的是普通
+async 函数，所以线上一直没暴露。但"executor 可以是任意可调用"是接口约定
+（原注释就写着两种都支持），所以加了 `is_async_executor()` 按约定判定：
+先看函数本身，再看 `__call__`。两条执行路径（循环 / 图）共用这一个判定。
+
+## 八、明天要接的（W11 周三）
+
+1. **降级链还没建完**：现在只有"整体降级"一个收场。三件事缺：
+   检索失败该退到什么（换词 → 换工具 → 降级？）、报告写不成该给用户什么、
+   部分成功时 `answer` 该拼哪几条事实（现在只列"哪个工具成功了"，没有内容）；
+2. **`retry_after` 与真实等待**：图里已经 `await asyncio.sleep`（封顶 2s），
+   但 `react_loop` 那条路径仍然只把 `retry_after` 写进 observation 让模型等。
+   两条路径行为不一致，周记里得说清"哪个是准的"；
+3. **20 任务回归**：矩阵与降级都上了，但还没跑 W10 那 10 个回归子集。
+   在跑之前必须确认一件事——注入的故障只在测试里，生产路径零改动，
+   否则"成功率升了"到底算不算数就说不清。
