@@ -55,8 +55,20 @@ from typing import Annotated, Any
 from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
 
-from app.core.llm.agent_registry import AGENT_TOOLS_SCHEMA, execute_agent_tool
+from app.core.llm.agent_registry import AGENT_TOOL_NAMES, AGENT_TOOLS_SCHEMA, execute_agent_tool
 from app.core.llm.error_contract import tool_error
+from app.core.llm.guardrails import (
+    SEMANTIC_REPEAT_LIMIT,
+    DedupState,
+    GuardrailConfig,
+    GuardStats,
+    TaskPlan,
+    check_dedup,
+    decompose_task,
+    dedup_nudge,
+    self_check,
+    validate_action,
+)
 from app.core.llm.react_loop import (
     _ACTION_HINT_RE,
     MAX_STEPS,
@@ -66,6 +78,7 @@ from app.core.llm.react_loop import (
     TOOL_STEP_TIMEOUT_S,
     UNREPAIRABLE_FAILURE_LIMIT,
     _action_record,
+    _canonical_args,
     _envelope_meta,
     _partial_progress,
     is_async_executor,
@@ -105,6 +118,11 @@ class AgentGraphState(TypedDict, total=False):
     pending_decisions: list  # W11 周二：tools/retry 算好的处置决定（路由照着走）
     retry_queue: list  # W11 周二：待代码退避重试的调用（[{call, delay_s}]）
     unresolved: list  # W11 周二：确定没解决的能力（进降级 missing）
+    # ---- W11 周三：三道防跑偏的状态 ----
+    plan: Any  # TaskPlan | None；None = 分解失败或未开启，校验自动退化
+    plan_step_index: int  # 当前未完成步骤下标
+    dedup_state: dict  # {counts, samples}：语义判重的累计状态
+    guard_stats: dict  # 每道机制自己的命中数与 token（周日算价格的依据）
     degrade_payload: dict  # W11 周二：{answer, missing, degraded, reason}
     stopped_reason: str
     final_answer: str
@@ -195,9 +213,48 @@ def _route_after_retry(state: AgentGraphState) -> str:
     return "model_step"
 
 
-def build_agent_graph(client: Any, *, executor: Any | None = None):
-    """构建评测图。client 走闭包（不在 state 里）；executor 默认 W9 注册表。"""
+def build_agent_graph(
+    client: Any,
+    *,
+    executor: Any | None = None,
+    guardrails: GuardrailConfig | None = None,
+):
+    """构建评测图。client 走闭包（不在 state 里）；executor 默认 W9 注册表。
+
+    `guardrails` 默认 None = 三道机制全关 = 与 v1.2.0 基线行为一致。
+    这是刻意的：W11 的对照实验必须先有"没加机制"的基线可比，
+    而三道机制都会改轨迹（多一次 plan 调用、多一条自检提示），
+    开着跑出来的数字与 W10 不可比。周日那张"关掉哪一道、损失多少"
+    靠的就是这个开关逐个试。
+    """
     run_tool = executor if executor is not None else execute_agent_tool
+    guards = guardrails or GuardrailConfig()
+
+    async def plan_node(state: AgentGraphState) -> dict:
+        """**执行前**的任务分解（W11 周三第一道）。
+
+        必答问题决定了这里是节点而不是后置检查：事后校验只能解释失败，
+        事前校验能阻止浪费。一个跑偏 5 步的任务，事后发现时钱已经花了 ——
+        而偏离通常在第 1 步就发生（看到"把所有数据导出来"就想写全表查询）。
+
+        分解失败**不阻断任务**：返回 plan=None，整个校验退化成 W10 行为。
+        理由是这个调用是"可选的优化"，不是"正确性的前提"——
+        为它阻断任务，等于把一次网关抖动升级成任务失败。
+        """
+        sink: dict[str, int] = {}
+        plan = await decompose_task(
+            client,
+            model=state["model"],
+            instruction=state["instruction"],
+            tool_names=list(AGENT_TOOL_NAMES),
+            usage_sink=sink,
+        )
+        stats = GuardStats(plan_tokens=sink.get("total_tokens", 0))
+        stats.plan_steps = len(plan.steps) if plan else 0
+        out: dict[str, Any] = {"plan": plan, "guard_stats": stats.to_dict()}
+        if sink:
+            out["usage_log"] = [sink]
+        return out
 
     async def model_step(state: AgentGraphState) -> dict:
         """对应 W9 循环体 ①：调模型、记 usage/延迟、分类输出形态。"""
@@ -334,12 +391,106 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
         unresolved: list[str] = list(state.get("unresolved", []))
         terminated: str | None = None
         occurrence = 0
+        # W11 周三：三道机制的 state 载体（关着时全是 None/空，行为不变）
+        plan: TaskPlan | None = state.get("plan")
+        plan_step_index = int(state.get("plan_step_index", 0) or 0)
+        dedup_raw = state.get("dedup_state") or {}
+        dedup = DedupState(
+            counts=dict(dedup_raw.get("counts", {})), samples=dict(dedup_raw.get("samples", {}))
+        )
+        stock = state.get("guard_stats") or {}
+        guard_stats = GuardStats(**{k: int(stock.get(k, 0) or 0) for k in GuardStats().to_dict()})
+        nudge_messages: list[dict] = []
 
         for call in calls:
             name, raw_args = call["name"], call["arguments"]
-            key = f"{name}|{raw_args.strip()}"  # W9 用 canonical args；等价简化
+            key = f"{name}|{_canonical_args(raw_args)}"  # W9 口径：规范化后再比
             action_seen[key] = action_seen.get(key, 0) + 1
             occurrence = action_seen[key]
+
+            # ---- 三道机制之一：语义判重（W11 周三，纯字符串，零 token）----
+            # 在**旧判重之前**跑：旧判重按 (tool, 规范化参数) 比，语义判重
+            # 还要把空格/大小写/同义写法/列表顺序抹平。先跑语义判重，
+            # 才能让"换个说法重试同一动作"落到 2 次警告上，而不是漏到 3 次熔断。
+            sem_occurrence = 0
+            if guards.semantic_dedup:
+                sem_occurrence, sem_key = check_dedup(dedup, name, raw_args)
+                if sem_occurrence > SEMANTIC_REPEAT_LIMIT:
+                    guard_stats.semantic_dup_hits += 1
+                    actions.append(
+                        _action_record(
+                            tool=name,
+                            args=raw_args[:120],
+                            ok=False,
+                            kind="repeat_call",
+                            latency_ms=0,
+                            error_type="conflict",
+                            retryable=False,
+                            executed=False,
+                        )
+                    )
+                    wrapped = {
+                        "ok": False,
+                        "tool": name,
+                        "kind": "repeat_call",
+                        "data": {"message": "语义等价的调用已重复超过上限，按判重规则终止。"},
+                        "truncated": False,
+                        "chars": 0,
+                    }
+                    tool_messages.extend(build_tool_messages([_FakeCall(call)], [wrapped]))
+                    terminated = "repeat_loop"
+                    break
+                if sem_occurrence == SEMANTIC_REPEAT_LIMIT:
+                    guard_stats.semantic_dup_hits += 1
+                    actions.append(
+                        _action_record(
+                            tool=name,
+                            args=raw_args[:120],
+                            ok=False,
+                            kind="repeat_call",
+                            latency_ms=0,
+                            error_type="conflict",
+                            retryable=False,
+                            executed=False,
+                        )
+                    )
+                    wrapped = {
+                        "ok": False,
+                        "tool": name,
+                        "kind": "repeat_call",
+                        "data": {
+                            "message": dedup_nudge(
+                                sem_occurrence, sem_key, dedup.samples.get(sem_key, [])
+                            )
+                        },
+                        "truncated": False,
+                        "chars": 0,
+                    }
+                    tool_messages.extend(build_tool_messages([_FakeCall(call)], [wrapped]))
+                    continue
+
+            # ---- 三道机制之二：任务分解校验（执行**前**，W11 周三）----
+            # 只打约束、**不阻断执行**。为什么不阻断：分解本身可能错，
+            # 拿一个可能错的计划去硬拦动作，会把"计划错"变成"任务失败"。
+            # 这一档的定位是"提醒 + 留痕"——轨迹里能看到偏离发生了几次，
+            # 周日再决定要不要升级成硬拦。
+            if guards.plan_check and plan is not None and not terminated:
+                step_goal = (
+                    plan.steps[plan_step_index].goal
+                    if plan_step_index < len(plan.steps)
+                    else plan.goal
+                )
+                dev = validate_action(
+                    plan, step_index=plan_step_index, tool=name, arguments=raw_args
+                )
+                if dev is not None:
+                    guard_stats.deviations += 1
+                    nudge_messages.append(
+                        {
+                            "role": "user",
+                            "content": f"{dev.constraint}\n（当前步骤目标：{step_goal}）",
+                        }
+                    )
 
             if occurrence > REPEAT_LIMIT:  # 第 3 次出现：模型无视警告 → 熔断
                 actions.append(
@@ -463,8 +614,30 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
             )
             tool_messages.extend(build_tool_messages([_FakeCall(call)], [wrapped]))
 
+            # ---- 三道机制之三：中间结果自检（W11 周三，纯规则，零 token）----
+            # 放在**执行之后、回灌之前**：触发时把"换策略"提示追加到 observation，
+            # 模型下一轮看到的就是"这条路不对"，而不是"再试一次"。
+            # 注意这里**不筛 ok**：SQL 的"查无批次"是 ok=False + not_found，
+            # 那正是最该触发换策略的形态之一。
+            if guards.self_check:
+                step_goal = (
+                    plan.steps[plan_step_index].goal
+                    if plan is not None and plan_step_index < len(plan.steps)
+                    else state.get("instruction", "")
+                )
+                check = self_check(
+                    tool=name,
+                    data=raw_result.get("data"),
+                    goal=step_goal,
+                    ok=bool(raw_result.get("ok")),
+                    error_type=raw_result.get("error_type"),
+                )
+                if check.verdict != "ok":
+                    guard_stats.self_check_hits += 1
+                    nudge_messages.append({"role": "user", "content": check.nudge})
+
         out: dict[str, Any] = {
-            "messages": tool_messages,
+            "messages": tool_messages + nudge_messages,
             "steps": [
                 {
                     "step": step_no,
@@ -487,6 +660,9 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
             "pending_decisions": decisions,
             "retry_queue": retry_queue,
             "unresolved": unresolved,
+            # 三道机制的累计状态：只在实际开启时才有意义（关着时保持初值）
+            "dedup_state": {"counts": dedup.counts, "samples": dedup.samples},
+            "guard_stats": guard_stats.to_dict(),
         }
         if terminated == "repeat_loop":
             out["stopped_reason"] = "repeat_loop"
@@ -709,7 +885,15 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
     g.add_node("finalize", finalize)
     g.add_node("finalize_degraded", finalize_degraded)
     g.add_node("finalize_budget", finalize_budget)
-    g.add_edge(START, "model_step")
+    # W11 周三：分解节点只在开启时才进图。**关着的时候图的结构与 v1.2.0
+    # 完全一致** —— 多一个直通节点也会让 `get_graph()` 的拓扑变化，
+    # 而"结构没变"是对照实验最容易被忽略的那条边。
+    if guards.plan_check:
+        g.add_node("plan", plan_node)
+        g.add_edge(START, "plan")
+        g.add_edge("plan", "model_step")
+    else:
+        g.add_edge(START, "model_step")
     g.add_conditional_edges(
         "model_step",
         _route_after_model,
@@ -747,13 +931,18 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
 def result_from_state(
     task_id: str, category: str, model: str, instruction: str, state: AgentGraphState
 ) -> dict:
-    """从图终态组装与 W9 result_to_trajectory 同格式的轨迹 dict（格式对齐验收）。"""
+    """从图终态组装与 W9 result_to_trajectory 同格式的轨迹 dict（格式对齐验收）。
+
+    W11 周三：开了任一道防跑偏机制时，额外带 `guard_stats` 与 `plan`。
+    **关着的时候绝不带** —— 轨迹多一个键就会让 W10 的对比脚本失配，
+    而 W10 复盘里最贵的那个坑正是"静默失配"。
+    """
     merged = _merged_steps(state)
     usage_total = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
     for u in state.get("usage_log", []):
         for k in usage_total:
             usage_total[k] += u.get(k, 0)
-    return {
+    trace: dict[str, Any] = {
         "task_id": task_id,
         "category": category,
         "model": model,
@@ -775,6 +964,64 @@ def result_from_state(
         ],
         "final_answer": state.get("final_answer", ""),
     }
+    # 只有真的开了机制才带这些键（关着 → 轨迹与 v1.2.0 逐键一致）
+    plan = state.get("plan")
+    stats = state.get("guard_stats") or {}
+    if plan is not None:
+        trace["plan"] = {
+            "goal": getattr(plan, "goal", ""),
+            "steps": [
+                {
+                    "step_id": s.step_id,
+                    "goal": s.goal,
+                    "expected_tools": list(s.expected_tools),
+                }
+                for s in getattr(plan, "steps", [])
+            ],
+            "out_of_scope": list(getattr(plan, "out_of_scope", [])),
+        }
+    if stats and any(
+        stats.get(k)
+        for k in ("plan_tokens", "plan_steps", "deviations", "self_check_hits", "semantic_dup_hits")
+    ):
+        trace["guard_stats"] = dict(stats)
+    return trace
+
+
+def state_to_react_result(state: AgentGraphState) -> Any:
+    """把图终态转成 `ReactResult`，让 `task.verify(result)` 原样工作。
+
+    W11 周三从 `scripts/run_eval_agent_graph.py` 提上来：诱导任务脚本
+    （`run_induced_tasks.py`）也要判据，两条路径共用一份转换。
+    副本一旦分叉，"同一份判据"就不再是同一份 —— 那是 W10 冻结声明里
+    最看重的东西。
+    """
+    from app.core.llm.react_loop import ReactResult, StepRecord
+
+    stopped = state.get("stopped_reason", "completed")
+    steps = [
+        StepRecord(
+            step=m["step"],
+            mode=m["mode"],
+            thought=m.get("thought", ""),
+            actions=m.get("actions", []),
+            model_ms=m.get("model_ms", 0),
+            tokens=m.get("tokens", {}),
+            observation=m.get("observation", ""),
+        )
+        for m in _merged_steps(state)
+    ]
+    usage_total = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+    for u in state.get("usage_log", []):
+        for k in usage_total:
+            usage_total[k] += u.get(k, 0)
+    return ReactResult(
+        final_answer=state.get("final_answer", ""),
+        messages=list(state.get("messages", [])),
+        steps=steps,
+        stopped_reason=stopped,
+        usage_total=usage_total,
+    )
 
 
 class _FakeCall:

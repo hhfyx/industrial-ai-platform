@@ -28,7 +28,11 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.core.config import get_settings  # noqa: E402
-from app.core.llm.agent_graph import build_agent_graph, result_from_state  # noqa: E402
+from app.core.llm.agent_graph import (  # noqa: E402
+    build_agent_graph,
+    result_from_state,
+)
+from app.core.llm.agent_graph import state_to_react_result as _state_to_react_result  # noqa: E402
 from app.core.llm.client import get_llm_client  # noqa: E402
 from app.core.llm.eval_tasks import TASKS  # noqa: E402
 from app.core.llm.react_loop import REACT_SYSTEM_PROMPT  # noqa: E402
@@ -36,7 +40,7 @@ from app.core.llm.react_loop import REACT_SYSTEM_PROMPT  # noqa: E402
 TITLE = "=" * 72
 
 #: W9 harness 同款：判据函数吃 ReactResult；图版从 state 组装同形对象。
-from app.core.llm.react_loop import ReactResult, StepRecord  # noqa: E402
+from app.core.llm.react_loop import ReactResult  # noqa: E402
 
 
 def _force_utf8_stdout() -> None:
@@ -47,31 +51,12 @@ def _force_utf8_stdout() -> None:
 
 
 def state_to_react_result(state: dict[str, Any]) -> ReactResult:
-    """把图终态转成 ReactResult，让 task.verify(result) 原样工作。"""
-    stopped = state.get("stopped_reason", "completed")
-    steps = [
-        StepRecord(
-            step=m["step"],
-            mode=m["mode"],
-            thought=m.get("thought", ""),
-            actions=m.get("actions", []),
-            model_ms=m.get("model_ms", 0),
-            tokens=m.get("tokens", {}),
-            observation=m.get("observation", ""),
-        )
-        for m in (merged_steps(state))
-    ]
-    usage_total = {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
-    for u in state.get("usage_log", []):
-        for k in usage_total:
-            usage_total[k] += u.get(k, 0)
-    return ReactResult(
-        final_answer=state.get("final_answer", ""),
-        messages=list(state.get("messages", [])),
-        steps=steps,
-        stopped_reason=stopped,
-        usage_total=usage_total,
-    )
+    """把图终态转成 ReactResult，让 task.verify(result) 原样工作。
+
+    W11 周三起实现搬到 `app/core/llm/agent_graph.py`（诱导任务脚本也要用），
+    这里保留一层薄封装 —— 本文件的调用点不变，且外部若有人 import 它也不会断。
+    """
+    return _state_to_react_result(state)
 
 
 def merged_steps(state: dict[str, Any]) -> list[dict[str, Any]]:
