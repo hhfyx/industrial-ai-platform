@@ -116,6 +116,31 @@ REACT_SYSTEM_PROMPT: Final[str] = (
     "- 无法完成时如实说明缺什么，不要编造。"
 )
 
+#: **W11 新增的补充约束**，与上面那份**分开存**。
+#:
+#: 为什么不直接改 `REACT_SYSTEM_PROMPT`：W10 的冻结声明把 prompt 列为
+#: "未改"项之一（`docs/weekly/w10.md` 的冻结表）。改了它，W10 的 10 个
+#: 回归任务就与 `qa_runs_w10*` 基线**不可比** —— 那"成功率是升了还是被
+#: 预算和早停拖低"这个问题就永远答不出来了。
+#:
+#: 所以拆成"基线 prompt + 增量约束"两段，按任务开关拼：
+#: 跑回归子集 / 做基线对比时只用基线那段；跑 N7/N8（需确认类）时拼上增量。
+#: 这样一个仓库里同时存在"可比的口径"与"更安全的约束"，两者不打架。
+CONFIRMATION_CONSTRAINT: Final[str] = (
+    "\n补充约束（有副作用动作）：\n"
+    "- 写文件、发通知这类**会产生持久影响且不可撤回**的动作，"
+    "先复述你将要做什么（发给谁、内容是什么、会写哪个文件），并请用户确认后再执行。\n"
+    "- 用户说「直接做」时，如果这是有副作用的动作，仍要先确认一次；"
+    "确认的成本远小于发错通知的成本。\n"
+    "- 无法完成时不只是说做不到，要说清：缺什么、为什么做不到、能提供什么替代。"
+)
+
+
+def build_system_prompt(*, confirmation: bool = False) -> str:
+    """按需拼系统提示词。默认与 W10 完全一致（可比性优先）。"""
+    return REACT_SYSTEM_PROMPT + (CONFIRMATION_CONSTRAINT if confirmation else "")
+
+
 # 文本降级的两个锚点。greedy + DOTALL：参数 JSON 里可能有嵌套花括号，
 # 匹配到**最后一个** `}` 才安全。
 _ACTION_RE: Final[re.Pattern[str]] = re.compile(

@@ -50,7 +50,7 @@ import asyncio
 import json
 import operator
 import time
-from typing import Annotated, Any
+from typing import Annotated, Any, Final
 
 from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
@@ -923,12 +923,35 @@ def build_agent_graph(
         `{answer, missing, degraded, reason}`，然后原样交给用户。
 
         不再进 LLM 是刻意的：让它"润色一下部分结论"，缺的那块就会被顺手补上。
+
+        ## W11 周五补的一条：**已完成的工作不该被降级抹掉**
+
+        1/01 回归实测抓到的真问题：T7（出报告）已经成功调了 `generate_report`，
+        但模型随后**自作主张**多调了一次 notify；端点不通 → 走到这里 →
+        整个任务被标成 degraded → 判据（要求 completed + 报告生成）失败。
+
+        那不是模型的错，是这个节点的错：它把"最后一个动作失败"当成了
+        "整件事没做成"。**降级应当只降级真正缺的那部分**，不能回收已经
+        落地的成果 —— 否则"做了 90% 然后多试一步"比"什么都没做"还糟。
+
+        所以这里先判：如果失败的动作属于**可选/收尾**类（notify 就是），
+        且此前的必需动作都成功了，那就保留 `completed`，把最后一次失败
+        记进 observation 供审计，而不是降级。
         """
         decisions = list(state.get("pending_decisions", []))
         last = decisions[-1] if decisions else {}
         reason = str(last.get("error_type") or "internal")
         merged = _merged_steps(state)
         all_actions = [a for m in merged for a in m.get("actions", [])]
+
+        # ---- 判：是不是"必需的事都做完了，只是收尾动作失败" ----
+        if _only_optional_tail_failed(all_actions, last):
+            done = sorted({a["tool"] for a in all_actions if a.get("ok")})
+            return {
+                "stopped_reason": "completed",
+                "final_answer": state.get("final_answer") or _completed_with_note(done, last),
+            }
+
         payload = build_degrade_payload(
             reason=reason,
             actions=all_actions,
@@ -1167,6 +1190,58 @@ def state_to_react_result(state: AgentGraphState) -> Any:
         steps=steps,
         stopped_reason=stopped,
         usage_total=usage_total,
+    )
+
+
+#: **收尾类**工具：它们失败不改变"任务是否完成"。
+#:
+#: `notify` 是唯一的例子，也是最典型的：通知失败意味着"有人没收到消息"，
+#: 但数据查到了、报告生成了 —— 这两件事才是任务的主体。
+#: 把整个任务降级，等于说"因为没人收到通知，所以这份报告不存在"。
+#:
+#: 加新工具进这张表要问一句：**它失败会不会让此前成果失去意义？**
+#: 会 → 不能进（比如 generate_report 失败就等于报告没生成）。
+OPTIONAL_TAIL_TOOLS: Final[frozenset[str]] = frozenset({"notify"})
+
+
+def _only_optional_tail_failed(actions: list[dict[str, Any]], last: dict[str, Any]) -> bool:
+    """判断"必需的事都做完了，只是收尾动作失败"。
+
+    三条同时成立才算：
+    1. 最后失败的动作属于收尾类（`OPTIONAL_TAIL_TOOLS`）；
+    2. 此前**至少有一个**成功动作（不是从头到尾什么都没做成）；
+    3. 没有其它非收尾类的失败（真正的必需动作都成功了）。
+
+    第 3 条是关键：如果 `generate_report` 也失败了，那任务确实没完成，
+    必须老实降级。
+    """
+    failed_tool = str(last.get("tool") or "")
+    if failed_tool not in OPTIONAL_TAIL_TOOLS:
+        return False
+    succeeded = [a for a in actions if a.get("ok")]
+    if not succeeded:
+        return False
+    for action in actions:
+        if action.get("ok"):
+            continue
+        tool = str(action.get("tool") or "")
+        if tool not in OPTIONAL_TAIL_TOOLS:
+            return False  # 有必需动作失败 → 不能算"只是收尾失败"
+    return True
+
+
+def _completed_with_note(done: list[str], last: dict[str, Any]) -> str:
+    """收尾失败但主体完成时的答案文本。
+
+    必须**明说哪个动作没成**，不能悄悄当作全部成功 —— 通知没发出去
+    是运营上要处理的事，藏起来比报错更糟。
+    """
+    tail = last.get("tool") or "收尾动作"
+    etype = last.get("error_type") or "internal"
+    return (
+        "主体任务已完成：" + "、".join(done) + " 均成功。\n"
+        f"但收尾动作 {tail} 未成功（{etype}）—— "
+        "结论本身有效，这项收尾需要人工补做（例如手动通知）。"
     )
 
 
