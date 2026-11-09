@@ -56,6 +56,13 @@ from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
 
 from app.core.llm.agent_registry import AGENT_TOOL_NAMES, AGENT_TOOLS_SCHEMA, execute_agent_tool
+from app.core.llm.budget import (
+    BudgetConfig,
+    BudgetUsed,
+    build_graceful_exit,
+    check_budget,
+    check_no_progress,
+)
 from app.core.llm.error_contract import tool_error
 from app.core.llm.guardrails import (
     SEMANTIC_REPEAT_LIMIT,
@@ -71,7 +78,6 @@ from app.core.llm.guardrails import (
 )
 from app.core.llm.react_loop import (
     _ACTION_HINT_RE,
-    MAX_STEPS,
     MODEL_STEP_TIMEOUT_S,
     PARSE_FAILURE_LIMIT,
     REPEAT_LIMIT,
@@ -123,12 +129,50 @@ class AgentGraphState(TypedDict, total=False):
     plan_step_index: int  # 当前未完成步骤下标
     dedup_state: dict  # {counts, samples}：语义判重的累计状态
     guard_stats: dict  # 每道机制自己的命中数与 token（周日算价格的依据）
+    # ---- W11 周四：预算与早停 ----
+    budget: dict  # BudgetConfig.to_dict()：三道上限（随任务注入）
+    budget_used: dict  # BudgetUsed.to_dict()：已用量，每步累加
+    seen_result_keys: list  # 已出现过的工具结果语义键（判"有无新信息"）
+    budget_exit: dict  # 触顶时的优雅退出载荷（degraded + reason + suggestion）
     degrade_payload: dict  # W11 周二：{answer, missing, degraded, reason}
     stopped_reason: str
     final_answer: str
 
 
 # ============================================================ 小工具
+
+
+def _result_semantic_key(tool: str, data: Any) -> str:
+    """工具结果的语义键：判"这一步有没有带来新信息"。
+
+    取**结果内容**的指纹而不是调用参数：同一段条文被两次不同查询命中，
+    对"还要不要继续查"这个问题来说是同一份信息。这批语料只有 3 份文档，
+    重复命中非常常见 —— 用参数判会把"又查了一遍"误当"有进展"，
+    那早停条件②就永远不触发。
+
+    截断到 2000 字再哈希：结果长尾（数值列表）会让同一段条文的指纹
+    因毫秒级差异而不同，反而制造"新信息"的假象。
+    """
+    import hashlib
+
+    payload = json.dumps(data, ensure_ascii=False, sort_keys=True, default=str)[:2000]
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+    return f"{tool}:{digest}"
+
+
+def _bump_progress(state: AgentGraphState, progressed: bool) -> BudgetUsed:
+    """按"这一步有没有新信息"更新连续无进展计数。
+
+    `model_step` 已经把步数与 token 累加了；这里只改连续无进展计数。
+    分开写是因为"花了钱"与"买到东西"是两件事 —— 前者在 model_step 记账，
+    后者要等工具结果回来才知道。
+    """
+    used = BudgetUsed.from_dict(state.get("budget_used"))
+    if progressed:
+        used.no_progress_streak = 0
+    else:
+        used.no_progress_streak += 1
+    return used
 
 
 def _merged_steps(state: AgentGraphState) -> list[dict]:
@@ -195,10 +239,59 @@ def _route_after_tools(state: AgentGraphState) -> str:
         return "degrade"
     if state.get("retry_queue"):
         return "retry"
-    if state.get("step_no", 0) >= state.get("max_steps", MAX_STEPS):
-        # 业务预算在路由里判：优雅退出（部分结果），不是异常
+    # W11 周四：预算与早停在这里判（**下一次模型调用之前**）。
+    # 顺序：先预算（钱花光了就别再想），再早停（钱还有但没进展）。
+    verdict = _budget_verdict(state)
+    if verdict.stop:
         return "finalize_budget"
     return "model_step"
+
+
+def _budget_config(state: AgentGraphState) -> BudgetConfig:
+    """从 state 取预算配置，**兼容只有 `max_steps` 的老调用方**。
+
+    为什么必须兼容：W10 的 harness（`run_eval_agent_graph.py`）传的是
+    `max_steps=8`，没有 budget 字段。如果这里直接用 `BudgetConfig()` 的默认
+    10 步，那同一条任务在"加预算机制"之后会多跑 2 步 —— 成功率与 token
+    都会变，而这变化**不是预算造成的，是我改了默认值**。
+    那正是今天的坑（把机制的影响归因成别的东西）的镜像版本。
+
+    规则：state 里有 budget 就用它（三道上限齐全）；
+    没有就用默认值，但把 `max_steps` 覆盖成调用方传的值。
+    """
+    raw = state.get("budget")
+    if raw:
+        cfg = BudgetConfig(**raw)
+        # 老调用方可能同时传了 max_steps：以显式 budget 为准，但步数取小者，
+        # 防止"传了 budget 又传了更小的 max_steps"时反而放宽。
+        legacy_steps = state.get("max_steps")
+        if legacy_steps is not None and int(legacy_steps) < cfg.max_steps:
+            cfg = BudgetConfig(
+                max_tokens=cfg.max_tokens,
+                max_steps=int(legacy_steps),
+                max_wall_time_s=cfg.max_wall_time_s,
+                no_progress_limit=cfg.no_progress_limit,
+            )
+        return cfg
+    legacy_steps = state.get("max_steps")
+    if legacy_steps is not None:
+        return BudgetConfig(max_steps=int(legacy_steps))
+    return BudgetConfig()
+
+
+def _budget_verdict(state: AgentGraphState) -> Any:
+    """汇总三道上限 + 一条早停，给路由用。"""
+    cfg = _budget_config(state)
+    used = BudgetUsed.from_dict(state.get("budget_used"))
+    # 预判下一步开销：用上一步的实际 token 估，没有就用 0（首步）。
+    steps = state.get("steps") or []
+    last_tokens = 0
+    if steps:
+        last_tokens = int((steps[-1].get("tokens") or {}).get("total_tokens", 0) or 0)
+    verdict = check_budget(used, cfg, next_step_tokens=last_tokens)
+    if verdict.stop:
+        return verdict
+    return check_no_progress(used, cfg)
 
 
 def _route_after_retry(state: AgentGraphState) -> str:
@@ -294,11 +387,23 @@ def build_agent_graph(
         message = response.choices[0].message
         content = message.content or ""
 
+        # ---- W11 周四：预算累加（每步都记，包括这一步可能是最后一步）----
+        used = BudgetUsed.from_dict(state.get("budget_used"))
+        used.add_step(
+            tokens=usage.get("total_tokens", 0) if usage else 0,
+            wall_time_s=model_ms / 1000.0,
+            # 「这一步有没有进展」在 model_step 里恒为 True：
+            # 模型这一步产出了新内容（工具调用或答案）就是进展。
+            # 真正的"无进展"由 tools 节点按**结果内容**判（见 judge_progress）。
+            progressed=True,
+        )
+
         out: dict[str, Any] = {
             "step_no": step_no,
             "usage_log": [usage] if usage else [],
             "pending_mode": "final",
             "final_answer": content.strip(),
+            "budget_used": used.to_dict(),
         }
 
         if message.tool_calls:  # FC 主路径
@@ -401,6 +506,9 @@ def build_agent_graph(
         stock = state.get("guard_stats") or {}
         guard_stats = GuardStats(**{k: int(stock.get(k, 0) or 0) for k in GuardStats().to_dict()})
         nudge_messages: list[dict] = []
+        # W11 周四：结果语义键（判"这一步有没有带来新信息"）
+        seen_keys = set(state.get("seen_result_keys", []))
+        progressed = False
 
         for call in calls:
             name, raw_args = call["name"], call["arguments"]
@@ -636,6 +744,17 @@ def build_agent_graph(
                     guard_stats.self_check_hits += 1
                     nudge_messages.append({"role": "user", "content": check.nudge})
 
+            # ---- W11 周四：判"这一步有没有带来新信息"----
+            # 用**结果内容的语义键**判，不用调用参数：
+            # 同一个查询换个写法返回同样内容 → 不是新信息；
+            # 不同查询返回同一段条文 → 也是没进展（这批语料只有 3 份文档，
+            # 重复命中很正常）。所以键取工具名 + 结果内容的哈希，不取参数。
+            if raw_result.get("ok"):
+                result_key = _result_semantic_key(name, raw_result.get("data"))
+                if result_key not in seen_keys:
+                    seen_keys.add(result_key)
+                    progressed = True
+
         out: dict[str, Any] = {
             "messages": tool_messages + nudge_messages,
             "steps": [
@@ -663,6 +782,8 @@ def build_agent_graph(
             # 三道机制的累计状态：只在实际开启时才有意义（关着时保持初值）
             "dedup_state": {"counts": dedup.counts, "samples": dedup.samples},
             "guard_stats": guard_stats.to_dict(),
+            "seen_result_keys": sorted(seen_keys),
+            "budget_used": _bump_progress(state, progressed).to_dict(),
         }
         if terminated == "repeat_loop":
             out["stopped_reason"] = "repeat_loop"
@@ -859,13 +980,29 @@ def build_agent_graph(
         return {"messages": [{"role": "assistant", "content": state.get("final_answer", "")}]}
 
     def finalize_budget(state: AgentGraphState) -> dict:
-        """业务预算软闸：优雅退出（部分结果 + 原因），对应 W9 的 max_steps 分支。"""
+        """预算触顶或早停时的**优雅退出**（W9 B7 的落地）。
+
+        三件事一起给：已完成部分、未完成原因、建议下一步。缺一件都不叫优雅 ——
+        只有原因没有已完成，用户不知道拿到了什么；没有建议，用户不知道该
+        加预算还是拆任务。
+
+        `degraded=True` 并计入降级率：预算触顶是**降级**不是失败
+        （我们确实产出了一部分），周日那张表要能和"任务失败"分开看。
+        """
+        cfg = _budget_config(state)
+        used = BudgetUsed.from_dict(state.get("budget_used"))
+        verdict = _budget_verdict(state)
+        reason = verdict.reason or "budget_steps"
+        partial = _partial_progress(_as_step_records(state))
+        payload = build_graceful_exit(used=used, config=cfg, reason=reason, partial=partial)
         return {
-            "stopped_reason": "max_steps",
+            "budget_exit": payload,
+            "degrade_payload": payload,  # 与降级共用同一条轨迹出口
+            "stopped_reason": reason,
             "final_answer": (
-                f"[部分结果] 已达最大步数 {state.get('max_steps')}，任务未完成。\n"
-                f"已完成部分：\n{_partial_progress(_as_step_records(state))}\n"
-                "未完成原因：步数上限触发，模型在最后一步仍在请求工具。"
+                f"[部分结果] {payload['missing'][0]}（{verdict.detail}）\n"
+                f"已完成部分：\n{partial}\n"
+                f"建议下一步：{payload['suggestion']}"
             ),
         }
 
@@ -985,6 +1122,15 @@ def result_from_state(
         for k in ("plan_tokens", "plan_steps", "deviations", "self_check_hits", "semantic_dup_hits")
     ):
         trace["guard_stats"] = dict(stats)
+
+    # W11 周四：预算信息。**总是带**（与三道机制不同）——
+    # 预算判定已经是路由的一部分，任何一次运行都受它影响，
+    # 轨迹里没有它就无法解释"为什么停在这里"。
+    used = state.get("budget_used") or {}
+    if used:
+        trace["budget"] = {"config": _budget_config(state).to_dict(), "used": dict(used)}
+    if state.get("budget_exit"):
+        trace["budget_exit"] = dict(state["budget_exit"])
     return trace
 
 

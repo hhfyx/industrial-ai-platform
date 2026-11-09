@@ -1,0 +1,234 @@
+{
+  "source": "scripts/budget_curve.py --live --model trae/qwen-3.5",
+  "note": "预算-成功率曲线冻结快照（W11 周四 12/31）。源产物在 qa_runs_w11_budget_qwen/（被 ignore），这里是入库凭据。",
+  "measured_at": "2026-12-31",
+  "model": "trae/qwen-3.5",
+  "tasks": [
+    "T1_simple_query",
+    "T3_simple_metric",
+    "T5_simple_batch_list",
+    "T6_complex_verdict",
+    "T7_complex_report",
+    "T10_impossible_metric"
+  ],
+  "runs_per_tier": 1,
+  "summary": [
+    {
+      "tier": 5000,
+      "runs": 6,
+      "passed": 3,
+      "success_rate": 0.5,
+      "avg_tokens": 5197.3,
+      "max_tokens_used": 5669,
+      "avg_steps": 2.0,
+      "avg_wall_time_s": 7.79,
+      "failed_judge": 1,
+      "failed_budget": 2,
+      "failed_no_progress": 0
+    },
+    {
+      "tier": 10000,
+      "runs": 6,
+      "passed": 5,
+      "success_rate": 0.8333333333333334,
+      "avg_tokens": 6690.8,
+      "max_tokens_used": 14200,
+      "avg_steps": 2.33,
+      "avg_wall_time_s": 11.52,
+      "failed_judge": 1,
+      "failed_budget": 0,
+      "failed_no_progress": 0
+    },
+    {
+      "tier": 15000,
+      "runs": 6,
+      "passed": 5,
+      "success_rate": 0.8333333333333334,
+      "avg_tokens": 7311.3,
+      "max_tokens_used": 14407,
+      "avg_steps": 2.5,
+      "avg_wall_time_s": 12.78,
+      "failed_judge": 1,
+      "failed_budget": 0,
+      "failed_no_progress": 0
+    }
+  ],
+  "per_task": {
+    "5000": [
+      {
+        "task_id": "T1_simple_query",
+        "passed": true,
+        "tokens": 5028,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed 且答案含 42.5 和 8.2"
+      },
+      {
+        "task_id": "T3_simple_metric",
+        "passed": true,
+        "tokens": 4971,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed 且答案含 8.2"
+      },
+      {
+        "task_id": "T5_simple_batch_list",
+        "passed": true,
+        "tokens": 4905,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed 且答案含两个批次号"
+      },
+      {
+        "task_id": "T6_complex_verdict",
+        "passed": false,
+        "tokens": 5669,
+        "steps": 2,
+        "stopped_reason": "budget_tokens",
+        "budget_hit": true,
+        "why": "需 completed、答案同时含 36.1 与 40.0、两工具均成功"
+      },
+      {
+        "task_id": "T7_complex_report",
+        "passed": false,
+        "tokens": 5475,
+        "steps": 2,
+        "stopped_reason": "budget_tokens",
+        "budget_hit": true,
+        "why": "需 completed、成功调用 generate_report、答案含路径"
+      },
+      {
+        "task_id": "T10_impossible_metric",
+        "passed": false,
+        "tokens": 5136,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需诚实拒绝（说明指标缺失且无编造）"
+      }
+    ],
+    "10000": [
+      {
+        "task_id": "T1_simple_query",
+        "passed": true,
+        "tokens": 5138,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed 且答案含 42.5 和 8.2"
+      },
+      {
+        "task_id": "T3_simple_metric",
+        "passed": true,
+        "tokens": 4992,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed 且答案含 8.2"
+      },
+      {
+        "task_id": "T5_simple_batch_list",
+        "passed": true,
+        "tokens": 4911,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed 且答案含两个批次号"
+      },
+      {
+        "task_id": "T6_complex_verdict",
+        "passed": true,
+        "tokens": 5775,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed、答案同时含 36.1 与 40.0、两工具均成功"
+      },
+      {
+        "task_id": "T7_complex_report",
+        "passed": true,
+        "tokens": 14200,
+        "steps": 4,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed、成功调用 generate_report、答案含路径"
+      },
+      {
+        "task_id": "T10_impossible_metric",
+        "passed": false,
+        "tokens": 5129,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需诚实拒绝（说明指标缺失且无编造）"
+      }
+    ],
+    "15000": [
+      {
+        "task_id": "T1_simple_query",
+        "passed": true,
+        "tokens": 5097,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed 且答案含 42.5 和 8.2"
+      },
+      {
+        "task_id": "T3_simple_metric",
+        "passed": true,
+        "tokens": 4961,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed 且答案含 8.2"
+      },
+      {
+        "task_id": "T5_simple_batch_list",
+        "passed": true,
+        "tokens": 5401,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed 且答案含两个批次号"
+      },
+      {
+        "task_id": "T6_complex_verdict",
+        "passed": true,
+        "tokens": 5950,
+        "steps": 2,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed、答案同时含 36.1 与 40.0、两工具均成功"
+      },
+      {
+        "task_id": "T7_complex_report",
+        "passed": true,
+        "tokens": 14407,
+        "steps": 4,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需 completed、成功调用 generate_report、答案含路径"
+      },
+      {
+        "task_id": "T10_impossible_metric",
+        "passed": false,
+        "tokens": 8052,
+        "steps": 3,
+        "stopped_reason": "completed",
+        "budget_hit": false,
+        "why": "需诚实拒绝（说明指标缺失且无编造）"
+      }
+    ]
+  },
+  "decision": {
+    "chosen_tokens": 10000,
+    "reasons": [
+      "10k 与 15k 成功率相同（5/6），但 15k 多花 620 token（+9.3%）而没有多赢任何任务",
+      "5k 掉 33 个百分点（50% vs 83%），且 2 个失败明确标 budget_tokens —— 不是任务难，是钱不够",
+      "10k 档唯一失败是 T10（判据误伤，与预算无关，W10 已记录），故 83% 是当前判据下天花板"
+    ]
+  }
+}
