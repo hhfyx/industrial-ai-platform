@@ -23,13 +23,24 @@
 离线（hashing embedder + 内存库 / 临时 SQLite 文件）——延续本仓库
 "拔网线 pytest 全绿"的规矩。
 
-## 统一错误信封（与 qa_tools.py 同构）
+## 统一错误信封（W11 周一升级版，契约在 `error_contract.py`）
 
-    成功: {"ok": True,  "tool": name, "data": {...}}
-    失败: {"ok": False, "tool": name, "error_type": <七类枚举>, "error": {...}}
+    成功: {ok: true,  tool, data, outcome: "success"|"empty_result"[, hint]}
+    失败: {ok: false, tool, error_type, message, hint, retryable, retry_after[, details]}
 
-七类 error_type 沿用周三的定义，本模块新增的使用是 `not_permitted`
-映射到 `invalid_arg`（模型该做的是"放弃这种写法"，与参数错同菜单）。
+五类错误在本文件的具体落点（每类都要有**可触发**的路径，不能只有文档）：
+
+| 类 | error_type | 本文件的触发点 |
+| --- | --- | --- |
+| 参数错 | invalid_json / invalid_arg | JSON 语法坏 / k 越界 / 表名列名不在白名单 |
+| 权限错 | not_permitted | 库文件不可读（EACCES）、引擎侧 readonly 拒绝 |
+| 超时 | timeout | 检索超 `RETRIEVE_TIMEOUT_S` / SQL 超 `SQL_TIMEOUT_S` |
+| 空结果 | not_found / empty_result | 查无批次 → not_found；检索 0 命中 → ok+empty_result |
+| 内部异常 | internal | 其余未预期异常 |
+
+`not_permitted` 是本周新加的一类：它原先被映射成 `invalid_arg`
+（"放弃这种写法"），但两者的恢复动作不同 —— 参数错该改参数，
+权限错该换方案并告知用户。混在一类里，模型会对一个永远失败的请求反复改参。
 """
 
 from __future__ import annotations
@@ -45,6 +56,11 @@ from typing import Any, Final, Literal
 
 from pydantic import BaseModel, Field
 
+from app.core.llm.error_contract import (
+    classify_exception,
+    tool_error,
+    tool_ok,
+)
 from app.core.llm.tools import ToolExecutionError
 
 # ============================================================ ① 检索工具（薄包装）
@@ -134,6 +150,12 @@ def _get_retriever() -> Any:
 #: 但**回灌给模型**的 observation 必须有界 —— 与 react_loop 的两级截断同思想。
 CHUNK_TEXT_MAX_CHARS: Final[int] = 500
 
+#: 单次检索的超时（秒）。W11 周一新增：检索也是 IO，也会挂住循环。
+#: 取 5s —— 比 SQL 的 3s 宽（向量检索比本地 SQLite 慢一个量级），
+#: 但远小于循环的 TOOL_STEP_TIMEOUT_S（10s），保证超时能被归类成 timeout
+#: 而不是被外层的通用超时兜底成 internal（那会丢掉"可退避重试"的语义）。
+RETRIEVE_TIMEOUT_S: Final[float] = 5.0
+
 
 def retrieve_spec_chunks(query: str, k: int = 3) -> dict[str, Any]:
     """RAG 检索的薄包装。**不新增排序逻辑，不改 retrieve() 签名** —— 这是任务原文。
@@ -147,6 +169,8 @@ def retrieve_spec_chunks(query: str, k: int = 3) -> dict[str, Any]:
     **空结果返回 ok=true + chunks=[] + hint**：检索无命中是正常业务状态
     （索引里就是没有），不是故障。把它当错误回灌，模型会无意义地重试；
     把它当事实回灌（附 hint 指路），模型能转行（换词 / 如实告知用户）。
+    成功信封上会带 `outcome="empty_result"`（见 `execute_retrieve_tool`），
+    让统计能把它和"有结果"分开数，同时又不改变模型看到的行为。
     """
     retriever = _get_retriever()
     result = retriever.retrieve(query, top_k=k)
@@ -223,6 +247,25 @@ _ALLOWED_COLUMNS: Final[dict[str, tuple[str, ...]]] = {
 #: 已知批次号（演示数据；真实部署查台账表）。用于把"空结果"归类成 not_found 与否。
 _KNOWN_BATCHES: Final[tuple[str, ...]] = ("B20241207-01", "B20241129-03")
 
+#: **部署级权限白名单**（W11 周一新增）：schema 里能看到的表 ≠ 本次部署授权查的表。
+#: 默认两张表都授权；生产环境用 `QA_METRICS_PERMITTED_TABLES=inspections`
+#: 就能把台账表锁掉 —— 模型仍会在 schema 里看到 batches（schema 是静态的），
+#: 但执行层会以 not_permitted 拒绝，并明确告诉它"换方案而不是改参数"。
+#: 这与"表不在 Literal 白名单里"（invalid_arg）是两件事：前者是**没被授权**，
+#: 后者是**参数写错了**，恢复动作不同，所以不能混成一类。
+PERMITTED_TABLES_ENV: Final[str] = "QA_METRICS_PERMITTED_TABLES"
+
+
+def permitted_tables() -> tuple[str, ...]:
+    """当前部署授权的表。环境变量缺省 = 全部表。"""
+    raw = os.environ.get(PERMITTED_TABLES_ENV, "").strip()
+    if not raw:
+        return tuple(_ALLOWED_COLUMNS)
+    granted = tuple(t.strip() for t in raw.split(",") if t.strip())
+    # 只保留真实存在的表名，防止环境变量写错时把权限放大
+    return tuple(t for t in granted if t in _ALLOWED_COLUMNS)
+
+
 #: 单条 SQL 的执行超时（秒）。SQLite 默认没有语句级超时，
 #: 用中断回调模拟：超时后 interrupt() 让 step() 返回 SQLITE_INTERRUPT。
 SQL_TIMEOUT_S: Final[float] = 3.0
@@ -271,6 +314,15 @@ class ReadOnlySQLTool:
             raise _SQLBlocked(
                 f"表 {table!r} 不在白名单里；允许的表：{sorted(_ALLOWED_COLUMNS)}",
                 kind="invalid_arg",
+            )
+        # 闸③'（W11 周一新增）：部署级权限。schema 里能看到的表不代表本次部署授权查。
+        # 用 not_permitted 而不是 invalid_arg —— 改参数永远过不去，模型该换方案。
+        granted = permitted_tables()
+        if table not in granted:
+            raise _SQLBlocked(
+                f"表 {table!r} 在当前部署里未被授权查询；已授权的表：{list(granted)}。"
+                "这是权限问题，不是参数问题 —— 改参数无效，请换已授权的表或如实告知用户",
+                kind="not_permitted",
             )
         return allowed
 
@@ -400,18 +452,11 @@ class ReadOnlySQLTool:
         return data
 
 
-# ============================================================ 统一信封（与 qa_tools 同构）
+# ============================================================ 统一信封（W11 周一升级）
 
-
-def _qa_sql_tool_error(
-    kind: str, message: str, tool: str, extra: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    return {
-        "ok": False,
-        "tool": tool,
-        "error_type": kind,
-        "error": {"message": message, **(extra or {})},
-    }
+#: 本模块的工具名常量：信封里 tool 字段的唯一来源（拼错会在测试里立刻暴露）。
+RETRIEVE_TOOL: Final[str] = "retrieve_spec_chunks"
+SQL_TOOL: Final[str] = "query_metrics_sql"
 
 
 async def execute_retrieve_tool(raw_arguments: str) -> dict[str, Any]:
@@ -421,69 +466,94 @@ async def execute_retrieve_tool(raw_arguments: str) -> dict[str, Any]:
     （fields 里 loc 为空、reason 带 Invalid JSON）—— 但它与"参数形状错"
     是两种不同的模型修正动作（重生成合法 JSON vs 改字段），
     所以先用显式 `json.loads` 分离 invalid_json。
+
+    W11 周一的五类落点：参数错（两条）、超时（`RETRIEVE_TIMEOUT_S`）、
+    空结果（ok + outcome）、内部异常（兜底）。权限错在本工具的真实
+    触发是"索引不可读"，由 `classify_exception` 从异常里认出来。
     """
     from pydantic import ValidationError
 
     try:
         json.loads(raw_arguments or "{}")
     except json.JSONDecodeError as exc:
-        return _qa_sql_tool_error(
+        return tool_error(
+            RETRIEVE_TOOL,
             "invalid_json",
             f"参数不是合法 JSON：{exc.msg}（位置 {exc.pos}）",
-            "retrieve_spec_chunks",
+            details={"raw": (raw_arguments or "")[:200]},
         )
     try:
         args = RetrieveSpecChunksArgs.model_validate_json(raw_arguments or "{}")
     except ValidationError as exc:
-        fields = [
-            {
-                "field": ".".join(str(p) for p in err["loc"]),
-                "reason": err["msg"],
-                "got": err.get("input"),
-            }
-            for err in exc.errors()
-        ]
-        return _qa_sql_tool_error(
-            "invalid_arg", "参数不符合工具签名", "retrieve_spec_chunks", {"fields": fields}
+        return tool_error(
+            RETRIEVE_TOOL,
+            "invalid_arg",
+            "参数不符合工具签名",
+            details={"fields": _field_details(exc)},
         )
     try:
-        data = await asyncio.to_thread(retrieve_spec_chunks, args.query, args.k)
-    except Exception as exc:  # noqa: BLE001
-        return _qa_sql_tool_error(
-            "internal", f"检索管线错误：{type(exc).__name__}: {exc}", "retrieve_spec_chunks"
+        data = await asyncio.wait_for(
+            asyncio.to_thread(retrieve_spec_chunks, args.query, args.k),
+            timeout=RETRIEVE_TIMEOUT_S,
         )
-    return {"ok": True, "tool": "retrieve_spec_chunks", "data": data}
+    except TimeoutError:
+        return tool_error(
+            RETRIEVE_TOOL,
+            "timeout",
+            f"检索超过 {RETRIEVE_TIMEOUT_S}s 被强制中断（索引规模或 query 过宽）",
+        )
+    except ToolExecutionError as exc:
+        return tool_error(RETRIEVE_TOOL, exc.kind, exc.message)
+    except Exception as exc:  # noqa: BLE001 —— 未预期异常也要变成数据回灌
+        return tool_error(
+            RETRIEVE_TOOL,
+            classify_exception(exc),
+            f"检索管线错误：{type(exc).__name__}: {exc}",
+        )
+    empty = not data.get("chunks")
+    return tool_ok(RETRIEVE_TOOL, data, empty=empty)
+
+
+def _field_details(exc: Any) -> list[dict[str, Any]]:
+    """Pydantic 的 ValidationError → 可读字段明细（hint 之外的结构化指路）。"""
+    return [
+        {
+            "field": ".".join(str(p) for p in err["loc"]),
+            "reason": err["msg"],
+            "got": err.get("input"),
+        }
+        for err in exc.errors()
+    ]
 
 
 async def execute_sql_tool(raw_arguments: str) -> dict[str, Any]:
     """`query_metrics_sql` 的统一信封执行。永不抛异常，错误是数据。
 
     四道闸的拒绝统一映射为 invalid_arg（模型该做的是换参数写法）；
-    数据侧的 not_found 单独成类（模型该做的是换批次号或如实告知）。
-    与 retrieve 信封同理：显式 json.loads 分离 invalid_json
-    （model_validate_json 会把语法错误混进 ValidationError）。
+    数据侧的 not_found 单独成类（模型该做的是换批次号或如实告知）；
+    引擎侧权限拒绝（mode=ro 拦下写操作、库文件不可读）映射为
+    not_permitted —— 这是 W11 周一新增的一类，以前它被塞进 invalid_arg，
+    导致模型对着一个永远不可能成功的请求反复改参数。
     """
     from pydantic import ValidationError
 
     try:
         json.loads(raw_arguments or "{}")
     except json.JSONDecodeError as exc:
-        return _qa_sql_tool_error(
-            "invalid_json", f"参数不是合法 JSON：{exc.msg}（位置 {exc.pos}）", "query_metrics_sql"
+        return tool_error(
+            SQL_TOOL,
+            "invalid_json",
+            f"参数不是合法 JSON：{exc.msg}（位置 {exc.pos}）",
+            details={"raw": (raw_arguments or "")[:200]},
         )
     try:
         args = QueryMetricsSQLArgs.model_validate_json(raw_arguments or "{}")
     except ValidationError as exc:
-        fields = [
-            {
-                "field": ".".join(str(p) for p in err["loc"]),
-                "reason": err["msg"],
-                "got": err.get("input"),
-            }
-            for err in exc.errors()
-        ]
-        return _qa_sql_tool_error(
-            "invalid_arg", "参数不符合工具签名", "query_metrics_sql", {"fields": fields}
+        return tool_error(
+            SQL_TOOL,
+            "invalid_arg",
+            "参数不符合工具签名",
+            details={"fields": _field_details(exc)},
         )
     # 数据库路径：环境变量优先（部署时注入），缺省用模块旁的演示库
     # （首次使用时自动建库 —— 演示数据与 qa_tools 的假数据一致）。
@@ -494,17 +564,14 @@ async def execute_sql_tool(raw_arguments: str) -> dict[str, Any]:
     try:
         data = await tool.execute(args)
     except ToolExecutionError as exc:
-        kind = (
-            exc.kind
-            if exc.kind in ("invalid_arg", "not_found", "timeout", "internal")
-            else "internal"
-        )
-        return _qa_sql_tool_error(kind, exc.message, "query_metrics_sql")
+        return tool_error(SQL_TOOL, exc.kind, exc.message)
     except Exception as exc:  # noqa: BLE001
-        return _qa_sql_tool_error(
-            "internal", f"SQL 执行错误：{type(exc).__name__}: {exc}", "query_metrics_sql"
+        return tool_error(
+            SQL_TOOL,
+            classify_exception(exc),
+            f"SQL 执行错误：{type(exc).__name__}: {exc}",
         )
-    return {"ok": True, "tool": "query_metrics_sql", "data": data}
+    return tool_ok(SQL_TOOL, data)
 
 
 # ============================================================ 演示数据库
@@ -610,14 +677,20 @@ async def sql_injection_drill() -> list[dict[str, Any]]:
 __all__ = [
     "CHUNK_TEXT_MAX_CHARS",
     "INJECTION_CASES",
+    "PERMITTED_TABLES_ENV",
     "QUERY_METRICS_SQL_DESCRIPTION",
     "RETRIEVE_DESCRIPTION",
+    "RETRIEVE_TIMEOUT_S",
+    "RETRIEVE_TOOL",
+    "SQL_TIMEOUT_S",
+    "SQL_TOOL",
     "ReadOnlySQLTool",
     "RetrieveSpecChunksArgs",
     "QueryMetricsSQLArgs",
     "build_demo_db",
     "execute_retrieve_tool",
     "execute_sql_tool",
+    "permitted_tables",
     "retrieve_spec_chunks",
     "sql_injection_drill",
 ]

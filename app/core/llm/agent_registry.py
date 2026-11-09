@@ -26,6 +26,7 @@ from typing import Any, Final
 
 from pydantic import BaseModel, Field, ValidationError
 
+from app.core.llm.error_contract import tool_error
 from app.core.llm.real_tools import (
     QUERY_METRICS_SQL_DESCRIPTION,
     RETRIEVE_DESCRIPTION,
@@ -135,15 +136,12 @@ async def execute_agent_tool(name: str, raw_arguments: str) -> dict[str, Any]:
     从根上杜绝周四那种「模型看到的工具」与「实际执行的工具」漂移。
     """
     if name not in AGENT_TOOL_NAMES:
-        return {
-            "ok": False,
-            "tool": name,
-            "error_type": "unknown_tool",
-            "error": {
-                "message": f"没有名为 {name!r} 的工具",
-                "available_tools": list(AGENT_TOOL_NAMES),
-            },
-        }
+        return tool_error(
+            name,
+            "unknown_tool",
+            f"没有名为 {name!r} 的工具",
+            details={"available_tools": list(AGENT_TOOL_NAMES)},
+        )
     if name == "retrieve_spec_chunks":
         return await execute_retrieve_tool(raw_arguments)
     if name == "query_metrics_sql":

@@ -61,6 +61,12 @@ from typing import Any, Final
 
 from openai import AsyncOpenAI
 
+from app.core.llm.error_contract import (
+    apply_retry_budget,
+    is_retryable,
+    normalize_error_type,
+    tool_error,
+)
 from app.core.llm.tool_loop import _assistant_tool_calls_message
 from app.core.llm.tools import TOOLS_SCHEMA, build_tool_messages
 
@@ -195,6 +201,66 @@ def _shrink_strings(obj: Any, limit: int) -> tuple[Any, int]:
     return obj, 0
 
 
+def _action_record(
+    *,
+    tool: str,
+    args: str,
+    ok: bool,
+    kind: str,
+    latency_ms: int,
+    error_type: str | None = None,
+    retryable: bool | None = None,
+    chars: int = 0,
+    executed: bool = True,
+) -> dict[str, Any]:
+    """一条工具调用审计记录（W11 周一：加了错误埋点的四个字段）。
+
+    字段分两组，读者不同：
+
+    | 组 | 字段 | 谁读 |
+    | --- | --- | --- |
+    | 既有 | tool / args / ok / kind / chars / ms | 人看轨迹、熔断器 |
+    | **W11 新增** | error_type / retryable / latency_ms | `scripts/error_stats.py` 出分布表 |
+
+    `latency_ms` 与 `ms` 是同一个数（`ms` 是 W9 的老字段，轨迹对比脚本在读，
+    不能删）。两个都留是刻意的：改老字段名会让 W10 的基线对比脚本静默失配，
+    而**静默失配**正是 W10 复盘里最贵的坑。
+
+    成功调用也落 `error_type=None` / `retryable=None`：分布表要能算
+    "错误调用 / 全部调用"，分母必须是所有调用，不能只有失败的。
+    """
+    record: dict[str, Any] = {
+        "tool": tool,
+        "args": args,
+        "ok": ok,
+        "kind": kind,
+        "chars": chars,
+        "ms": latency_ms,
+        "latency_ms": latency_ms,
+        "error_type": error_type,
+        "retryable": retryable,
+        "executed": executed,
+    }
+    return record
+
+
+def _envelope_meta(raw_result: dict[str, Any]) -> tuple[str | None, bool | None]:
+    """从工具信封里取埋点所需的 (error_type, retryable)。
+
+    兼容两代信封：W11 起的 `error_type`/`retryable` 是顶层字段；
+    W10 及更早的工具失败不带这两个键（只有 kind/error）。旧信封按
+    `normalize_error_type(kind)` 补齐，保证分布表在过渡期也能出数。
+    """
+    if raw_result.get("ok"):
+        return None, None
+    kind = raw_result.get("error_type") or raw_result.get("kind")
+    error_type = normalize_error_type(kind)
+    retryable = raw_result.get("retryable")
+    if retryable is None:
+        retryable = is_retryable(error_type)
+    return error_type, bool(retryable)
+
+
 def wrap_observation(
     raw: dict[str, Any], *, max_chars: int = OBSERVATION_MAX_CHARS
 ) -> dict[str, Any]:
@@ -203,14 +269,42 @@ def wrap_observation(
     两级截断，先便宜后昂贵：
     1. **字段级**：任何 >400 字符的字符串截成首尾（保留结构，通常这一步就够）；
     2. **整体级**：序列化后仍超 max_chars → 整个 data 换成"首尾预览"。
-    两级都要保证回灌的仍是**合法 JSON** —— 戁断后的乱文本会让模型把
+    两级都要保证回灌的仍是**合法 JSON** —— 断层后的乱文本会让模型把
     截断当数据解析，比不加截断更糟。
 
-    包装形状：`{ok, tool, kind, data, truncated, chars}` ——
+    包装形状：`{ok, tool, kind, data, truncated, chars}` +
+    W11 新增的 `{error_type, hint, retryable, retry_after, outcome}`。
     `ok` 让模型第一眼分清成败，`truncated` 明示"你看到的是节选"，
     防止模型把半截文档当成完整证据下结论。
+
+    ## 为什么要把这些键显式传给模型（W11 周一）
+
+    `hint` 和 `retryable` 不放进 data 就白定义了：模型看到的 observation
+    是它唯一的输入。但两者的用途不同 ——
+    `hint` 说"下一步怎么改"（模型读），`retryable` 说"能不能再试"
+    （代码读，但模型看到 false 时会停止无意义重试，是白拿的收益）。
+    失败信封的 message 从顶层的 `message` 取（W11 结构），也兼容 W10 的
+    `error.message`，过渡期两种轨迹都能读。
     """
-    data = raw.get("result", raw.get("error", raw))
+    ok = bool(raw.get("ok", False))
+    if ok:
+        data = raw.get("result", raw.get("data", raw))
+    else:
+        # 失败：只把"模型该看的三件事"给它，其余（details 里的原始输入、
+        # 可用工具清单的全量）进 data 反而会挤占 observation 预算。
+        message = raw.get("message") or (raw.get("error") or {}).get("message") or ""
+        data = {"message": message}
+        if raw.get("hint"):
+            data["hint"] = raw["hint"]
+        if raw.get("retryable") is not None:
+            data["retryable"] = raw["retryable"]
+            if raw.get("retry_after") is not None:
+                data["retry_after"] = raw["retry_after"]
+        if raw.get("retry_suppressed"):
+            data["retry_suppressed"] = True
+        if raw.get("details"):
+            data["details"] = raw["details"]
+
     data, shrunk_count = _shrink_strings(data, limit=400)
     text = json.dumps(data, ensure_ascii=False)
     truncated = shrunk_count > 0
@@ -221,14 +315,23 @@ def wrap_observation(
         }
         truncated = True
 
+    error_type = None if ok else (raw.get("error_type") or raw.get("kind"))
     wrapped = {
-        "ok": bool(raw.get("ok", False)),
+        "ok": ok,
         "tool": raw.get("tool"),
-        "kind": raw.get("kind", "ok" if raw.get("ok") else "error"),
+        "kind": raw.get("kind", error_type or ("ok" if ok else "error")),
         "data": data,
         "truncated": truncated,
         "chars": len(json.dumps(data, ensure_ascii=False)),
     }
+    # W11：只有失败信封才带这三个键，成功信封保持原形状（少给模型噪音）
+    if not ok:
+        wrapped["error_type"] = error_type
+        wrapped["hint"] = raw.get("hint")
+        wrapped["retryable"] = raw.get("retryable")
+        wrapped["retry_after"] = raw.get("retry_after")
+    elif raw.get("outcome"):
+        wrapped["outcome"] = raw["outcome"]
     return wrapped
 
 
@@ -337,6 +440,14 @@ async def run_react_loop(
     prev_failure_key: str = ""  # 上一个失败 (tool, kind)，用于同类失败连击
     failure_streak: int = 0
     parse_fail_streak: int = 0
+    # W11 周一：重试预算计数（(tool,error_type) → 已重试次数）。
+    # 与"失败连击"是两道不同的闸：连击看**连续**同类失败（防死磕一个工具），
+    # 预算看**累计**同类可重试错误（防模型换个措辞重试同一个坏动作）。
+    retry_counts: dict[str, int] = {}
+
+    def _apply_budget(envelope: dict[str, Any]) -> dict[str, Any]:
+        """把「还能不能重试」交给代码判定，并把结果写进回灌的 observation。"""
+        return apply_retry_budget(envelope, retry_counts)
 
     def _accumulate_usage(response: Any) -> None:
         if response.usage is not None:
@@ -424,13 +535,16 @@ async def run_react_loop(
                         "chars": 0,
                     }
                     record.actions.append(
-                        {
-                            "tool": name,
-                            "args": raw_args[:120],
-                            "ok": False,
-                            "kind": "repeat_call",
-                            "executed": False,
-                        }
+                        _action_record(
+                            tool=name,
+                            args=raw_args[:120],
+                            ok=False,
+                            kind="repeat_call",
+                            latency_ms=0,
+                            error_type="conflict",
+                            retryable=False,
+                            executed=False,
+                        )
                     )
                     tool_messages.extend(build_tool_messages([call], [wrapped]))
                     terminated = "repeat_loop"
@@ -452,13 +566,16 @@ async def run_react_loop(
                         "chars": 0,
                     }
                     record.actions.append(
-                        {
-                            "tool": name,
-                            "args": raw_args[:120],
-                            "ok": False,
-                            "kind": "repeat_call",
-                            "executed": False,
-                        }
+                        _action_record(
+                            tool=name,
+                            args=raw_args[:120],
+                            ok=False,
+                            kind="repeat_call",
+                            latency_ms=0,
+                            error_type="conflict",
+                            retryable=False,
+                            executed=False,
+                        )
                     )
                     tool_messages.extend(build_tool_messages([call], [wrapped]))
                     continue
@@ -479,13 +596,13 @@ async def run_react_loop(
                             timeout=tool_timeout,
                         )
                 except TimeoutError:
-                    raw_result = {
-                        "ok": False,
-                        "tool": name,
-                        "kind": "tool_timeout",
-                        "error": {"message": f"工具执行超过 {tool_timeout}s 被强制中断"},
-                    }
+                    # 外层超时也要产出**定版信封**，否则这个最典型的超时
+                    # 反而不带 retryable（模型对它的反应只能靠猜）
+                    raw_result = tool_error(
+                        name, "timeout", f"工具执行超过 {tool_timeout}s 被强制中断"
+                    )
                 elapsed_ms = int((time.perf_counter() - started) * 1000)
+                raw_result = _apply_budget(raw_result)
 
                 # --- 保险丝②'：同类失败连击 → 不可修复 ---
                 if raw_result.get("ok"):
@@ -499,16 +616,18 @@ async def run_react_loop(
                         terminated = "unrepairable_failure"
 
                 wrapped = wrap_observation(raw_result, max_chars=observation_max_chars)
+                error_type, retryable = _envelope_meta(raw_result)
                 record.actions.append(
-                    {
-                        "tool": name,
-                        "args": raw_args[:120],
-                        "ok": bool(raw_result.get("ok")),
-                        "kind": wrapped["kind"],
-                        "chars": wrapped["chars"],
-                        "ms": elapsed_ms,
-                        "executed": True,
-                    }
+                    _action_record(
+                        tool=name,
+                        args=raw_args[:120],
+                        ok=bool(raw_result.get("ok")),
+                        kind=wrapped["kind"],
+                        latency_ms=elapsed_ms,
+                        error_type=error_type,
+                        retryable=retryable,
+                        chars=wrapped["chars"],
+                    )
                 )
                 tool_messages.extend(build_tool_messages([call], [wrapped]))
 
@@ -546,6 +665,7 @@ async def run_react_loop(
                 steps.append(record)
                 # 文本模式与 FC 模式共用同一个超时与失败连击逻辑；
                 # 这里漏接 TimeoutError 会让一次工具卡死炸掉整个循环。
+                text_started = time.perf_counter()
                 try:
                     if asyncio.iscoroutinefunction(run_tool):
                         raw_result = await asyncio.wait_for(
@@ -557,12 +677,11 @@ async def run_react_loop(
                             timeout=tool_timeout,
                         )
                 except TimeoutError:
-                    raw_result = {
-                        "ok": False,
-                        "tool": action["name"],
-                        "kind": "tool_timeout",
-                        "error": {"message": f"工具执行超过 {tool_timeout}s 被强制中断"},
-                    }
+                    raw_result = tool_error(
+                        action["name"], "timeout", f"工具执行超过 {tool_timeout}s 被强制中断"
+                    )
+                raw_result = _apply_budget(raw_result)
+                text_elapsed_ms = int((time.perf_counter() - text_started) * 1000)
                 ok = bool(raw_result.get("ok"))
                 if ok:
                     failure_streak = 0
@@ -572,15 +691,18 @@ async def run_react_loop(
                     failure_streak = failure_streak + 1 if fkey == prev_failure_key else 1
                     prev_failure_key = fkey
                 wrapped = wrap_observation(raw_result, max_chars=observation_max_chars)
+                text_error_type, text_retryable = _envelope_meta(raw_result)
                 record.actions.append(
-                    {
-                        "tool": action["name"],
-                        "args": action["arguments"][:120],
-                        "ok": ok,
-                        "kind": wrapped["kind"],
-                        "chars": wrapped["chars"],
-                        "executed": True,
-                    }
+                    _action_record(
+                        tool=action["name"],
+                        args=action["arguments"][:120],
+                        ok=ok,
+                        kind=wrapped["kind"],
+                        latency_ms=text_elapsed_ms,
+                        error_type=text_error_type,
+                        retryable=text_retryable,
+                        chars=wrapped["chars"],
+                    )
                 )
                 messages.append({"role": "assistant", "content": content})
                 messages.append(

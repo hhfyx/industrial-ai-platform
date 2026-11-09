@@ -42,6 +42,7 @@ from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
 
 from app.core.llm.agent_registry import AGENT_TOOLS_SCHEMA, execute_agent_tool
+from app.core.llm.error_contract import apply_retry_budget, tool_error
 from app.core.llm.react_loop import (
     _ACTION_HINT_RE,
     MAX_STEPS,
@@ -50,6 +51,8 @@ from app.core.llm.react_loop import (
     REPEAT_LIMIT,
     TOOL_STEP_TIMEOUT_S,
     UNREPAIRABLE_FAILURE_LIMIT,
+    _action_record,
+    _envelope_meta,
     _partial_progress,
     parse_text_action,
     wrap_observation,
@@ -76,6 +79,7 @@ class AgentGraphState(TypedDict, total=False):
     failure_streak: int
     prev_failure_key: str
     parse_fail_streak: int
+    retry_counts: dict  # W11：(tool,error_type) → 已重试次数（重试预算）
     stopped_reason: str
     final_answer: str
 
@@ -239,12 +243,19 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
         return out
 
     async def tools_node(state: AgentGraphState) -> dict:
-        """对应 W9 ②③：执行 pending_calls（重复熔断、失败连击、超时）。"""
+        """对应 W9 ②③：执行 pending_calls（重复熔断、失败连击、超时）。
+
+        W11 周一：与 react_loop 共用同一套埋点与重试预算 ——
+        两条执行路径（手写循环 / 图）必须产出**同形状的轨迹**，否则
+        `scripts/error_stats.py` 只能统计一半的调用，W10 那种"口径分散"
+        的坑会再犯一次。
+        """
         mode = state["pending_mode"]
         calls = state.get("pending_calls", [])
         action_seen = dict(state.get("action_seen", {}))
         failure_streak = state.get("failure_streak", 0)
         prev_failure_key = state.get("prev_failure_key", "")
+        retry_counts = dict(state.get("retry_counts", {}))
         step_no = state["step_no"]
         actions: list[dict] = []
         tool_messages: list[dict] = []
@@ -259,13 +270,16 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
 
             if occurrence > REPEAT_LIMIT:  # 第 3 次出现：模型无视警告 → 熔断
                 actions.append(
-                    {
-                        "tool": name,
-                        "args": raw_args[:120],
-                        "ok": False,
-                        "kind": "repeat_call",
-                        "executed": False,
-                    }
+                    _action_record(
+                        tool=name,
+                        args=raw_args[:120],
+                        ok=False,
+                        kind="repeat_call",
+                        latency_ms=0,
+                        error_type="conflict",
+                        retryable=False,
+                        executed=False,
+                    )
                 )
                 wrapped = {
                     "ok": False,
@@ -280,13 +294,16 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
                 break
             if occurrence == REPEAT_LIMIT:  # 第 2 次：不执行，回灌警告逼换策略
                 actions.append(
-                    {
-                        "tool": name,
-                        "args": raw_args[:120],
-                        "ok": False,
-                        "kind": "repeat_call",
-                        "executed": False,
-                    }
+                    _action_record(
+                        tool=name,
+                        args=raw_args[:120],
+                        ok=False,
+                        kind="repeat_call",
+                        latency_ms=0,
+                        error_type="conflict",
+                        retryable=False,
+                        executed=False,
+                    )
                 )
                 wrapped = {
                     "ok": False,
@@ -313,13 +330,11 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
                         asyncio.to_thread(run_tool, name, raw_args), timeout=TOOL_STEP_TIMEOUT_S
                     )
             except TimeoutError:
-                raw_result = {
-                    "ok": False,
-                    "tool": name,
-                    "kind": "tool_timeout",
-                    "error": {"message": f"工具执行超过 {TOOL_STEP_TIMEOUT_S}s 被强制中断"},
-                }
+                raw_result = tool_error(
+                    name, "timeout", f"工具执行超过 {TOOL_STEP_TIMEOUT_S}s 被强制中断"
+                )
             elapsed_ms = int((time.perf_counter() - started) * 1000)
+            raw_result = apply_retry_budget(raw_result, retry_counts)
 
             if raw_result.get("ok"):
                 failure_streak, prev_failure_key = 0, ""
@@ -331,16 +346,18 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
                     terminated = "unrepairable_failure"
 
             wrapped = wrap_observation(raw_result)
+            error_type, retryable = _envelope_meta(raw_result)
             actions.append(
-                {
-                    "tool": name,
-                    "args": raw_args[:120],
-                    "ok": bool(raw_result.get("ok")),
-                    "kind": wrapped["kind"],
-                    "chars": wrapped["chars"],
-                    "ms": elapsed_ms,
-                    "executed": True,
-                }
+                _action_record(
+                    tool=name,
+                    args=raw_args[:120],
+                    ok=bool(raw_result.get("ok")),
+                    kind=wrapped["kind"],
+                    latency_ms=elapsed_ms,
+                    error_type=error_type,
+                    retryable=retryable,
+                    chars=wrapped["chars"],
+                )
             )
             tool_messages.extend(build_tool_messages([_FakeCall(call)], [wrapped]))
 
@@ -364,6 +381,7 @@ def build_agent_graph(client: Any, *, executor: Any | None = None):
             "action_seen": action_seen,  # 完整替换值（dict 无累积 reducer）
             "failure_streak": failure_streak,
             "prev_failure_key": prev_failure_key,
+            "retry_counts": retry_counts,
         }
         if terminated == "repeat_loop":
             out["stopped_reason"] = "repeat_loop"

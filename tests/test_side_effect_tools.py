@@ -179,7 +179,12 @@ def test_notify_retries_once_then_succeeds(receiver: _MockReceiver, reports_dir:
 
 
 def test_notify_structured_error_after_retries(receiver: _MockReceiver, reports_dir: Path) -> None:
-    """重试 1 次仍失败 → ToolExecutionError（internal），不抛裸异常。"""
+    """重试 1 次仍失败 → ToolExecutionError（internal），不抛裸异常。
+
+    W11 周一改判据：mock 端返回的是 500（服务端自己出错），不属于权限/超时，
+    归 internal —— **但 retryable=True**（服务端错误退避后可能好）。
+    这条测试守的是"错误类型没被误分类成 not_permitted"。
+    """
     receiver.fail_next = 5  # 比重试次数多，必然失败
     with pytest.raises(ToolExecutionError, match="仍失败") as exc_info:
         notify_http("team", "必然失败", "fail-always-key", endpoint=receiver.url())

@@ -29,12 +29,31 @@
 报告是质检结论的载体，编造数据比工具失败严重得多。工具层能做的
 是**留痕**：把报告全文落盘，事后可审计"模型写进报告的数字是否
 来自 query_metrics 的返回"。
+
+## W11 周一的五类错误落点（契约在 `error_contract.py`）
+
+| 类 | error_type | 本文件的触发点 |
+| --- | --- | --- |
+| 参数错 | invalid_json / invalid_arg | JSON 坏 / channel 不在白名单 / sections 为空 |
+| 权限错 | **not_permitted** | 报告目录不可写（EACCES / 只读介质）；通知端点返回 401/403 |
+| 超时 | **timeout** | 报告写盘超 `REPORT_WRITE_TIMEOUT_S`；通知 HTTP 超时（重试后仍超）|
+| 空结果 | **empty_result** | sections 全部为空（没有内容可写）；通知正文为空（没有内容可发）|
+| 内部异常 | internal | 其余未预期异常 |
+
+两条与 W10 不同的判断，理由都写在触发点上：
+
+1. **端口不可达 = internal，401/403 = not_permitted。** 前者重试可能好，
+   后者重试一万次都是 403 —— 归错类，模型就会对一个永远失败的端点反复重试。
+2. **sections 空 = empty_result 而不是 invalid_arg。** 参数形状是对的
+   （是个合法的空数组），缺的是**内容**。恢复动作是"先去取数据"，
+   不是"把参数改个形状"。
 """
 
 from __future__ import annotations
 
 import asyncio
 import json
+import socket
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -43,6 +62,7 @@ from typing import Any, Final
 
 from pydantic import BaseModel, Field, ValidationError
 
+from app.core.llm.error_contract import classify_exception, tool_error, tool_ok
 from app.core.llm.tools import ToolExecutionError
 
 # ============================================================ ① 报告工具（落盘真实现）
@@ -107,6 +127,11 @@ def render_report_markdown(title: str, sections: list[dict[str, str]]) -> str:
 #: 报告输出目录（相对工作目录）。真实部署时从配置注入。
 REPORTS_DIR: Final[Path] = Path("reports")
 
+#: 报告写盘超时（秒）。W11 周一新增：写盘也是 IO，机械盘/NFS/杀软扫描都能挂住。
+#: 取 5s —— 远小于循环的 TOOL_STEP_TIMEOUT_S（10s），保证归类成 timeout
+#: 而不是被外层兜底成 internal（那会丢掉"可退避重试"的语义）。
+REPORT_WRITE_TIMEOUT_S: Final[float] = 5.0
+
 
 def generate_report_file(
     task_id: str, title: str, sections: list[dict[str, str]], *, reports_dir: Path | None = None
@@ -115,7 +140,18 @@ def generate_report_file(
 
     **先建目录再写文件**；文件名是 `{task_id}.md` —— 同 task_id 重跑覆盖
     （报告是"当前结论"的载体，不是追加日志；历史版本交给 git/备份）。
+
+    两类"没有内容"在这里区分开（W11 周一）：
+    - `sections` 是空列表 → **empty_result**（参数形状合法，缺的是内容）；
+    - 某一节的 heading/content 为空串 → **invalid_arg**（参数形状不合格）。
+    前者该"先去取数据"，后者该"把这一节补全"，恢复动作不同。
     """
+    if not sections:
+        raise ToolExecutionError(
+            "报告没有任何小节（sections 为空），没有内容可写。"
+            "先调用检索/查询工具拿到结论，再据此组织小节",
+            kind="empty_result",
+        )
     markdown = render_report_markdown(title, sections)
     target_dir = reports_dir or REPORTS_DIR
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -208,6 +244,29 @@ def _mark_ledger_result(idempotency_key: str, result: dict[str, Any]) -> None:
     _append_ledger({**first, "idempotency_key": idempotency_key, "result": result})
 
 
+def _http_status_kind(code: int) -> str | None:
+    """HTTP 状态码 → error_type。**归类逻辑只写这一处**。
+
+    为什么抽成函数：这段判断原先埋在 `_post_json` 的 except 里，
+    于是只有"从 _post_json 内部抛出"的错误才会被正确归类；任何从别处
+    冒上来的 `HTTPError`（`urllib` 的 `HTTPError` 同时是 `URLError` 的子类）
+    都会掉进"端点不可达"的分支，被重试 2 次再报 internal —— 403 明明该
+    立刻停手。把映射抽出来，两层（`_post_json` 与 `notify_http`）共用同一份，
+    归类就不会因为异常从哪个口子冒出来而改变。
+
+    | code | 类 | retryable | 理由 |
+    | --- | --- | --- | --- |
+    | 401/403 | not_permitted | False | 授权问题，重试无意义 |
+    | 429 | timeout | True | 限流，退避后可能好（复用 timeout 类，恢复动作就是退避）|
+    | 其余 4xx | None（不改判）| — | 客户端请求本身有问题，交给上层按 internal 处理 |
+    """
+    if code in (401, 403):
+        return "not_permitted"
+    if code == 429:
+        return "timeout"
+    return None
+
+
 def _post_json(endpoint: str, payload: dict[str, Any], timeout: float = 5.0) -> dict[str, Any]:
     """同步 HTTP POST（urllib，无新依赖）。供 to_thread 调用。
 
@@ -215,6 +274,18 @@ def _post_json(endpoint: str, payload: dict[str, Any], timeout: float = 5.0) -> 
     urlopen 默认读环境代理（HTTP_PROXY/HTTPS_PROXY），断网演练（死代理）
     或真实代理场景下，发往 127.0.0.1 mock 端的请求会被扔进代理再弹回来，
     表现为"端点不可达"。判据与 client.py 一致：目标是本机 → 不走代理。
+
+    **HTTP 错误码翻译成异常**（W11 周一）：`urllib` 把 4xx/5xx 抛成
+    `HTTPError`，而它同时是 `URLError` 的子类 —— 不先分流的话，
+    403（权限）会掉进和"端点不通"同一个 except，被归成 internal 可重试，
+    模型就会对着一个永远 403 的端点反复重试。
+
+    这里只分两类，因为**error_type 说的是"发生了什么"，retryable 说的才是
+    "能不能再试"**：
+
+    - 401/403 → `not_permitted`（权限，不可重试）
+    - 429/5xx → `internal`（服务端自己出错，**可重试** —— 由分类表给 retryable=True）
+    - 其余 4xx → 原样抛出（客户端请求本身错了，属未预期，归 internal）
     """
     from urllib.parse import urlparse
 
@@ -226,13 +297,27 @@ def _post_json(endpoint: str, payload: dict[str, Any], timeout: float = 5.0) -> 
         headers={"Content-Type": "application/json; charset=utf-8"},
         method="POST",
     )
-    if is_loopback:
-        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-        resp_ctx = opener.open(req, timeout=timeout)
-    else:
-        resp_ctx = urllib.request.urlopen(req, timeout=timeout)
-    with resp_ctx as resp:
-        body = resp.read().decode("utf-8", errors="replace")
+    try:
+        if is_loopback:
+            opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+            resp_ctx = opener.open(req, timeout=timeout)
+        else:
+            resp_ctx = urllib.request.urlopen(req, timeout=timeout)
+        with resp_ctx as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as exc:
+        kind = _http_status_kind(exc.code)
+        if kind == "not_permitted":
+            raise ToolExecutionError(
+                f"通知端点拒绝授权（HTTP {exc.code}）：{endpoint}",
+                kind="not_permitted",
+            ) from exc
+        if kind == "timeout":
+            raise ToolExecutionError(
+                f"通知端点限流（HTTP {exc.code}）：{endpoint}；请退避后重试",
+                kind="timeout",
+            ) from exc
+        raise
     return json.loads(body) if body.strip() else {"status": "no-body"}
 
 
@@ -256,6 +341,15 @@ def notify_http(
         raise ToolExecutionError(
             f"未知通知渠道 {channel!r}；可用渠道：{' / '.join(_ALLOWED_CHANNELS)}",
             kind="invalid_arg",
+        )
+    # W11 周一：空白正文是**没有内容可发**（empty_result），不是参数形状错。
+    # Pydantic 的 min_length=1 只挡得住空串，挡不住 "   "。
+    # 两者恢复动作不同：形状错该改字段，空内容该先去取结论再发。
+    if not message.strip():
+        raise ToolExecutionError(
+            "通知正文为空（只有空白字符），没有内容可发送。"
+            "先用检索/查询工具拿到结论，再据此写通知正文",
+            kind="empty_result",
         )
 
     # ---- 第一层：账本拦截（先落记录的读取面）----
@@ -287,6 +381,8 @@ def notify_http(
 
     payload = {"channel": channel, "message": message, "idempotency_key": idempotency_key}
     last_error = ""
+    saw_permission = False
+    saw_timeout = False
     for attempt in range(1, retries + 2):  # 1 次执行 + retries 次重试
         try:
             response = _post_json(endpoint, payload)
@@ -299,11 +395,47 @@ def notify_http(
             }
             _mark_ledger_result(idempotency_key, result)
             return result
+        except ToolExecutionError as exc:
+            # 权限错**不重试**：403/401 重试多少次都是 403，白烧一次往返。
+            # 直接上抛让信封归类 not_permitted。
+            if exc.kind == "not_permitted":
+                saw_permission = True
+                last_error = exc.message
+                break
+            saw_timeout = True
+            last_error = exc.message
         except (urllib.error.URLError, OSError, json.JSONDecodeError) as exc:
+            # HTTPError 是 URLError 的子类，可能从别的口子冒上来（比如被替换/
+            # 包装过的传输层）—— 这里用同一个映射再认一次，保证 403 无论
+            # 从哪条路径出现都不会被当成"端点不可达"去重试。
+            if isinstance(exc, urllib.error.HTTPError):
+                kind = _http_status_kind(exc.code)
+                if kind == "not_permitted":
+                    saw_permission = True
+                    last_error = f"HTTP {exc.code} 拒绝授权：{endpoint}"
+                    break
+                if kind == "timeout":
+                    saw_timeout = True
+                    last_error = f"HTTP {exc.code} 限流：{endpoint}"
+                    continue
+            if isinstance(exc, (TimeoutError, socket.timeout)):
+                saw_timeout = True
             last_error = f"{type(exc).__name__}: {exc}"
             # 重试**复用同一个 key**（第三层防线）——接收端可能已收到
             # 但响应丢了，换新键会让它真的发两遍。
 
+    if saw_permission:
+        raise ToolExecutionError(
+            f"通知端点 {endpoint} 拒绝授权：{last_error}。"
+            "这是权限问题，重试无效；请换渠道（如 archive 归档）或如实告知用户通知发送失败",
+            kind="not_permitted",
+        )
+    if saw_timeout:
+        raise ToolExecutionError(
+            f"通知端点 {endpoint} 重试 {retries + 1} 次仍超时/不可用：{last_error}。"
+            "账本已记录本次投递意图，恢复后不会重复发送；可退避后重试",
+            kind="timeout",
+        )
     raise ToolExecutionError(
         f"通知端点 {endpoint} 重试 {retries + 1} 次仍失败：{last_error}。"
         "账本已记录本次投递意图，恢复后不会重复发送；请稍后重试或转人工。",
@@ -311,87 +443,144 @@ def notify_http(
     )
 
 
-# ============================================================ 统一信封
+# ============================================================ 统一信封（W11 周一升级）
+
+#: 工具名常量：信封里 tool 字段的唯一来源。
+REPORT_TOOL: Final[str] = "generate_report"
+NOTIFY_TOOL: Final[str] = "notify"
 
 
-def _error(
-    tool: str, kind: str, message: str, extra: dict[str, Any] | None = None
-) -> dict[str, Any]:
-    return {
-        "ok": False,
-        "tool": tool,
-        "error_type": kind,
-        "error": {"message": message, **(extra or {})},
-    }
+def _field_details(exc: Any) -> list[dict[str, Any]]:
+    """Pydantic ValidationError → 字段明细（hint 之外的结构化指路）。"""
+    return [
+        {
+            "field": ".".join(str(p) for p in err["loc"]),
+            "reason": err["msg"],
+            "got": err.get("input"),
+        }
+        for err in exc.errors()
+    ]
+
+
+def _is_empty_report_payload(exc: Any) -> bool:
+    """校验失败是不是**只有** "sections 为空" 这一个原因。
+
+    为什么不能直接在 Pydantic 里把 `min_length` 改成 0：那会改掉**正常行为** ——
+    schema 是在告诉模型"至少要有一节"，这条约束该留着当护栏。但模型偶尔仍会
+    发一个空数组进来，此时它的错误动作是"先去取数据"，不是"把字段改个形状"。
+    所以在**归类这一层**把这条单独的校验错误翻译成 empty_result：
+
+        sections=[]                    → empty_result（缺内容）
+        sections=[{...}] 但正文为空     → invalid_arg（形状不合格）
+        section 里缺 heading           → invalid_arg
+
+    只有"唯一的错误就是 sections 长度不足"时才翻译，其他组合一律 invalid_arg。
+    """
+    errors = exc.errors()
+    if len(errors) != 1:
+        return False
+    err = errors[0]
+    loc = [str(p) for p in err["loc"]]
+    return loc == ["sections"] and err.get("type") in ("too_short", "missing")
 
 
 async def execute_report_tool(raw_arguments: str) -> dict[str, Any]:
-    """`generate_report` 落盘版的统一信封。永不抛异常。"""
+    """`generate_report` 落盘版的统一信封。永不抛异常。
+
+    五类落点：invalid_json / invalid_arg（sections 里空字段）、
+    **empty_result**（sections 为空 —— 参数形状合法，缺的是内容）、
+    **not_permitted**（目录不可写 / 只读介质）、**timeout**（写盘挂住）、
+    internal（其余）。写盘超时用 `REPORT_WRITE_TIMEOUT_S` 卡。
+    """
     try:
         json.loads(raw_arguments or "{}")
     except json.JSONDecodeError as exc:
-        return _error(
-            "generate_report", "invalid_json", f"参数不是合法 JSON：{exc.msg}（位置 {exc.pos}）"
+        return tool_error(
+            REPORT_TOOL,
+            "invalid_json",
+            f"参数不是合法 JSON：{exc.msg}（位置 {exc.pos}）",
+            details={"raw": (raw_arguments or "")[:200]},
         )
     try:
         args = GenerateReportFileArgs.model_validate_json(raw_arguments or "{}")
     except ValidationError as exc:
-        fields = [
-            {
-                "field": ".".join(str(p) for p in err["loc"]),
-                "reason": err["msg"],
-                "got": err.get("input"),
-            }
-            for err in exc.errors()
-        ]
-        return _error("generate_report", "invalid_arg", "参数不符合工具签名", {"fields": fields})
+        if _is_empty_report_payload(exc):
+            return tool_error(
+                REPORT_TOOL,
+                "empty_result",
+                "报告没有任何小节（sections 为空），没有内容可写",
+            )
+        return tool_error(
+            REPORT_TOOL,
+            "invalid_arg",
+            "参数不符合工具签名",
+            details={"fields": _field_details(exc)},
+        )
     try:
-        data = await asyncio.to_thread(
-            generate_report_file, args.task_id, args.title, [s.model_dump() for s in args.sections]
+        data = await asyncio.wait_for(
+            asyncio.to_thread(
+                generate_report_file,
+                args.task_id,
+                args.title,
+                [s.model_dump() for s in args.sections],
+            ),
+            timeout=REPORT_WRITE_TIMEOUT_S,
+        )
+    except TimeoutError:
+        return tool_error(
+            REPORT_TOOL,
+            "timeout",
+            f"报告写盘超过 {REPORT_WRITE_TIMEOUT_S}s 被中断（磁盘/网络盘响应过慢）",
         )
     except ToolExecutionError as exc:
-        return _error(
-            "generate_report",
-            exc.kind if exc.kind in ("invalid_arg", "internal") else "internal",
-            exc.message,
+        return tool_error(REPORT_TOOL, exc.kind, exc.message)
+    except Exception as exc:  # noqa: BLE001
+        return tool_error(
+            REPORT_TOOL,
+            classify_exception(exc),
+            f"报告写入失败：{type(exc).__name__}: {exc}",
         )
-    except OSError as exc:
-        return _error("generate_report", "internal", f"报告写入失败：{exc}")
-    return {"ok": True, "tool": "generate_report", "data": data}
+    return tool_ok(REPORT_TOOL, data)
 
 
 async def execute_notify_http_tool(raw_arguments: str) -> dict[str, Any]:
-    """`notify` HTTP 版的统一信封。永不抛异常；conflict（幂等拦截）原样分类。"""
+    """`notify` HTTP 版的统一信封。永不抛异常；conflict（幂等拦截）原样分类。
+
+    五类落点：invalid_json / invalid_arg（channel 不在白名单）、
+    **not_permitted**（端点 401/403 —— 重试无效，`notify_http` 内部已不重试）、
+    **timeout**（端点超时/5xx/429，重试后仍失败）、internal（端点不可达）。
+    """
     try:
         json.loads(raw_arguments or "{}")
     except json.JSONDecodeError as exc:
-        return _error("notify", "invalid_json", f"参数不是合法 JSON：{exc.msg}（位置 {exc.pos}）")
+        return tool_error(
+            NOTIFY_TOOL,
+            "invalid_json",
+            f"参数不是合法 JSON：{exc.msg}（位置 {exc.pos}）",
+            details={"raw": (raw_arguments or "")[:200]},
+        )
     try:
         args = NotifyHTTPArgs.model_validate_json(raw_arguments or "{}")
     except ValidationError as exc:
-        fields = [
-            {
-                "field": ".".join(str(p) for p in err["loc"]),
-                "reason": err["msg"],
-                "got": err.get("input"),
-            }
-            for err in exc.errors()
-        ]
-        return _error("notify", "invalid_arg", "参数不符合工具签名", {"fields": fields})
+        return tool_error(
+            NOTIFY_TOOL,
+            "invalid_arg",
+            "参数不符合工具签名",
+            details={"fields": _field_details(exc)},
+        )
     try:
         data = await asyncio.to_thread(
             notify_http, args.channel, args.message, args.idempotency_key
         )
     except ToolExecutionError as exc:
-        kind = (
-            exc.kind
-            if exc.kind in ("invalid_arg", "conflict", "timeout", "internal")
-            else "internal"
-        )
-        return _error("notify", kind, exc.message)
+        return tool_error(NOTIFY_TOOL, exc.kind, exc.message)
     except Exception as exc:  # noqa: BLE001
-        return _error("notify", "internal", f"通知发送错误：{type(exc).__name__}: {exc}")
-    return {"ok": True, "tool": "notify", "data": data}
+        return tool_error(
+            NOTIFY_TOOL,
+            classify_exception(exc),
+            f"通知发送错误：{type(exc).__name__}: {exc}",
+        )
+    return tool_ok(NOTIFY_TOOL, data)
 
 
 # ============================================================ mock 接收端（20:25–20:50）
@@ -463,6 +652,10 @@ __all__ = [
     "NOTIFY_ENDPOINT",
     "NOTIFY_HTTP_DESCRIPTION",
     "NOTIFY_LEDGER_PATH",
+    "NOTIFY_TOOL",
+    "REPORTS_DIR",
+    "REPORT_TOOL",
+    "REPORT_WRITE_TIMEOUT_S",
     "GenerateReportFileArgs",
     "NotifyHTTPArgs",
     "execute_notify_http_tool",

@@ -275,7 +275,8 @@ async def test_gate_column_whitelist_at_execution() -> None:
     """
     r = await execute_sql_tool('{"table": "inspections", "columns": ["batch_id", "password_hash"]}')
     assert r["ok"] is False and r["error_type"] == "invalid_arg"
-    assert "password_hash" in r["error"]["message"]
+    # W11：message 从 error.message 提升到顶层（定版六字段之一）
+    assert "password_hash" in r["message"]
 
 
 def test_sql_timeout_constant_sane() -> None:
