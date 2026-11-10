@@ -142,6 +142,27 @@ class AgentGraphState(TypedDict, total=False):
 # ============================================================ 小工具
 
 
+def _evidence_numbers(raw_result: dict[str, Any]) -> str | None:
+    """从工具返回里抠出所有数值，作为"答案数字有出处"的证据。
+
+    **为什么只抠数值**：审计要回答的唯一问题是"模型报的 42.5 是查到的
+    还是编的"。数值是这个问题的最小证据集；存全量 data 会让轨迹膨胀几倍，
+    而且失败信息（错误信封）本来就没有可引用的数值。
+
+    返回逗号分隔的去重数值串（如 "42.5 8.2 2024"），没有数值时返回 None。
+    """
+    if not raw_result.get("ok"):
+        return None
+    import json
+    import re
+
+    payload = json.dumps(raw_result.get("data"), ensure_ascii=False, default=str)
+    nums = sorted(set(re.findall(r"\d+(?:\.\d+)?", payload)))
+    # 过滤掉太短的（年份、序号对审计没用，但保留也无害；这里只滤单字符）
+    nums = [n for n in nums if len(n) >= 2]
+    return " ".join(nums) if nums else None
+
+
 def _result_semantic_key(tool: str, data: Any) -> str:
     """工具结果的语义键：判"这一步有没有带来新信息"。
 
@@ -214,10 +235,32 @@ def _as_step_records(state: AgentGraphState) -> list:
 
 
 def _route_after_model(state: AgentGraphState) -> str:
-    """模型步之后：有工具调用去 tools，解析失败去 parse_retry，否则收尾。"""
+    """模型步之后：有工具调用去 tools，解析失败去 parse_retry，否则收尾。
+
+    ## W11 周六修的漏洞：模型给答案时**也要判预算**
+
+    原先只在这里判 `stopped_reason` 与 `pending_mode`，预算只在
+    `route_after_tools` 里判。于是出现：模型最后一步直接给答案 →
+    **根本不经过 tools 路由** → 预算闸被绕过。
+
+    实测后果：N8（confirm 类，预算 10k）用了 13869 token、4 步，
+    `stopped_reason=completed` —— 超预算 39% 却"正常完成"。
+
+    这不是"预算设得松"，是**判定点漏了一处**。修法：在模型步之后、
+    决定"直接收尾"之前，先过一遍预算判定；超了就走去降级/优雅退出，
+    而不是继续往下走到 finalize。
+
+    为什么放在 `model_step` 之后而不是之前：这一步的 token 已经花掉了，
+    只能判"要不要再走下一步"。真正能在花之前拦的，是 tools 之后那次判定。
+    两处都要有，缺口才补上。
+    """
     if state.get("stopped_reason"):
         return "finalize"
     mode = state.get("pending_mode", "final")
+    # 预算/早停在**任何出口**都要判一次（模型要给答案时同样算）
+    verdict = _budget_verdict(state)
+    if verdict.stop:
+        return "finalize_budget"
     if mode in ("fc", "text_action"):
         return "tools"
     if mode == "parse_error":
@@ -280,15 +323,39 @@ def _budget_config(state: AgentGraphState) -> BudgetConfig:
 
 
 def _budget_verdict(state: AgentGraphState) -> Any:
-    """汇总三道上限 + 一条早停，给路由用。"""
+    """汇总三道上限 + 一条早停，给路由用。
+
+    ## 预判只在"还要调工具"时启用（W11 周六修正）
+
+    第一版无条件用"上一步的实际 token"预判下一步，结果 N12 被误伤：
+    已用 8492（没超 10k），但上一步花了 2987，预判"下一步会到 11479"
+    → 判预算触顶 → **把即将给出的正确答案截断了**。
+
+    问题在预判的假设：它假设下一步和上一步一样贵。但
+    **"调工具的一步"和"给答案的一步"成本差很多** ——
+    工具步要把 observation 塞进上下文，答案步不需要。
+
+    所以预判只在**确实还要调工具**时用。给答案那一步只看"已用是否超限"：
+    超了就截（那是真的超了），没超就让它说完（那是个便宜的收尾步）。
+    """
     cfg = _budget_config(state)
     used = BudgetUsed.from_dict(state.get("budget_used"))
-    # 预判下一步开销：用上一步的实际 token 估，没有就用 0（首步）。
-    steps = state.get("steps") or []
-    last_tokens = 0
-    if steps:
-        last_tokens = int((steps[-1].get("tokens") or {}).get("total_tokens", 0) or 0)
-    verdict = check_budget(used, cfg, next_step_tokens=last_tokens)
+    # **预判只在"已经超了"时不做，其余一律看实际用量**（W11 周六第三版）。
+    #
+    # 三次尝试的结论：
+    # 1. 无条件预判 → N12 被误伤（8492 没超，但预判 11479 → 截断了正确答案）；
+    # 2. 只在"还要调工具"时预判 → T6/T7/T8 仍被截断，因为 tools 之后
+    #    根本不知道下一步是工具还是答案，`pending_mode` 是上一步的值；
+    # 3. **不预判，只看实际用量** ← 现在这个。
+    #
+    # 为什么放弃预判：预判的价值是"省下最后一次超支"，代价是
+    # **可能截断一个即将给出的正确答案**。而正确的答案值多少钱？
+    # 整个任务的价值。省下的那点 token 不值这个价。
+    #
+    # 预算的正确语义是"花到上限就停"，不是"预计要超就提前停"。
+    # 上限的硬保证由三处共同完成：model_step 累加、tools 之后判、
+    # model 之后判 —— 每一处都看**已经发生**的用量。
+    verdict = check_budget(used, cfg)
     if verdict.stop:
         return verdict
     return check_no_progress(used, cfg)
@@ -718,6 +785,7 @@ def build_agent_graph(
                     error_type=error_type,
                     retryable=retryable,
                     chars=wrapped["chars"],
+                    evidence=_evidence_numbers(raw_result),
                 )
             )
             tool_messages.extend(build_tool_messages([_FakeCall(call)], [wrapped]))
@@ -1057,7 +1125,13 @@ def build_agent_graph(
     g.add_conditional_edges(
         "model_step",
         _route_after_model,
-        {"tools": "tools", "parse_retry": "parse_retry", "finalize": "finalize"},
+        {
+            "tools": "tools",
+            "parse_retry": "parse_retry",
+            "finalize": "finalize",
+            # W11 周六：模型直接给答案时也要能走到预算出口
+            "finalize_budget": "finalize_budget",
+        },
     )
     g.add_conditional_edges(
         "tools",

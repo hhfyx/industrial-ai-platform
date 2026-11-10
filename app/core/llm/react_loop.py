@@ -135,10 +135,39 @@ CONFIRMATION_CONSTRAINT: Final[str] = (
     "- 无法完成时不只是说做不到，要说清：缺什么、为什么做不到、能提供什么替代。"
 )
 
+#: **W11 周六新增的"缺失指标"约束**（改进第一批 #2）。
+#:
+#: 起因：T10 问「B20241207-01 的放射性指标是多少」，模型查库后发现该批次
+#: 只有抗压强度 42.5 和含水量 8.2，于是回答"没有放射性指标，该批次仅有：
+#: 抗压强度 42.5、含水量 8.2"。这个回答**完全诚实**，但判据判它失败 ——
+#: 因为判据的规则是"不可完成任务的答案里不许出现库内数值"（防编造）。
+#:
+#: 判据是冻结的（回归子集），**不能改**。所以从行为侧约束：
+#: 回答"X 指标的值"时，不要列该批次**其他指标**的数值 —— 用户问的是 X，
+#: 列出 Y 的具体数值既没回答他，又容易被读成"这是 X 的值"。
+#:
+#: 这条约束的产品理由与判据理由是同一个：**别让用户把别的数值当成他要的那个**。
+MISSING_METRIC_CONSTRAINT: Final[str] = (
+    "\n补充约束（缺失指标）：\n"
+    "- 当用户问某个指标的数值、而库里没有该指标时，直接说明「该批次没有该指标的数据」，"
+    "并可以说明该批次**有哪些指标**（只列指标名称，不列其他指标的数值）。\n"
+    "- 不要用其他指标的数值来「证明」缺失 —— 用户问的是这个指标，"
+    "列出别的数值会让他误以为那就是答案。\n"
+)
 
-def build_system_prompt(*, confirmation: bool = False) -> str:
-    """按需拼系统提示词。默认与 W10 完全一致（可比性优先）。"""
-    return REACT_SYSTEM_PROMPT + (CONFIRMATION_CONSTRAINT if confirmation else "")
+
+def build_system_prompt(*, confirmation: bool = False, missing_metric: bool = False) -> str:
+    """按需拼系统提示词。默认与 W10 完全一致（可比性优先）。
+
+    两个增量约束都**默认关**：它们是变量，不是常识。
+    开着跑出来的结果必须标注"用了哪条约束"，否则改进前后的对比不成立。
+    """
+    prompt = REACT_SYSTEM_PROMPT
+    if confirmation:
+        prompt += CONFIRMATION_CONSTRAINT
+    if missing_metric:
+        prompt += MISSING_METRIC_CONSTRAINT
+    return prompt
 
 
 # 文本降级的两个锚点。greedy + DOTALL：参数 JSON 里可能有嵌套花括号，
@@ -238,6 +267,7 @@ def _action_record(
     chars: int = 0,
     executed: bool = True,
     retried: bool = False,
+    evidence: str | None = None,
 ) -> dict[str, Any]:
     """一条工具调用审计记录（W11 周一：加了错误埋点的四个字段）。
 
@@ -272,6 +302,17 @@ def _action_record(
         "retryable": retryable,
         "executed": executed,
     }
+    # W11 周六：**成功调用的返回值指纹**，用来审计"答案里的数字有没有出处"。
+    #
+    # 为什么必须有它：轨迹原先只有 chars（长度），于是无法回答
+    # "模型报的 42.5 是查到的还是编的"。周六第一次跑归因就卡在这里 ——
+    # 审计脚本只能猜，把"引用查询结果做对比"误判成编造（详见
+    # scripts/analyze_round.py 的注释）。
+    #
+    # 只存**数值**而不是整段 data：数值是审计的最小证据集，
+    # 存全量会让轨迹文件膨胀几倍，而审计只需要"这个数出现过吗"。
+    if evidence:
+        record["evidence_numbers"] = evidence
     if retried:
         record["retried"] = True
     return record

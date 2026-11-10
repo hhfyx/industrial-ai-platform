@@ -105,6 +105,9 @@ GENERATE_REPORT_FILE_DESCRIPTION: Final[str] = (
     "sections 是 [{heading, content}] 列表，content 为 Markdown 正文。"
     "返回：path（报告文件的相对路径）、chars（正文字数）、sections（节数）、"
     "overwritten（是否覆盖了同 task_id 的旧报告）。"
+    "**拿到 path 之后必须在最终答案里把路径原样写出来**"
+    "（例如「已写入 reports/qa-B20241129-03.md」）—— 用户要的是那份文件，"
+    "只说「报告已生成」等于没交付，他找不到东西。"
     "sections 为空或正文为空返回 invalid_arg。"
 )
 

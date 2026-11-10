@@ -125,7 +125,11 @@ async def run_one(
         max_wall_time_s=task.budget_wall_time_s,
     )
     use_confirmation = confirmation and task.category == "confirm"
-    system_prompt = build_system_prompt(confirmation=use_confirmation)
+    # 缺失指标约束（改进 #2）：只对 impossible 类拼上 —— 它们是唯一会
+    # 遇到"问的指标库里没有"的任务族。回归子集 T9/T10 也属于这一类，
+    # 所以在回归对比里同样生效（对比表必须标注这一点）。
+    use_missing = task.category == "impossible"
+    system_prompt = build_system_prompt(confirmation=use_confirmation, missing_metric=use_missing)
     started = time.perf_counter()
     state = await app.ainvoke(
         {
@@ -145,6 +149,17 @@ async def run_one(
     trace = result_from_state(task.task_id, task.category, model, task.instruction, state)
     result = state_to_react_result(state)
     passed, why = task.verify(result)
+
+    # ---- 六项指标的原始计数（周六 09:00 的验收要求）----
+    actions = [a for m in trace["steps"] for a in m.get("actions", [])]
+    tool_calls = len(actions)
+    tool_errors = sum(1 for a in actions if not a.get("ok"))
+    error_types = [a.get("error_type") for a in actions if not a.get("ok") and a.get("error_type")]
+    degraded = trace["stopped_reason"] == "degraded" or bool(trace.get("budget_exit"))
+    # 副作用工具成功次数：判"是不是真的动了手"（T7/T8/N7/N8 关键）
+    side_effects = [
+        a["tool"] for a in actions if a.get("ok") and a.get("tool") in ("generate_report", "notify")
+    ]
     return {
         "task_id": task.task_id,
         "category": task.category,
@@ -154,6 +169,12 @@ async def run_one(
         "steps": len(trace["steps"]),
         "tokens": trace["usage_total"].get("total_tokens", 0),
         "latency_ms": wall_ms,
+        # 六项指标的原料
+        "tool_calls": tool_calls,
+        "tool_errors": tool_errors,
+        "error_types": error_types,
+        "degraded": degraded,
+        "side_effects": side_effects,
         "confirmation_applied": use_confirmation,
         "expected_without_mechanisms": task.expected_without_mechanisms,
         "trace": trace,

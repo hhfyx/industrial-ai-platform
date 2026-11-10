@@ -1,0 +1,178 @@
+{
+  "source": "scripts/run_eval_20.py --live --model trae/qwen-3.5（20 任务 × 5 轮）",
+  "measured_at": "2026-01-02",
+  "model": "trae/qwen-3.5",
+  "note": "W11 周六全量评测的冻结快照。源产物在 qa_runs_w11_r*/（被 ignore）。**成功率必须报区间，不能报单点** —— 5 轮区间 85%~100%，仅 r2 到过 100%。",
+  "rounds": [
+    {
+      "round": "r1",
+      "passed": 18,
+      "total": 20,
+      "success_rate": 0.9,
+      "avg_steps": 2.0,
+      "avg_tokens": 5662,
+      "avg_latency_ms": 12148,
+      "tool_error_rate": 0.1765,
+      "degrade_rate": 0.0
+    },
+    {
+      "round": "r2",
+      "passed": 20,
+      "total": 20,
+      "success_rate": 1.0,
+      "avg_steps": 2.1,
+      "avg_tokens": 6248,
+      "avg_latency_ms": 12197,
+      "tool_error_rate": 0.1111,
+      "degrade_rate": 0.0
+    },
+    {
+      "round": "r3",
+      "passed": 14,
+      "total": 20,
+      "success_rate": 0.7,
+      "avg_steps": 2.15,
+      "avg_tokens": 6287,
+      "avg_latency_ms": 11999,
+      "tool_error_rate": 0.0571,
+      "degrade_rate": 0.3
+    },
+    {
+      "round": "r4",
+      "passed": 17,
+      "total": 20,
+      "success_rate": 0.85,
+      "avg_steps": 2.0,
+      "avg_tokens": 5766,
+      "avg_latency_ms": 10383,
+      "tool_error_rate": 0.069,
+      "degrade_rate": 0.2
+    },
+    {
+      "round": "r5",
+      "passed": 19,
+      "total": 20,
+      "success_rate": 0.95,
+      "avg_steps": 2.2,
+      "avg_tokens": 6602,
+      "avg_latency_ms": 12208,
+      "tool_error_rate": 0.1081,
+      "degrade_rate": 0.1
+    }
+  ],
+  "success_rate_range": {
+    "min": 0.7,
+    "max": 1.0
+  },
+  "per_task_across_rounds": {
+    "N10_impossible_image": {
+      "passes": 5,
+      "runs": 5
+    },
+    "N11_impossible_external_system": {
+      "passes": 4,
+      "runs": 5
+    },
+    "N12_impossible_realtime": {
+      "passes": 4,
+      "runs": 5
+    },
+    "N1_single_metric_by_name": {
+      "passes": 5,
+      "runs": 5
+    },
+    "N3_dual_two_batches_compare": {
+      "passes": 5,
+      "runs": 5
+    },
+    "N4_dual_spec_and_data": {
+      "passes": 5,
+      "runs": 5
+    },
+    "N5_compute_margin": {
+      "passes": 5,
+      "runs": 5
+    },
+    "N7_confirm_before_notify": {
+      "passes": 4,
+      "runs": 5
+    },
+    "N8_confirm_before_report": {
+      "passes": 5,
+      "runs": 5
+    },
+    "N9_impossible_missing_batch": {
+      "passes": 5,
+      "runs": 5
+    },
+    "T10_impossible_metric": {
+      "passes": 4,
+      "runs": 5
+    },
+    "T1_simple_query": {
+      "passes": 5,
+      "runs": 5
+    },
+    "T2_simple_spec": {
+      "passes": 5,
+      "runs": 5
+    },
+    "T3_simple_metric": {
+      "passes": 5,
+      "runs": 5
+    },
+    "T4_simple_refusal_scope": {
+      "passes": 5,
+      "runs": 5
+    },
+    "T5_simple_batch_list": {
+      "passes": 4,
+      "runs": 5
+    },
+    "T6_complex_verdict": {
+      "passes": 4,
+      "runs": 5
+    },
+    "T7_complex_report": {
+      "passes": 1,
+      "runs": 5
+    },
+    "T8_complex_notify": {
+      "passes": 3,
+      "runs": 5
+    },
+    "T9_impossible_batch": {
+      "passes": 5,
+      "runs": 5
+    }
+  },
+  "stable_pass": [
+    "N10_impossible_image",
+    "N1_single_metric_by_name",
+    "N3_dual_two_batches_compare",
+    "N4_dual_spec_and_data",
+    "N5_compute_margin",
+    "N8_confirm_before_report",
+    "N9_impossible_missing_batch",
+    "T1_simple_query",
+    "T2_simple_spec",
+    "T3_simple_metric",
+    "T4_simple_refusal_scope",
+    "T9_impossible_batch"
+  ],
+  "flaky": {
+    "N11_impossible_external_system": "4/5",
+    "N12_impossible_realtime": "4/5",
+    "N7_confirm_before_notify": "4/5",
+    "T10_impossible_metric": "4/5",
+    "T5_simple_batch_list": "4/5",
+    "T6_complex_verdict": "4/5",
+    "T7_complex_report": "1/5",
+    "T8_complex_notify": "3/5"
+  },
+  "stable_fail": [],
+  "fabrication_audit": {
+    "real_fabrications": 0,
+    "note": "按「答案数值在成功工具返回里有无出处」口径核查全部 6 个不可完成任务，真编造 0 个。判据曾把有出处的引用判成编造（T10/N11），已由 scripts/audit_fabrication.py 区分。"
+  }
+}
