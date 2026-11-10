@@ -224,6 +224,22 @@ POST /api/v1/extract
     scripts/query_graph_state.py      图执行进度查询（W12 服务化接口）
     eval_tasks.py + scripts/run_eval_agent.py
                        10 任务判据先写 → 轨迹 JSON → 基线数字 → 归因表
+
+  ★ W11 新增：可靠性层（错误契约 · 重试降级 · 防跑偏 · 预算）  app/core/llm/
+    error_contract.py  五类错误分类：{ok, error_type, message, hint,
+                       retryable, retry_after}。retryable 由**代码**判定
+                       ——模型对"刚发生的超时"没有元信息，只能按语气猜
+    recovery.py        重试/降级矩阵：每类定「谁恢复、几次、用尽后怎么办」
+                       + 降级载荷 {answer, missing, degraded, reason}
+    guardrails.py      三道防跑偏（默认全关，可独立开关）：
+                       任务分解校验（执行前）/ 中间结果自检（纯规则）/
+                       语义等价判重（纯字符串）。后两道零 token
+    budget.py          三道上限（token/步数/墙钟）+ 三条早停 + 优雅退出
+    tasks_20.py        20 任务集（10 回归 + 10 新增，判据 01-01 冻结）
+    scripts/run_eval_20.py     20 任务全量 harness
+    scripts/analyze_round.py   六项指标 + 两张归因表 + 编造核查
+    scripts/compare_rounds.py  配对胜负 + 边际收益
+    eval/agent/tasks-20.jsonl  冻结的判据数据集（20 行）
 ```
 
 ### Agent 层基线（W9 · 10 任务 · trae/qwen-3.5）
@@ -247,6 +263,32 @@ POST /api/v1/extract
 | 持久化/恢复 | 自写账本 + 自定义状态机 | checkpointer + thread_id，硬杀后精确续跑 |
 | 人机中断 | 无（要自建） | `interrupt()`/`Command(resume)`，重执行语义见架构文档 |
 | 进度查询 | print 日志 | `query_progress()`：当前节点/步数/是否等待人工/部分结果 |
+
+### W11：可靠性层 —— 加机制有没有把好事弄坏
+
+![可靠性演示：注入超时 → 代码退避重试 → 仍失败 → 结构化降级（约 30 秒循环）](docs/agent-reliability.gif)
+
+| 指标 | 值 | 说明 |
+| --- | --- | --- |
+| 20 任务成功率 | **70%–100% 区间**（5 轮）| 最好一轮 20/20；**不能写"100%"** —— 那是 5 轮里的最高值 |
+| 每任务跨轮 | 12 稳定通过 / **0 稳定失败** / 8 波动 | T7 只过 1/5：任务定义模糊，非能力不足 |
+| W10 回归子集 | **9/10，与基线持平** | 那个 × 是 T10 已知判据误伤 |
+| 编造型失败 | **0 例** | 6 个不可完成任务 × 5 轮；口径 = 数值在成功工具返回里无出处 |
+| 降级率 | ~10%（10k 预算档）| 换预算档会变；早停这一轮一次都没触发 |
+| 两条增量约束成本 | +586 token/任务（+10.4%）| 换回 2 个任务；预算与早停省回 **0** |
+| 预算拐点 | **10k**（6 任务 × 3 档）| 5k=50%、10k=83%、15k=83%（15k 多花 9.3% 没多赢） |
+
+**本周最重要的发现**：两次"修机制"反而造成了回归，都源于同一个错误 ——
+把某个环节的失败当成整个任务的失败。可靠性机制的风险不在它不生效，
+而在它**生效得太广**。
+
+> 完整评测（方法 / 两轮数据 / 配对 / 失败模式 / 11 条局限）：
+> [docs/agent-eval.md](docs/agent-eval.md)。
+> 错误分类与恢复矩阵：[docs/error-taxonomy.md](docs/error-taxonomy.md)。
+> 三道防跑偏：[docs/guardrails.md](docs/guardrails.md)。
+> 预算与早停：[docs/budget.md](docs/budget.md)。
+> 演示脚本：[docs/gif-script-w11.md](docs/gif-script-w11.md)。
+> 数字可核对：`python -X utf8 scripts/verify_resume_numbers.py`。
 
 > 取舍证据（三处更好 + 两处碍事，每条带实测）：
 > [docs/langgraph-vs-handwritten.md](docs/langgraph-vs-handwritten.md)。
@@ -414,7 +456,7 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 | Recall@5 | **40.0%**（16/40） | 当时语料 **1288 段 / 1365 块** + 50 条评测集 |
 
 > ⚠️ **上面这个 1365 块是历史快照，不是当前值。** 当前是
-> **26 篇 / 482 段 / 850 块**（`chunk_chars=500, overlap=50`），
+> **26 篇 / 483 段 / 853 块**（`chunk_chars=500, overlap=50`），
 > 用 `python -X utf8 scripts/corpus_stats.py` 现算。
 >
 > 2026-11-04 核实发现同一件事在文档里有四个数字（1365 / 1364 / 1160 / 1592），
