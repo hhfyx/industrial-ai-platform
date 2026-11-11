@@ -1,11 +1,11 @@
 {
-  "digest": "05d4a39848c06cb2c1d96f356d52a6df40f4ed1613a2c66c62694ceaea3eb252",
+  "digest": "e17b47cdd6f91bd9c789b71aac8c06faee845b3a05d6ee900a1a7e3eb9f5abc8",
   "documents": 26,
   "files": {
-    "README.md": "e81404929b118b24619e303467164ca371bc59627a3b749d2d4a52011fb48240",
+    "README.md": "b1faf8b448d26f508572cebf04b3f1ed0766c88b9f6337e2bfddbb17ce7dd224",
     "docs/SETUP.md": "691461f846718b00c911ac004eb5d78398e66dd4457ac8cfaa50e25feb2aed76",
     "docs/ab-scaffold.md": "cc32fb0ed9a59d8203e76c5be8b4cb0b53ba350d5a0287cc8a68272268cbe4a6",
-    "docs/api-spec.md": "fc0ebbe011d94e3a7b0afed3603477fdc3d9cdb95d1aae35071d00b5e0f1baa3",
+    "docs/api-spec.md": "a614a06af819c31aaaf926046ff849c16edc7e44baad0ee442fe893a229ccfb9",
     "docs/chroma-store.md": "8e8cb43f9d4f21f05f5ec40f159cc43e8bea98d32b939964b9141b3494d2b30e",
     "docs/chunking-boundaries.md": "dc4f3faa3b34e927dd634eb159d281738a45c1b43d7dec66a2b2000c7d0aa238",
     "docs/chunking-predictions.md": "f169d7ab4ba9126609f3a234cde1d606dce3521f6f09e14908e971e2eb6c1486",

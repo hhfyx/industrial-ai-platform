@@ -37,7 +37,6 @@ from app.core.errors import AppError
 from app.schemas.extract import ErrorDetail, ErrorResponse
 from app.schemas.generate import GeneratedImage, GenerateRequest, GenerateResult
 from app.services.generation_queue import (
-    RETRY_AFTER_S,
     QueueFullError,
     get_generation_queue,
 )
@@ -230,11 +229,13 @@ async def generate_images_async(
             seed=payload.seed,
         )
     except QueueFullError as exc:
+        # W12 周一：Retry-After 用队列估算的动态值（"预计等待 X 秒"），
+        # 不再回静态 60s —— 静态值让客户端按它退避后再吃一个 429。
         raise AppError(
             code="QUEUE_FULL",
             message=str(exc),
             status_code=429,
-            headers={"Retry-After": str(RETRY_AFTER_S)},
+            headers={"Retry-After": str(exc.retry_after_s)},
         ) from exc
 
     response.headers["Location"] = f"/api/v1/generate/tasks/{task.task_id}"

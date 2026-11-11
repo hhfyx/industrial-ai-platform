@@ -25,6 +25,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app import __version__
 from app.api.v1 import router as v1_router
+from app.api.v2 import router as v2_router
 from app.core.errors import register_exception_handlers
 from app.core.logging import setup_from_settings
 from app.core.middleware import register_middlewares
@@ -41,7 +42,9 @@ app = FastAPI(
         "工业 AI 平台后端。\n\n"
         "**统一错误体**：所有非 2xx 都是 `{code, message, request_id, details}`。\n\n"
         "**契约冻结**：`POST /api/v1/extract` 的形状见 `docs/api-spec.md`，"
-        "实现（规则版 → LLM）可换，契约不变。"
+        "实现（规则版 → LLM）可换，契约不变。\n\n"
+        "**v2 接口线**：`/api/v2/*` 需要 `X-API-Key` 鉴权并受双层限流"
+        "（单 key 配额 + 全局 QPS），见 `docs/api-spec.md` v2 节。"
     ),
 )
 
@@ -69,6 +72,8 @@ app.add_middleware(
 register_middlewares(app)
 register_exception_handlers(app)
 app.include_router(v1_router)
+# v2（W12 周一）：鉴权 + 限流的新接口线。v1 端点一行不改 —— 契约冻结规则。
+app.include_router(v2_router)
 
 
 @app.get("/health", tags=["ops"])
@@ -79,17 +84,27 @@ def health() -> dict[str, str]:
 
 @app.get("/metrics", tags=["ops"])
 def metrics() -> dict[str, object]:
-    """错误分类计数（W8 周日）。
+    """错误分类计数（W8 周日）+ 限流拒绝计数（W12 周一）。
 
     进程内计数器，单实例演示服务的轻量可观测——
     上 Prometheus 的时机是"有第二个实例"那天（见 logging.py 的说明）。
+
+    限流计数按 key 指纹分桶：只看全局会漏掉"一个客户端挤掉所有人"的坑 ——
+    全局 QPS 正常时单 key 的 429 可能已经打爆，key 维度才看得见。
     """
     from app.core.logging import error_counts, get_request_id
+    from app.core.security import get_rate_limiter
 
+    limiter = get_rate_limiter()
     return {
         "errors": error_counts(),
         # 当前进程最近一次请求的 id（诊断用：容器日志里 grep 它）
         "last_request_id": get_request_id(),
+        # 限流：总量 + 按 key 指纹分桶（无明文 key）
+        "rate_limit_rejections": {
+            "total": sum(limiter.rejected_by_key.values()),
+            "by_key_fingerprint": dict(limiter.rejected_by_key),
+        },
     }
 
 

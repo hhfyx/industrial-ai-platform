@@ -332,3 +332,129 @@ GENERATION_TIMEOUT           504
 | 日期 | 版本 | 变更 | 兼容性 |
 | --- | --- | --- | --- |
 | 2026-12-09 | 项目一 v0 | 新增 POST /api/v1/generate（同步版）+ 4 个新错误码 | ✅ 新端点，extract 契约零改动 |
+
+---
+
+# 平台 v2：鉴权 · 限流 · 冷热分离（`/api/v2/*`，W12 周一新增）
+
+> **v1 契约（§1–10）一个字不改。** v2 是新前缀 + 必填鉴权 + 限流的新接口线：
+> 给 v1 加必填鉴权 = 破坏所有现有调用方（§4 规则 1）。v2 的样板端点是 extract
+> （请求/响应体与 v1 完全一致，复用同一 schema 类），其余端点按同一模式逐个迁移。
+
+## v2.0 总览
+
+| 项 | 值 |
+| --- | --- |
+| 前缀 | `/api/v2` |
+| 契约版本 | `v2` |
+| 鉴权 | 请求头 `X-API-Key`（必填；`/health` `/ready` `/metrics` `/docs` 除外） |
+| key 配置 | 环境变量 `PLATFORM_API_KEYS`（逗号分隔多个；**未设置 = 鉴权关闭**，本地/CI 显式降级，生产必须设置） |
+| 限流 | 双层令牌桶：全局 `PLATFORM_GLOBAL_QPS`（默认 10）+ 单 key `PLATFORM_KEY_QPS`（默认 3）；桶容量 = 速率 × 2s 突发 |
+| 限流实现 | **单实例内存桶**。多实例部署时实际配额 = 单实例 × 实例数，精确限流需 Redis + Lua —— 部署第二个实例前必须重读本节 |
+
+## v2.1 鉴权
+
+| 失败场景 | HTTP | `code` | 说明 |
+| --- | --- | --- | --- |
+| 无 `X-API-Key` 头 | `401` | `UNAUTHORIZED` | 与"key 错误"**同一个 message** |
+| key 不在配置列表 | `401` | `UNAUTHORIZED` | 401 永远不区分"缺"与"错" |
+
+- **401 不做 oracle**：区分"key 缺失"与"key 错误"会让 401 变成
+  "这把 key 存不存在"的枚举探测器。统一一句话："缺少或无效的 X-API-Key"。
+- **日志脱敏**：key 在日志、metrics、错误响应里恒为掩码（前 3 位 + 长度），
+  绝无明文。metrics 按 key 的 sha256 指纹（12 位）分桶，不看明文。
+
+## v2.2 限流
+
+| 超限场景 | HTTP | `code` | 响应头 |
+| --- | --- | --- | --- |
+| 单 key 配额超限 | `429` | `RATE_LIMITED` | `Retry-After`（按缺口速率动态计算，非固定值） |
+| 全局 QPS 超限 | `429` | `RATE_LIMITED` | `Retry-After` |
+
+- **两个桶都要有**：只做全局限流的坑是一个客户端挤掉所有人，
+  而监控里"全局 QPS 正常"。`/metrics` 的 `rate_limit_rejections` 按 key 指纹
+  分桶计数，"谁在挤谁"从 `/api/v2/rate-limit/status` 看。
+- **检查顺序**：先单 key 桶后全局桶。单 key 超限是调用方自己的节奏问题，
+  全局超限是全体的问题；且被全局拒绝的请求会把单 key 的令牌退回
+  （两层桶互不污染）。
+- 成功响应带 `X-RateLimit-Remaining`（当前 key 剩余令牌，整数）。
+
+## v2.3 冷端点（检索-only，压测专用）
+
+`POST /api/v2/search` —— 走完整检索链路（embed → search → TopK），
+**零 LLM 调用**。
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `query` | `string` | 1–500 字符 |
+| `k` | `int` | 1–8，默认 3 |
+
+响应（`200 OK`）：`{request_id, hits[], elapsed_ms}`；每条 hit 为
+`{id, source, page, score, text(≤500字)}`。
+
+- **用途**：压测服务层延迟上限（P99 不含模型侧）；标定热端点的模型开销
+  （热 − 冷 = 模型代价）；检索质量回归探针。
+- 无关查询返回低分 top-k（分数如实给出），不返回错误 —— 「没有」由调用方
+  按分数阈值判断，与 `retrieve_spec_chunks` 的空结果语义同源。
+
+## v2.4 liveness 与 readiness 分离（必答问题）
+
+| 探针 | 端点 | 语义 | 就绪条件 |
+| --- | --- | --- | --- |
+| liveness | `GET /health`（v1 已有，不变） | 进程活着吗 | 事件循环能响应 |
+| readiness | `GET /api/v2/ready` | 能接流量吗 | **模型单例已构造成功** |
+
+- 模型加载要 30 秒。只有一个健康检查时，编排器会在加载窗口看到"不健康"→
+  重启容器 → 永远起不来。两个问题、两个探针、两个端点。
+- readiness 未就绪返回 `503 NOT_READY`（带 `Retry-After: 5`），
+  就绪返回 `200 {status:"ready", checks:{generator,extractor}, elapsed_ms}`。
+- readiness 只**观察**单例是否已构造，绝不触发构造 —— 探针请求把 30 秒
+  加载提前拉起 = 观察者参与了被观察的系统。
+- 三个探针端点全部绕过鉴权与限流：探针被 429 挡住 = 编排器在高负载时
+  重启活着的容器（与死循环是同一课的镜像面）。
+
+## v2.5 W11 五类错误 → HTTP 映射（W12 服务化端点的预备表）
+
+Agent 服务路径（W12 本周要接 HTTP 的 interrupt/进度查询端点）抛错时按此表映射。
+现状说明：五类目前存在于工具信封层（`error_contract.py`），此表是该层
+未来 HTTP 化的映射契约，先于实现冻结 —— 与 W1"先契约后实现"同一顺序。
+
+| category（信封） | HTTP | 业务码 | 调用方动作 |
+| --- | --- | --- | --- |
+| param | `422` | `AGENT_INVALID_ARG` | 改参数，不重试 |
+| permission | `403` | `AGENT_NOT_PERMITTED` | 与 401 分开：401=没亮对 key，403=key 对但无权 |
+| timeout | `504` | `AGENT_TIMEOUT` | 按 Retry-After 退避 |
+| empty | `200` | （结果体表达） | "没查到"不是错误；映射 4xx 会教调用方无意义重试 |
+| duplicate | `409` | `AGENT_CONFLICT` | 动作已发生（幂等拦截），不要重试 |
+| internal | `500` | `AGENT_INTERNAL` | 退避重试 1 次，仍失败报障 |
+
+## v2.6 背压（项目一队列，动态 Retry-After）
+
+`POST /api/v1/generate/async` 的 `QUEUE_FULL`（429）升级为动态退避：
+
+- 旧版：静态 `Retry-After: 60` —— 队列里排 30 个任务时按它退避**必然**再吃 429；
+- 新版：`Retry-After = 排队任务数 × 近期平均任务时长`（滚动窗口 20 个样本，
+  成功与失败都算 —— OOM 任务的耗时同样是后面排队者的等待）；
+  message 带原因："生成队列已满（N 个任务在排队），预计等待 X 秒"。
+- 无样本时用保守兜底（120s，SD 口径上沿）。**宁可高估不多估**：
+  高估是客户端多等一会儿，低估是白跑一趟。
+
+## v2.7 机器可读错误码（v2 新增，只追加）
+
+```
+UNAUTHORIZED                 401
+RATE_LIMITED                 429
+NOT_READY                    503
+QUEUE_FULL                   429（动态 Retry-After，v1 端点沿用）
+AGENT_INVALID_ARG            422（预备）
+AGENT_NOT_PERMITTED          403（预备）
+AGENT_TIMEOUT                504（预备）
+AGENT_CONFLICT               409（预备）
+AGENT_INTERNAL               500（预备）
+```
+
+## v2.8 变更记录（平台级）
+
+| 日期 | 版本 | 变更 | 兼容性 |
+| --- | --- | --- | --- |
+| 2026-01-04 | v2.0 | 新增 `/api/v2` 接口线：X-API-Key 鉴权（401）、双层令牌桶限流（429 + 动态 Retry-After + X-RateLimit-Remaining）、`/api/v2/extract` 样板端点、`/api/v2/search` 冷端点、`/api/v2/ready` readiness、`/api/v2/rate-limit/status`；`/generate/async` 的 QUEUE_FULL 改动态 Retry-After | ✅ v1 全部端点零改动；v2 为纯新增 |

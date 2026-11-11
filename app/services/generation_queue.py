@@ -48,6 +48,7 @@ import asyncio
 import logging
 import time
 import uuid
+from collections import deque
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -69,8 +70,18 @@ MAX_QUEUE_DEPTH: Final[int] = 32
 # 任务保留时长（秒）。succeeded/failed 的结果查询窗口；过时清理。
 TASK_TTL_S: Final[float] = 3600.0
 
-# 429 的退避提示（秒）。单 worker 串行，队尾大约每任务 2 分钟。
+# 429 的退避提示（秒）。**只作无样本时的保守兜底**：动态估算见 QueueFullError。
+# 单 worker 串行，队尾大约每任务 2 分钟。
 RETRY_AFTER_S: Final[int] = 60
+
+# 平均任务时长的保守兜底（秒）。没有历史样本时用它估算"预计等待"。
+# 取 SD 口径的上沿（8–15 秒/张 × 8 张 ≈ 2 分钟），宁可高估不多估 ——
+# 高估让客户端晚一点回来（多等一会儿），低估让客户端白跑一趟（再吃一个 429）。
+FALLBACK_TASK_SECONDS: Final[float] = 120.0
+
+# 平均任务时长的样本窗口。滚动均值只看最近 N 个完结任务：
+# fake/SD 切换、负载变化后旧样本会拖偏估算。
+AVG_SAMPLE_WINDOW: Final[int] = 20
 
 
 class TaskStatus(StrEnum):
@@ -157,6 +168,8 @@ class GenerationQueue:
         """幂等索引：key → succeeded task_id。"""
         self._lock = asyncio.Lock()
         """保护 _tasks/_keys 的注册表操作（提交/查询来自不同请求协程）。"""
+        self._duration_samples: deque[float] = deque(maxlen=AVG_SAMPLE_WINDOW)
+        """近期任务耗时样本（秒）。worker 完结时落账，动态 Retry-After 用。"""
 
     # ------------------------------------------------------------------ 提交与查询
 
@@ -184,8 +197,10 @@ class GenerationQueue:
                 if t.status in (TaskStatus.QUEUED, TaskStatus.RUNNING)
             )
             if pending >= MAX_QUEUE_DEPTH:
+                retry_after = self._estimate_retry_after(pending)
                 raise QueueFullError(
-                    f"生成队列已满（{pending} 个任务在排队），请按 Retry-After 稍后重试"
+                    f"生成队列已满（{pending} 个任务在排队），预计等待 {retry_after} 秒，请按 Retry-After 退避",
+                    retry_after_s=retry_after,
                 )
 
             task = GenerationTask(task_id=uuid.uuid4().hex[:16], request=req)
@@ -196,6 +211,19 @@ class GenerationQueue:
             await self._queue.put(task.task_id)
             self._ensure_worker()
             return task, False
+
+    def _estimate_retry_after(self, pending: int) -> int:
+        """估算"预计等待 X 秒"（动态 Retry-After 的 X）。
+
+        `pending × 平均任务时长`：单 worker 串行，队尾任务的等待就是
+        前面所有任务的总时长。样本不足用保守兜底（见 FALLBACK_TASK_SECONDS）。
+        至少 1 秒：Retry-After: 0 是"立刻重试"，对队列已满语义是谎言。
+        """
+        if self._duration_samples:
+            avg = sum(self._duration_samples) / len(self._duration_samples)
+        else:
+            avg = FALLBACK_TASK_SECONDS
+        return max(1, int(pending * avg))
 
     async def get(self, task_id: str) -> GenerationTask | None:
         async with self._lock:
@@ -234,6 +262,7 @@ class GenerationQueue:
                     task.request,
                 )
                 elapsed = int((time.perf_counter() - started) * 1000)
+                self._duration_samples.append(elapsed / 1000.0)
                 task.transition(TaskStatus.SUCCEEDED)
                 task.progress = f"{task.request['count']}/{task.request['count']}"
                 task.result = {
@@ -244,6 +273,9 @@ class GenerationQueue:
                 logger.info("异步生成完成 %s（%d ms）", task_id, elapsed)
             except (GenerationOOMError, GenerationTimeoutError, GeneratorUnavailableError) as exc:
                 # 已知失败 → 结构化错误（错误码与同步版同源）
+                # 失败样本也落账：OOM/超时任务占的真实 GPU 时长同样是
+                # "后面排队的人要等的时间"，剔除它们会低估等待。
+                self._duration_samples.append(time.perf_counter() - started)
                 task.transition(TaskStatus.FAILED)
                 task.error = {"code": _code_of(exc), "message": str(exc)}
                 logger.warning("异步生成失败 %s：%s", task_id, _code_of(exc))
@@ -281,7 +313,25 @@ class GenerationQueue:
 
 
 class QueueFullError(RuntimeError):
-    """队列深度超限。路由层映射 429 + Retry-After。"""
+    """队列深度超限。路由层映射 429 + Retry-After。
+
+    ## W12 周一：retry_after 变成动态值（"预计等待 X 秒"）
+
+    旧版回静态 `RETRY_AFTER_S=60` —— 那是"拍脑袋能通过"的值：
+    队列里实际排着 30 个任务时，60 秒后重试**必然**再吃一个 429。
+    动态版按 `排在你前面的任务数 × 平均任务时长` 估算：
+
+    - `pending`：本次拒绝时正在排队/执行的任务数（submit 已算好）；
+    - `avg_task_s`：近期任务的平均耗时（成功/失败样本的滚动均值，worker 落账）；
+      没有样本时用保守常数（fake 毫秒级 / SD 8–15 秒/张 → 单任务 2 分钟口径）。
+
+    Retry-After 才有"诚实"可言：客户端按它退避后**大概率**真的能进队列。
+    拒绝带原因（"队列已满，预计等待 X 秒"）同时满足周一计划的验收要求。
+    """
+
+    def __init__(self, message: str, *, retry_after_s: int) -> None:
+        super().__init__(message)
+        self.retry_after_s = retry_after_s
 
 
 def _run_sync(generator: Generator, request: dict[str, Any]) -> Any:  # noqa: ANN401

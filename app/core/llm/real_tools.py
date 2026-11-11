@@ -146,6 +146,17 @@ def _get_retriever() -> Any:
     return _RETRIEVER
 
 
+def get_shared_retriever() -> Any:
+    """共享检索器的公开入口（W12 周一：/api/v2/search 冷端点复用）。
+
+    `_get_retriever` 是工具层的私有装配（下划线约定）；冷端点是第二个
+    真实调用方，公开一个**具名入口**而不是跨模块摸私有名 ——
+    私有名被外部引用的那一刻它就不是私有的了，约束会静默失效。
+    语义与 `_get_retriever` 完全一致：单例、无状态、并发安全。
+    """
+    return _get_retriever()
+
+
 #: 单条 chunk 文本的进上下文上限。检索管线不截断（嵌入要全文），
 #: 但**回灌给模型**的 observation 必须有界 —— 与 react_loop 的两级截断同思想。
 CHUNK_TEXT_MAX_CHARS: Final[int] = 500
