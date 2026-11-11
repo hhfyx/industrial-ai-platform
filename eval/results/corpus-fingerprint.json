@@ -1,5 +1,5 @@
 {
-  "digest": "59faca9cfb06fd0ca29f618f5a777b40292b0a7d29c2c4109ba21968a9ced10c",
+  "digest": "e3b2f06596123006c9c1c6b7dc37b165ca18d102a66937183603457ec54882e3",
   "documents": 26,
   "files": {
     "README.md": "31976a278388ddf22c237588b9a1e3e3f6a710179ed8a90131a6205729a5a1da",
@@ -12,7 +12,7 @@
     "docs/chunking-quality.md": "bb7b1f1c429502798e665a2ce8001c7161ebfc122d7a3aeb0aaa20dcac067799",
     "docs/container-networking.md": "512200ad479c59685d12d4f1b31267a61d0b3048e5c262ed0b93f6c8f6de51c2",
     "docs/cost.md": "6dd54a3aa05f9266cd58df8df14677dfe0534136f08ca4b5a693b32e3ffe2c62",
-    "docs/deploy-notes.md": "aaddc1179570c701c00d0d35ba0a8a473e09a68b3644f973ff891ae673346bc4",
+    "docs/deploy-notes.md": "4ab4cd1f3af34db7707265c09ef9ef2d0514280b18d1e48504aee77535b2c43b",
     "docs/design-decisions.md": "d5a00b25f9ee73edd733e93daf533249b3db0e71762456c8c7a907872f130dbc",
     "docs/document-parsing.md": "fbb6d1496f013812fac4c091a14fac7507744f97d3b4def2ac7fa074396c8f55",
     "docs/embedding.md": "06c0d3fa162ba8971437ac0e8657e4ae9ffee3f4f2411114e75f4d0e531f8915",
