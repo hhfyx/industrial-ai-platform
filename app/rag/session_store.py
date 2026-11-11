@@ -125,8 +125,29 @@ class SessionStore:
 
         **seq 由本方法分配**（SELECT MAX + 1，在锁内），调用方不传 ——
         两个来源（UI 主流程与恢复逻辑）并发追加时序号也不会撞。
+
+        ## W12 周二：内容级幂等（W12 计划：幂等可验）
+
+        同一 `(session_id, role, content)` 的**用户消息**重复提交时返回
+        已有条目的 seq 而不再追加 —— 网络重试 / UI 双击 / 客户端超时重发
+        都不该产生两条一样的提问。只对 `role=user` 生效：assistant 行是
+        系统产物（append 调用点唯一），不去重。
         """
+        role = str(message.get("role", "user"))
+        content = str(message.get("content", ""))
         with self._lock:
+            if role == "user":
+                existing = self._conn.execute(
+                    "SELECT seq FROM turns"
+                    " WHERE session_id = ? AND role = 'user' AND content = ?"
+                    " ORDER BY seq LIMIT 1",
+                    (session_id, content),
+                ).fetchone()
+                if existing is not None:
+                    logger.info(
+                        "幂等命中：session=%s 重复用户消息（seq=%s）", session_id, existing[0]
+                    )
+                    return int(existing[0])
             row = self._conn.execute(
                 "SELECT COALESCE(MAX(seq), -1) FROM turns WHERE session_id = ?",
                 (session_id,),
@@ -139,8 +160,8 @@ class SessionStore:
                 (
                     seq,
                     session_id,
-                    str(message.get("role", "user")),
-                    str(message.get("content", "")),
+                    role,
+                    content,
                     json.dumps(message.get("citations") or [], ensure_ascii=False),
                     json.dumps(message.get("contexts") or [], ensure_ascii=False),
                     json.dumps(message.get("invalid_refs") or [], ensure_ascii=False),

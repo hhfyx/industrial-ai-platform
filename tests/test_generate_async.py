@@ -97,6 +97,15 @@ def test_idempotency_key_none_when_seed_missing() -> None:
         1,
         512,
         7,
+        "",  # model_version 默认空串（W12 周二加入键尾）
+    )
+
+
+def test_idempotency_key_changes_with_model_version() -> None:
+    """W12 周二：model_version 进幂等键 —— 换模型版本后旧结果不复用。"""
+    req = {"defect_class": "划痕", "count": 1, "size": 512, "seed": 7}
+    assert idempotency_key(req, model_version="fake-generator") != idempotency_key(
+        req, model_version="sd15-lora-v0"
     )
 
 

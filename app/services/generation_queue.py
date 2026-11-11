@@ -140,14 +140,23 @@ class GenerationTask:
         }
 
 
-def idempotency_key(request: dict[str, Any]) -> Hashable | None:
+def idempotency_key(request: dict[str, Any], *, model_version: str = "") -> Hashable | None:
     """幂等键。**seed=None 返回 None（不参与幂等）**——
     不传 seed 的语义是"每次要新的"，复用旧结果是错的。
+
+    ## W12 周二：model_version 进幂等键（计划原文的"补齐 model_version"）
+
+    不加它的坑：换模型版本（fake → sd15-lora-v0 → sd15-lora-v1）后，
+    相同参数的请求会命中**旧模型**生成的结果并复用 —— 调用方以为拿到的是
+    新模型的产物。`model_version` 取 `generator.model_name`（Generator 协议
+    的既有字段，每个实现必须声明），由 submit 在调用点传入，实现换版本时
+    幂等键自动变 —— 与"配置指纹"（result_cache.py）是同一条设计：**派生
+    数据的 key 必须绑定产生它的生产者版本**。
     """
     seed = request.get("seed")
     if seed is None:
         return None
-    return (request["defect_class"], request["count"], request["size"], seed)
+    return (request["defect_class"], request["count"], request["size"], seed, model_version)
 
 
 class GenerationQueue:
@@ -182,7 +191,9 @@ class GenerationQueue:
         队列深度超限 → 抛 `QueueFullError`（路由层映射 429）。
         """
         req = {"defect_class": defect_class, "count": count, "size": size, "seed": seed}
-        key = idempotency_key(req)
+        # model_version 进幂等键（W12 周二）：换模型版本 → 旧结果不复用。
+        # generator.model_name 是 Generator 协议字段，fake 与 sd 各自声明。
+        key = idempotency_key(req, model_version=self._generator.model_name)
         async with self._lock:
             if key is not None:
                 old_id = self._keys.get(key)
@@ -305,7 +316,10 @@ class GenerationQueue:
         ]
         for tid in expired:
             task = self._tasks.pop(tid)
-            key = idempotency_key(task.request)
+            # 清理路径用同样的 model_version 派生键 —— 队列单例按 generator
+            # 实例绑定（get_generation_queue），这里的 self._generator 与
+            # submit 时是同一个，版本一致，键才能对上并正确移除。
+            key = idempotency_key(task.request, model_version=self._generator.model_name)
             if key is not None and self._keys.get(key) == tid:
                 del self._keys[key]
         if expired:
