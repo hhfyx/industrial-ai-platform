@@ -85,20 +85,23 @@ AVG_SAMPLE_WINDOW: Final[int] = 20
 
 
 class TaskStatus(StrEnum):
-    """任务状态。合法迁移：queued → running → succeeded / failed。"""
+    """任务状态。合法迁移：queued → running → succeeded / failed / cancelled。"""
 
     QUEUED = "queued"
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 # 合法迁移表：写下来而不是靠记忆 —— 状态机错了查一圈日志不如看这张表。
+# W12 周三：queued/running 增加 → CANCELLED（取消，见 request_cancel）。
 VALID_TRANSITIONS: Final[dict[TaskStatus, set[TaskStatus]]] = {
-    TaskStatus.QUEUED: {TaskStatus.RUNNING},
-    TaskStatus.RUNNING: {TaskStatus.SUCCEEDED, TaskStatus.FAILED},
+    TaskStatus.QUEUED: {TaskStatus.RUNNING, TaskStatus.CANCELLED},
+    TaskStatus.RUNNING: {TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.CANCELLED},
     TaskStatus.SUCCEEDED: set(),
     TaskStatus.FAILED: set(),
+    TaskStatus.CANCELLED: set(),
 }
 
 
@@ -112,11 +115,18 @@ class GenerationTask:
     status: TaskStatus = TaskStatus.QUEUED
     progress: str = ""
     """人读的进度描述（"0/4"、"3/4"）。结构化到"已完成张数"是异步 v2 的事。"""
+    images_done: int = 0
+    """W12 周三：真实进度 = 已完成张数（worker 每张回写）。**不是假进度**：
+    不做时间估算（GPU 任务时长大方差，估算必然撒谎），只报已发生的事实。"""
+    queue_position: int | None = None
+    """W12 周三：排第几位（None = 不在排队中，即 running/终态）。"""
     result: dict[str, Any] | None = None
     error: dict[str, Any] | None = None
     """{code, message} —— 与同步版错误码同源（GPU_OOM 等），查询方拿同一张表。"""
     created_at: float = field(default_factory=time.time)
     finished_at: float | None = None
+    _cancel_requested: bool = field(default=False, repr=False)
+    """协作式取消标记（与 AgentTask 同一机制）：worker 在每张图之间检查。"""
 
     def transition(self, to: TaskStatus) -> None:
         """按迁移表跳状态。非法迁移直接抛 —— 状态机错了必须当场炸。"""
@@ -125,7 +135,7 @@ class GenerationTask:
                 f"非法状态迁移 {self.status.value} → {to.value}（task {self.task_id}）"
             )
         self.status = to
-        if to in (TaskStatus.SUCCEEDED, TaskStatus.FAILED):
+        if to in (TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.CANCELLED):
             self.finished_at = time.time()
 
     def as_dict(self) -> dict[str, Any]:
@@ -134,6 +144,8 @@ class GenerationTask:
             "task_id": self.task_id,
             "status": self.status.value,
             "progress": self.progress,
+            "images_done": self.images_done,
+            "queue_position": self.queue_position,
             "result": self.result,
             "error": self.error,
             "created_at": self.created_at,
@@ -238,7 +250,41 @@ class GenerationQueue:
 
     async def get(self, task_id: str) -> GenerationTask | None:
         async with self._lock:
-            return self._tasks.get(task_id)
+            task = self._tasks.get(task_id)
+            if task is not None and task.status is TaskStatus.QUEUED:
+                # W12 周三：队列位置 = 排在前面的 queued 任务数（0 = 下一个就轮到）。
+                # 读路径顺带算而不是 worker 维护 —— 队列变化只在出队时发生，
+                # 读时现算永远是对的，维护反而会忘更新。
+                task.queue_position = sum(
+                    1
+                    for t in self._tasks.values()
+                    if t.status is TaskStatus.QUEUED and t.created_at < task.created_at
+                )
+            return task
+
+    async def request_cancel(self, task_id: str) -> GenerationTask | None:
+        """W12 周三：请求取消。
+
+        - queued → 直接 cancelled（还没占 GPU，无副作用要回滚）；
+        - running → 协作式：标记 `_cancel_requested`，worker 在**每张图之间**
+          检查（GPU 任务不可硬杀 —— CUDA 调用没有安全的取消点，硬杀等于
+          把显存留在脏状态）。已生成的图保留在结果里，partial 语义如实。
+        - 终态 → 原样返回（幂等 no-op，路由层决定 409）。
+
+        取消的任务**不进幂等索引**（submit 里按终态判断）—— 重新提交同参数
+        会拿到新任务，"取消"是调用方的决定，不该被幂等键挡住。
+        """
+        async with self._lock:
+            task = self._tasks.get(task_id)
+            if task is None:
+                return None
+            if task.status is TaskStatus.QUEUED:
+                task.transition(TaskStatus.CANCELLED)
+                # 从等待队列里摘掉：worker 取到 None 会跳过（下面 _run 有分支）
+                # asyncio.Queue 无法随机删除，靠 worker 侧状态检查过滤。
+            elif task.status is TaskStatus.RUNNING:
+                task._cancel_requested = True
+            return task
 
     async def wait_idle(self, timeout: float = 10.0) -> None:
         """等队列排空（全部任务到达终态）。测试与优雅关闭用。
@@ -261,6 +307,11 @@ class GenerationQueue:
             task_id = await self._queue.get()
             task = self._tasks.get(task_id)
             if task is None:
+                self._queue.task_done()
+                continue
+            # 取消的 queued 任务：跳过执行（request_cancel 已迁移终态）
+            if task.status is not TaskStatus.QUEUED:
+                self._queue.task_done()
                 continue
             task.transition(TaskStatus.RUNNING)
             task.progress = "0/{count}".format(count=task.request["count"])
@@ -274,14 +325,22 @@ class GenerationQueue:
                 )
                 elapsed = int((time.perf_counter() - started) * 1000)
                 self._duration_samples.append(elapsed / 1000.0)
-                task.transition(TaskStatus.SUCCEEDED)
-                task.progress = f"{task.request['count']}/{task.request['count']}"
-                task.result = {
-                    "images": output.images,
-                    "elapsed_ms": elapsed,
-                    "model": output.model,
-                }
-                logger.info("异步生成完成 %s（%d ms）", task_id, elapsed)
+                # 取消请求在整批生成期间到达：已完成的部分如实保留
+                if task._cancel_requested:
+                    task.transition(TaskStatus.CANCELLED)
+                    task.images_done = len(output.images)
+                    task.progress = f"{task.images_done}/{task.request['count']}（已取消）"
+                    logger.info("任务 %s 在执行中取消（已完成 %d 张）", task_id, task.images_done)
+                else:
+                    task.transition(TaskStatus.SUCCEEDED)
+                    task.images_done = len(output.images)
+                    task.progress = f"{task.request['count']}/{task.request['count']}"
+                    task.result = {
+                        "images": output.images,
+                        "elapsed_ms": elapsed,
+                        "model": output.model,
+                    }
+                    logger.info("异步生成完成 %s（%d ms）", task_id, elapsed)
             except (GenerationOOMError, GenerationTimeoutError, GeneratorUnavailableError) as exc:
                 # 已知失败 → 结构化错误（错误码与同步版同源）
                 # 失败样本也落账：OOM/超时任务占的真实 GPU 时长同样是
@@ -310,7 +369,7 @@ class GenerationQueue:
         expired = [
             tid
             for tid, t in self._tasks.items()
-            if t.status in (TaskStatus.SUCCEEDED, TaskStatus.FAILED)
+            if t.status in (TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.CANCELLED)
             and t.finished_at is not None
             and now - t.finished_at > TASK_TTL_S
         ]

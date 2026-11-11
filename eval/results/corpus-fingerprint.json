@@ -1,8 +1,8 @@
 {
-  "digest": "e17b47cdd6f91bd9c789b71aac8c06faee845b3a05d6ee900a1a7e3eb9f5abc8",
+  "digest": "59faca9cfb06fd0ca29f618f5a777b40292b0a7d29c2c4109ba21968a9ced10c",
   "documents": 26,
   "files": {
-    "README.md": "b1faf8b448d26f508572cebf04b3f1ed0766c88b9f6337e2bfddbb17ce7dd224",
+    "README.md": "31976a278388ddf22c237588b9a1e3e3f6a710179ed8a90131a6205729a5a1da",
     "docs/SETUP.md": "691461f846718b00c911ac004eb5d78398e66dd4457ac8cfaa50e25feb2aed76",
     "docs/ab-scaffold.md": "cc32fb0ed9a59d8203e76c5be8b4cb0b53ba350d5a0287cc8a68272268cbe4a6",
     "docs/api-spec.md": "a614a06af819c31aaaf926046ff849c16edc7e44baad0ee442fe893a229ccfb9",
@@ -12,7 +12,7 @@
     "docs/chunking-quality.md": "bb7b1f1c429502798e665a2ce8001c7161ebfc122d7a3aeb0aaa20dcac067799",
     "docs/container-networking.md": "512200ad479c59685d12d4f1b31267a61d0b3048e5c262ed0b93f6c8f6de51c2",
     "docs/cost.md": "6dd54a3aa05f9266cd58df8df14677dfe0534136f08ca4b5a693b32e3ffe2c62",
-    "docs/deploy-notes.md": "73468d7e82b87773a8df1360ef88c85c062502cac07d785b5260408510a6bd02",
+    "docs/deploy-notes.md": "aaddc1179570c701c00d0d35ba0a8a473e09a68b3644f973ff891ae673346bc4",
     "docs/design-decisions.md": "d5a00b25f9ee73edd733e93daf533249b3db0e71762456c8c7a907872f130dbc",
     "docs/document-parsing.md": "fbb6d1496f013812fac4c091a14fac7507744f97d3b4def2ac7fa074396c8f55",
     "docs/embedding.md": "06c0d3fa162ba8971437ac0e8657e4ae9ffee3f4f2411114e75f4d0e531f8915",

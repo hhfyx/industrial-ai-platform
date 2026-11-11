@@ -657,3 +657,85 @@ glm-5.3 在某条压测问题里编造了 [64]，重答没修好，降级标记�
 **Cloud 免费层的会话持久化边界（如实）**：`data/sessions.sqlite` 在 Cloud 是**临时盘**，
 应用休眠/重启后会话历史清零。这与本地容器（volume 持久化）行为不同。
 线上演示多轮指代时**同一会话内**的改写与上下文是完整的（内存里），跨重启不保证。
+
+---
+
+# W12 周三：双服务编排、Nginx 反代与故障演练
+
+> `docker-compose.services.yml`（双服务）+ `deploy/nginx.conf`（统一入口）。
+> 单服务 `docker-compose.yml` 保留：本地开发与 CI 的最小可运行单位。
+
+## 一、为什么这样拆两个服务
+
+拆分依据是**故障域与伸缩维度**，不是"一进程一容器"的形式主义：
+
+| | api-rag（文档智能面） | api-gen（图像生成面） |
+| --- | --- | --- |
+| 资源画像 | CPU + 大内存（bge/chroma/会话库），mem_limit 4g | GPU 独占 + 单 worker 串行（generation_queue.py 的设计），mem_limit 8g |
+| 故障面 | OOM 拖垮问答 —— 单进程内无解 | 生成面 OOM **不拖垮**问答面（隔离的收益） |
+| 伸缩 | 可横向扩副本（内存允许时） | 只有一个 GPU，扩副本无意义 |
+| 流式 | SSE 三端点（对反代有特殊要求） | 无流式 |
+
+## 二、healthcheck 为什么探 /ready 而不是 /health
+
+`depends_on: condition: service_healthy` 要的是"**能接流量**"（模型已加载），
+不是"**进程活着**"（模型加载 30s 期间 liveness 也是 200）。
+用 liveness 做 readiness 的活 = 编排器在加载窗口把流量切进未就绪的服务
+—— liveness/readiness 分离（W12 周一必答问题）在编排层的直接应用。
+`start_period: 45s` 覆盖加载窗口，`interval: 15s × retries: 5` = 最坏 75s 摘流。
+
+## 三、Nginx 配置的四个"为什么"（deploy/nginx.conf）
+
+1. **SSE 不缓冲四件套**：`proxy_buffering off`（攒满再发 = SSE 失效）、
+   `proxy_cache off`、`proxy_read_timeout 300s`（长摘要 3 分钟+）、
+   `proxy_http_version 1.1`（默认 1.0 会破坏 SSE 长连接）。
+   应用侧 `X-Accel-Buffering: no`（W2 的 E1、W8 的 F3）是**声明**，
+   nginx 配置是**执行** —— 两边都写，谁生效都一样。
+2. **超时与业务预算对齐**：Agent 预算 `max_wall_time=120s`（冻结值）→
+   `/api/v2/agent-tasks` 的 `proxy_read_timeout 180s`；生成单任务
+   `GENERATION_TIMEOUT_S=180s` → `/api/v1/generate` 用 240s。
+   **反代 60s 默认值会掐断一个预算内还有 60s 的任务** —— 超时必须是
+   "业务预算 + 余量"，不是拍脑袋数字。
+3. **不重试非幂等请求**（必答问题）：`proxy_next_upstream off` 挂在
+   生成与 Agent 提交两条路由上。nginx 默认对 error/timeout 重试 ——
+   对 `POST /generate` 重试 = 生成两次 = 双倍 GPU 时间，而客户端只看到
+   一次请求。与 W8 的 D4（GPU 独占的串行重试代价）、W11 的重试矩阵
+   （retryable 由代码判定）是同一原则在反代层的体现。
+   `POST /extract`/`chat` 同理（在 `/` 路由里也只允许 GET 的 error 重试，
+   POST 的重试由客户端决定 —— 客户端知道哪次带了幂等键）。
+4. **路由表**：`/api/v1/generate → gen_backend`，其余 → `rag_backend`。
+   v2 的 `/agent-tasks` 属于问答面（LLM 调用，无 GPU）。
+
+## 四、取消语义的两个面（端到端联调实测出的细节）
+
+| 状态 | DELETE agent-tasks | DELETE generate/tasks |
+| --- | --- | --- |
+| queued | 直接 cancelled | 直接 cancelled |
+| running | **协作式**：标记 + 执行协程在工具步边界退出，保留 partial_answer | 协作式：worker 在**每张图之间**检查（CUDA 无安全取消点，硬杀留脏显存），已生成张数如实保留 |
+| succeeded/failed | 409 TASK_FINISHED | 409 TASK_FINISHED |
+| cancelled（重复删） | **200 幂等回显**（目标状态已达成） | 200 幂等回显 |
+
+第一版把"已取消再取消"也回了 409 —— 那是错的：取消明明生效了，
+409 是撒谎。两个面的语义统一为"**取消是否真的达成了目标状态**"。
+
+进度百分比是**真实进度**（已完成张数/总张数，worker 每张回写），
+不是时间估算 —— GPU 任务时长大方差，估算是撒谎。
+
+## 五、故障演练三条记录（scripts/fault_drill.py，实测）
+
+| # | 演练 | 观察 | 结论 |
+| --- | --- | --- | --- |
+| ① | 生成面挂掉，问答面行为 | 问答面 extract HTTP 200，与生成面端口零交互（proxy_pass 按路径分流） | 分流在 nginx 层：生成面挂了只有 `/api/v1/generate` 502，问答面**天然不受影响** |
+| ② | kill worker 进程 | gen health=unreachable（连接拒绝）；rag health=200 | 进程死 → 探针连不上 → unhealthy → 摘流/重启；摘流延迟 ≤ 15s×5 = 75s（readiness 间隔与重试次数的直接含义） |
+| ③ | 服务重启后任务状态 | 重启前提交的 Agent 任务，重启后 GET → **404** | 内存任务表重启即丢（周一冻结清单写明的约束，现在是实证）。轮询方 404 = 状态不可知，不是失败；落库是"已部署"周任务 |
+
+## 六、遗留（如实）
+
+- nginx `nginx -t` 语法校验**未在本机跑**（Docker 守护进程 W11 起就没起来，
+  本机也无 nginx 二进制）—— 做了静态自检（括号配对 / location 覆盖 /
+  关键指令计数），首次 `up` 时以容器内校验为准；
+- 端到端联调走的是**两个裸 uvicorn**（8100/8101），nginx 形态的等价物是
+  路由表（逻辑一致），真实反代链路的联调要等守护进程起来；
+- Agent 执行的 `instrumented_executor` 包装只回写工具步快照，
+  模型步的 current_node 不更新（0.5s 内轮询能看到滞后一步）——
+  可接受，落库时一并解决。

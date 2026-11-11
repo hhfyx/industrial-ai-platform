@@ -38,6 +38,7 @@ from app.schemas.extract import ErrorDetail, ErrorResponse
 from app.schemas.generate import GeneratedImage, GenerateRequest, GenerateResult
 from app.services.generation_queue import (
     QueueFullError,
+    TaskStatus,
     get_generation_queue,
 )
 from app.services.generator import (
@@ -161,13 +162,20 @@ class AsyncTaskAccepted:
 
 
 class AsyncTaskStatus(BaseModel):
-    """任务查询响应体。status ∈ {queued, running, succeeded, failed}。"""
+    """任务查询响应体。status ∈ {queued, running, succeeded, failed, cancelled}。"""
 
     model_config = ConfigDict(extra="forbid")
 
     task_id: str = Field(description="任务 id")
-    status: str = Field(description="queued / running / succeeded / failed")
+    status: str = Field(description="queued / running / succeeded / failed / cancelled")
     progress: str = Field(default="", description="人读进度（如 3/4）")
+    progress_percent: int = Field(
+        default=0, ge=0, le=100, description="**真实进度**百分比（已完成张数/总张数；非时间估算）"
+    )
+    images_done: int = Field(default=0, description="已完成张数（worker 每张回写）")
+    queue_position: int | None = Field(
+        default=None, description="排队位置（0=下一个执行；None=不在排队中）"
+    )
     result: dict[str, Any] | None = Field(
         default=None,
         description="succeeded 时：{images[], elapsed_ms, model}，形状与同步响应一致",
@@ -255,6 +263,9 @@ async def generate_images_async(
     description=(
         "返回任务状态与结果。succeeded 后 result 的形状与同步响应一致；"
         "failed 时 error.code 与同步版错误码同源。\n\n"
+        "**进度百分比是真实进度**（已完成张数 / 总张数，worker 每张回写），"
+        "不是时间估算 —— GPU 任务时长大方差，估算是撒谎。\n\n"
+        "queued 时带 `queue_position`（0 = 下一个执行）。\n\n"
         "任务结果保留 1 小时（TASK_TTL），过期清理 —— 不要把任务 id 当永久句柄。"
     ),
     responses={404: {"model": ErrorResponse, "description": "任务不存在或已过期清理"}},
@@ -270,10 +281,79 @@ async def get_generation_task(
             message="任务不存在或已过期清理",
             status_code=404,
         )
+    total = task.request["count"]
     return AsyncTaskStatus(
         task_id=task.task_id,
         status=task.status.value,
         progress=task.progress,
+        progress_percent=int(task.images_done * 100 / total) if total else 0,
+        images_done=task.images_done,
+        queue_position=task.queue_position,
+        result=task.result,
+        error=task.error,
+        created_at=task.created_at,
+    )
+
+
+@router.delete(
+    "/generate/tasks/{task_id}",
+    response_model=AsyncTaskStatus,
+    summary="取消异步生成任务",
+    description=(
+        "queued → 立即 cancelled（未占 GPU，无副作用）；\n"
+        "running → **协作式取消**：返回 202 语义的 running 状态 + 标记已置，"
+        "worker 在每张图之间检查标记（CUDA 调用无安全取消点，硬杀会把显存"
+        "留在脏状态）；取消后已生成的张数如实保留（images_done），"
+        "status 变 cancelled。\n\n"
+        "已完结任务 → 409 TASK_FINISHED（显式拒绝优于假装成功）。\n\n"
+        "取消的任务不进幂等索引：同参数重新提交会得到新任务。"
+    ),
+    responses={
+        404: {"model": ErrorResponse, "description": "任务不存在或已过期清理"},
+        409: {"model": ErrorResponse, "description": "任务已完结，取消无效（TASK_FINISHED）"},
+    },
+)
+async def cancel_generation_task(
+    task_id: str,
+    generator: GeneratorDep,
+) -> AsyncTaskStatus:
+    queue = get_generation_queue(generator)
+    task = await queue.request_cancel(task_id)
+    if task is None:
+        raise AppError(
+            code="TASK_NOT_FOUND",
+            message="任务不存在或已过期清理",
+            status_code=404,
+        )
+    if task.status is TaskStatus.CANCELLED:
+        # 已取消：幂等回显（目标状态已达成，与 agent-tasks 同一语义）
+        total = task.request["count"]
+        return AsyncTaskStatus(
+            task_id=task.task_id,
+            status=task.status.value,
+            progress=task.progress,
+            progress_percent=int(task.images_done * 100 / total) if total else 0,
+            images_done=task.images_done,
+            queue_position=task.queue_position,
+            result=task.result,
+            error=task.error,
+            created_at=task.created_at,
+        )
+    if task.status in (TaskStatus.SUCCEEDED, TaskStatus.FAILED):
+        # 已成功/已失败：取消没赶上，显式拒绝（200 会让调用方误以为取消生效）
+        raise AppError(
+            code="TASK_FINISHED",
+            message=f"任务已完结（{task.status.value}），取消无效",
+            status_code=409,
+        )
+    total = task.request["count"]
+    return AsyncTaskStatus(
+        task_id=task.task_id,
+        status=task.status.value,
+        progress=task.progress,
+        progress_percent=int(task.images_done * 100 / total) if total else 0,
+        images_done=task.images_done,
+        queue_position=task.queue_position,
         result=task.result,
         error=task.error,
         created_at=task.created_at,
