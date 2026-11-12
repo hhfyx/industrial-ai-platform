@@ -314,6 +314,12 @@ class QAEngine:
         向量化慢 → 换 embedder / 加 query 缓存；
         相似度慢 → 换向量库 / 加 IVF 索引。
         合成一个"检索耗时"就分不清该动哪个。
+
+        W13 周一：rag.embed / rag.vector 两个 span 埋在 `Retriever.retrieve`
+        内部（见 retrieval.py）——所有检索调用方自动全覆盖。本方法的
+        QATiming 计时逻辑一行未动，这是观测不是重构。bm25/fusion/rerank/
+        compress 四层在线链路默认关（W6 定版），它们的 span 只在对应层
+        真正执行时出现——给没跑的层造假 span 才是观测的谎言。
         """
         k = self.top_k if top_k is None else top_k
         timing = QATiming()

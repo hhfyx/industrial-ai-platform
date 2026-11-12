@@ -362,25 +362,30 @@ def compress_for_prompt(
     """
     if not chunks:
         return CompressedContext()
-    shared_idf: dict[str, float] | None = None
-    if keep_scores:
-        corpus = [_tokens(" ".join(split_sentences(chunk.text))) for chunk in chunks]
-        corpus = [tokens for tokens in corpus if tokens]
-        if corpus:
-            shared_idf = _idf_weights(corpus)
-    return CompressedContext(
-        chunks=[
-            compress_chunk(
-                chunk,
-                query,
-                keep_ratio=keep_ratio,
-                min_ratio=min_ratio,
-                min_sentences=min_sentences,
-                idf=shared_idf,
-            )
-            for chunk in chunks
-        ]
-    )
+    # rag.compress span（W13）：压缩唯一入口 = 观测唯一挂点。无活跃 trace
+    # 时为 no-op；这是观测，算法一行未动。
+    from app.core.tracing import span as trace_span
+
+    with trace_span("rag.compress", chunks=len(chunks), keep_ratio=keep_ratio):
+        shared_idf: dict[str, float] | None = None
+        if keep_scores:
+            corpus = [_tokens(" ".join(split_sentences(chunk.text))) for chunk in chunks]
+            corpus = [tokens for tokens in corpus if tokens]
+            if corpus:
+                shared_idf = _idf_weights(corpus)
+        return CompressedContext(
+            chunks=[
+                compress_chunk(
+                    chunk,
+                    query,
+                    keep_ratio=keep_ratio,
+                    min_ratio=min_ratio,
+                    min_sentences=min_sentences,
+                    idf=shared_idf,
+                )
+                for chunk in chunks
+            ]
+        )
 
 
 __all__ = [

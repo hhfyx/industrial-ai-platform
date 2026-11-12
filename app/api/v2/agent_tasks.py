@@ -114,6 +114,28 @@ class AgentTaskCancelView(BaseModel):
     cancelled: bool = Field(description="是否已到 cancelled 终态（running 时为 false，等协程确认）")
 
 
+async def _run_agent_task_with_trace(
+    registry: AgentTaskRegistry, task_id: str, instruction: str, model: str
+) -> None:
+    """后台任务的 trace 包装：整条 Agent 执行 = 一条 trace。
+
+    根 span 是 `agent.task`；模型调用与工具执行在 _run_agent_task 内部
+    各自记 generation / span。任务失败/取消由异常路径的 span 状态承载
+    （错误也是数据），trace 不依赖 registry 的终态也能还原失败形状。
+    """
+    from app.core.tracing import trace_scope
+
+    with trace_scope(f"{task_id}", root_name="agent.task", root_attrs={"task_id": task_id}) as root:
+        try:
+            await _run_agent_task(registry, task_id, instruction, model)
+        except asyncio.CancelledError:
+            root["status"] = "cancelled"
+            raise
+        except Exception as exc:  # noqa: BLE001 - 与 _run_agent_task 的兜底同口径
+            root["status"] = "error"
+            root["attrs"]["error"] = f"{type(exc).__name__}: {exc}"
+
+
 async def _run_agent_task(
     registry: AgentTaskRegistry, task_id: str, instruction: str, model: str
 ) -> None:
@@ -205,8 +227,12 @@ async def submit_agent_task(
     model = payload.model or get_settings().llm.model
     task = await registry.submit(instruction=payload.instruction, model=model)
     await registry.mark_running(task.task_id)
+    # trace 贯穿（W13 周一）：create_task 拷贝请求的 contextvars，trace_id
+    # 自动带进后台任务；但 collector 必须换新的——请求侧在 202 返回时就
+    # flush 了请求 span，后台任务继续往那个 collector 写会被静默丢弃。
+    # trace_scope 开新 collector，后台任务的 spans 独立成 trace 落盘。
     asyncio.get_running_loop().create_task(
-        _run_agent_task(registry, task.task_id, payload.instruction, model)
+        _run_agent_task_with_trace(registry, task.task_id, payload.instruction, model)
     )
     location = f"/api/v2/agent-tasks/{task.task_id}"
     response.headers["Location"] = location

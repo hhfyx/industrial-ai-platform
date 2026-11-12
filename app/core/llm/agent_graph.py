@@ -49,6 +49,7 @@ from __future__ import annotations
 import asyncio
 import json
 import operator
+import sys
 import time
 from typing import Annotated, Any, Final
 
@@ -429,10 +430,18 @@ def build_agent_graph(
             "tools": AGENT_TOOLS_SCHEMA,  # 冻结：同一 schema
         }
         started = time.perf_counter()
+        # generation span（W13 三级模型第三级）：模型调用是 trace 里最贵的一段，
+        # token/成本必须单独可见。观测失败绝不影响主路径 —— 没有活跃 trace 时
+        # generation_span 是 no-op。
+        from app.core.tracing import generation_span, record_usage
+
+        gen_ctx = generation_span("agent.model_step", model=state["model"], step=step_no)
+        gen_rec = gen_ctx.__enter__()
         try:
             async with asyncio.timeout(MODEL_STEP_TIMEOUT_S):
                 response = await client.chat.completions.create(**payload)
         except TimeoutError:
+            gen_ctx.__exit__(TimeoutError, None, None)
             return {
                 "step_no": step_no,
                 "stopped_reason": "model_timeout",
@@ -441,6 +450,25 @@ def build_agent_graph(
                     f"已完成部分：\n{_partial_progress(_as_step_records(state))}"
                 ),
             }
+        except BaseException:
+            gen_ctx.__exit__(*sys.exc_info())
+            raise
+        record_usage(
+            gen_rec,
+            prompt_tokens=response.usage.prompt_tokens if response.usage else 0,
+            completion_tokens=response.usage.completion_tokens if response.usage else 0,
+        )
+        gen_ctx.__exit__(None, None, None)
+        # 直录 + 成本基线（对账锚点，W13 周二）：Agent 的模型调用与其它
+        # 入口同一张账本，漏了这格 Agent 成本就会整体低估。
+        from app.core.metrics import compute_cost, observe_call_cost, observe_call_usage
+
+        observe_call_usage(endpoint="agent.model_step", response=response)
+        if response.usage is not None:
+            observe_call_cost(
+                "agent.model_step",
+                compute_cost(response.usage.prompt_tokens, response.usage.completion_tokens),
+            )
         model_ms = int((time.perf_counter() - started) * 1000)
         usage = (
             {
@@ -719,19 +747,32 @@ def build_agent_graph(
                 continue
 
             started = time.perf_counter()
-            try:
-                if is_async_executor(run_tool):
-                    raw_result = await asyncio.wait_for(
-                        run_tool(name, raw_args), timeout=TOOL_STEP_TIMEOUT_S
+            # span（W13）：Agent 每步工具执行一个 span，attrs 复用 W11 轨迹
+            # 字段（ok/kind/error_type/retryable）—— trace 与任务轨迹两份数据
+            # 用同一批键名，对得上（agent_tasks 轨迹 = 任务态，trace = 时序态）。
+            from app.core.tracing import span as trace_span
+
+            with trace_span(
+                "agent.tool",
+                tool=name,
+                step=step_no,
+                ok=None,
+            ) as tool_rec:
+                try:
+                    if is_async_executor(run_tool):
+                        raw_result = await asyncio.wait_for(
+                            run_tool(name, raw_args), timeout=TOOL_STEP_TIMEOUT_S
+                        )
+                    else:
+                        raw_result = await asyncio.wait_for(
+                            asyncio.to_thread(run_tool, name, raw_args), timeout=TOOL_STEP_TIMEOUT_S
+                        )
+                except TimeoutError:
+                    raw_result = tool_error(
+                        name, "timeout", f"工具执行超过 {TOOL_STEP_TIMEOUT_S}s 被强制中断"
                     )
-                else:
-                    raw_result = await asyncio.wait_for(
-                        asyncio.to_thread(run_tool, name, raw_args), timeout=TOOL_STEP_TIMEOUT_S
-                    )
-            except TimeoutError:
-                raw_result = tool_error(
-                    name, "timeout", f"工具执行超过 {TOOL_STEP_TIMEOUT_S}s 被强制中断"
-                )
+                tool_rec["attrs"]["ok"] = bool(raw_result.get("ok"))
+                tool_rec["attrs"]["error_type"] = raw_result.get("error_type")
             elapsed_ms = int((time.perf_counter() - started) * 1000)
 
             if raw_result.get("ok"):
@@ -903,19 +944,24 @@ def build_agent_graph(
                 await asyncio.sleep(min(float(delay), RETRY_MAX_DELAY_S))
             name, raw_args = call["name"], call["arguments"]
             started = time.perf_counter()
-            try:
-                if is_async_executor(run_tool):
-                    raw_result = await asyncio.wait_for(
-                        run_tool(name, raw_args), timeout=TOOL_STEP_TIMEOUT_S
+            from app.core.tracing import span as trace_span
+
+            with trace_span("agent.tool_retry", tool=name, step=step_no, retried=True) as tool_rec:
+                try:
+                    if is_async_executor(run_tool):
+                        raw_result = await asyncio.wait_for(
+                            run_tool(name, raw_args), timeout=TOOL_STEP_TIMEOUT_S
+                        )
+                    else:
+                        raw_result = await asyncio.wait_for(
+                            asyncio.to_thread(run_tool, name, raw_args), timeout=TOOL_STEP_TIMEOUT_S
+                        )
+                except TimeoutError:
+                    raw_result = tool_error(
+                        name, "timeout", f"工具执行超过 {TOOL_STEP_TIMEOUT_S}s 被强制中断"
                     )
-                else:
-                    raw_result = await asyncio.wait_for(
-                        asyncio.to_thread(run_tool, name, raw_args), timeout=TOOL_STEP_TIMEOUT_S
-                    )
-            except TimeoutError:
-                raw_result = tool_error(
-                    name, "timeout", f"工具执行超过 {TOOL_STEP_TIMEOUT_S}s 被强制中断"
-                )
+                tool_rec["attrs"]["ok"] = bool(raw_result.get("ok"))
+                tool_rec["attrs"]["error_type"] = raw_result.get("error_type")
             elapsed_ms = int((time.perf_counter() - started) * 1000)
 
             wrapped = wrap_observation(raw_result)

@@ -19,6 +19,7 @@ from fastapi import FastAPI, Request, Response
 
 from app.core.errors import CONTRACT_HEADER, CONTRACT_VERSION, REQUEST_ID_ATTR, REQUEST_ID_HEADER
 from app.core.logging import set_request_id
+from app.core.tracing import TRACE_ID_HEADER, trace_scope
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,10 @@ async def request_context_middleware(request: Request, call_next):
 
     客户端传了 `X-Request-ID` 就沿用 —— 跨服务追踪时上游的 id 才有意义，
     自己重新造一个等于把链路切断。没传才生成。
+
+    W13 周一：trace 与请求同生命周期。trace_id = request_id（同值两份头，
+    显式回写让"观测头"不依赖巧合），整条请求就是一条 trace——包括
+    4xx/5xx：错误请求也要有 trace，错误是排查时最先要看的那些数据。
     """
     incoming = request.headers.get(REQUEST_ID_HEADER)
     request_id = incoming.strip() if incoming and incoming.strip() else str(uuid.uuid4())
@@ -40,10 +45,21 @@ async def request_context_middleware(request: Request, call_next):
     set_request_id(request_id)
 
     start = time.perf_counter()
-    response: Response = await call_next(request)
-    cost_ms = (time.perf_counter() - start) * 1000
+    with trace_scope(
+        request_id,
+        root_name="http.request",
+        root_attrs={"method": request.method, "path": request.url.path},
+    ) as root:
+        response: Response = await call_next(request)
+        cost_ms = (time.perf_counter() - start) * 1000
+        # HTTP 状态码是 span 的第一公民：4xx/5xx 让这条 trace 被判为错误
+        # （100% 采样），排查时按 trace_id 一次捞全。
+        root["attrs"]["status_code"] = response.status_code
+        if response.status_code >= 400:
+            root["status"] = "error"
 
     response.headers[REQUEST_ID_HEADER] = request_id
+    response.headers[TRACE_ID_HEADER] = request_id
     response.headers[CONTRACT_HEADER] = CONTRACT_VERSION
     # `X-Elapsed-Ms` 由路由自己写（= body 里的 elapsed_ms，契约 §2.4 要求两者相等）。
     # 中间件这里只兜底：路由没写（如 404/405）且是 200 时才补，避免两个数各测各的、

@@ -125,6 +125,10 @@ class GenerationTask:
     """{code, message} —— 与同步版错误码同源（GPU_OOM 等），查询方拿同一张表。"""
     created_at: float = field(default_factory=time.time)
     finished_at: float | None = None
+    trace_id: str | None = None
+    """W13 周一：提交请求的 trace_id。**必须显式带进 worker**——worker 是
+    长驻协程，不继承请求的 contextvars；不传的话异步任务的 span 会挂到
+    worker 自己的（空的）trace 上，与提交请求断链。"""
     _cancel_requested: bool = field(default=False, repr=False)
     """协作式取消标记（与 AgentTask 同一机制）：worker 在每张图之间检查。"""
 
@@ -227,6 +231,11 @@ class GenerationQueue:
                 )
 
             task = GenerationTask(task_id=uuid.uuid4().hex[:16], request=req)
+            # trace 贯穿（W13）：提交时捕获请求的 trace_id，worker 执行时用它
+            # 开 trace——异步任务的观测归属提交它的那次请求。
+            from app.core.tracing import get_trace_id
+
+            task.trace_id = get_trace_id() or None
             self._tasks[task.task_id] = task
             if key is not None:
                 self._keys[key] = task.task_id
@@ -316,45 +325,68 @@ class GenerationQueue:
             task.transition(TaskStatus.RUNNING)
             task.progress = "0/{count}".format(count=task.request["count"])
             started = time.perf_counter()
+            # trace 贯穿（W13）：worker 是长驻协程，用它执行时恢复提交请求的
+            # trace_id——异步生成任务的 span 归属到提交它的那次请求。
+            from app.core.tracing import span as trace_span
+            from app.core.tracing import trace_id_var
+
+            trace_token = trace_id_var.set(task.trace_id or "")
             try:
-                # 推理丢线程池：SD 一跑 8–15 秒，阻塞事件循环会冻结状态查询接口
-                output = await asyncio.to_thread(
-                    _run_sync,
-                    self._generator,
-                    task.request,
-                )
-                elapsed = int((time.perf_counter() - started) * 1000)
-                self._duration_samples.append(elapsed / 1000.0)
-                # 取消请求在整批生成期间到达：已完成的部分如实保留
-                if task._cancel_requested:
-                    task.transition(TaskStatus.CANCELLED)
-                    task.images_done = len(output.images)
-                    task.progress = f"{task.images_done}/{task.request['count']}（已取消）"
-                    logger.info("任务 %s 在执行中取消（已完成 %d 张）", task_id, task.images_done)
-                else:
-                    task.transition(TaskStatus.SUCCEEDED)
-                    task.images_done = len(output.images)
-                    task.progress = f"{task.request['count']}/{task.request['count']}"
-                    task.result = {
-                        "images": output.images,
-                        "elapsed_ms": elapsed,
-                        "model": output.model,
-                    }
-                    logger.info("异步生成完成 %s（%d ms）", task_id, elapsed)
-            except (GenerationOOMError, GenerationTimeoutError, GeneratorUnavailableError) as exc:
-                # 已知失败 → 结构化错误（错误码与同步版同源）
-                # 失败样本也落账：OOM/超时任务占的真实 GPU 时长同样是
-                # "后面排队的人要等的时间"，剔除它们会低估等待。
-                self._duration_samples.append(time.perf_counter() - started)
-                task.transition(TaskStatus.FAILED)
-                task.error = {"code": _code_of(exc), "message": str(exc)}
-                logger.warning("异步生成失败 %s：%s", task_id, _code_of(exc))
-            except Exception as exc:  # noqa: BLE001 - worker 兜底：任务标记 failed，worker 不死
-                task.transition(TaskStatus.FAILED)
-                task.error = {"code": "INTERNAL_ERROR", "message": f"{type(exc).__name__}: {exc}"}
-                logger.exception("异步生成未预期失败 %s", task_id)
+                with trace_span(
+                    "generate.task",
+                    task_id=task_id,
+                    defect_class=task.request.get("defect_class"),
+                    count=task.request.get("count"),
+                ):
+                    await self._execute(task_id, task, started)
             finally:
+                trace_id_var.reset(trace_token)
                 self._queue.task_done()
+
+    async def _execute(self, task_id: str, task: GenerationTask, started: float) -> None:
+        """单任务执行（从 _run 抽出，逻辑原样）：推理、终态迁移、错误映射。
+
+        抽成方法的唯一原因：trace span 要包住"整个任务的执行 + 终态"，
+        而原 try/except 里有 continue 之外的完整控制流——包在 span 里
+        需要它是一个可 await 的整体。
+        """
+        try:
+            # 推理丢线程池：SD 一跑 8–15 秒，阻塞事件循环会冻结状态查询接口
+            output = await asyncio.to_thread(
+                _run_sync,
+                self._generator,
+                task.request,
+            )
+            elapsed = int((time.perf_counter() - started) * 1000)
+            self._duration_samples.append(elapsed / 1000.0)
+            # 取消请求在整批生成期间到达：已完成的部分如实保留
+            if task._cancel_requested:
+                task.transition(TaskStatus.CANCELLED)
+                task.images_done = len(output.images)
+                task.progress = f"{task.images_done}/{task.request['count']}（已取消）"
+                logger.info("任务 %s 在执行中取消（已完成 %d 张）", task_id, task.images_done)
+            else:
+                task.transition(TaskStatus.SUCCEEDED)
+                task.images_done = len(output.images)
+                task.progress = f"{task.request['count']}/{task.request['count']}"
+                task.result = {
+                    "images": output.images,
+                    "elapsed_ms": elapsed,
+                    "model": output.model,
+                }
+                logger.info("异步生成完成 %s（%d ms）", task_id, elapsed)
+        except (GenerationOOMError, GenerationTimeoutError, GeneratorUnavailableError) as exc:
+            # 已知失败 → 结构化错误（错误码与同步版同源）
+            # 失败样本也落账：OOM/超时任务占的真实 GPU 时长同样是
+            # "后面排队的人要等的时间"，剔除它们会低估等待。
+            self._duration_samples.append(time.perf_counter() - started)
+            task.transition(TaskStatus.FAILED)
+            task.error = {"code": _code_of(exc), "message": str(exc)}
+            logger.warning("异步生成失败 %s：%s", task_id, _code_of(exc))
+        except Exception as exc:  # noqa: BLE001 - worker 兜底：任务标记 failed，worker 不死
+            task.transition(TaskStatus.FAILED)
+            task.error = {"code": "INTERNAL_ERROR", "message": f"{type(exc).__name__}: {exc}"}
+            logger.exception("异步生成未预期失败 %s", task_id)
 
     # ------------------------------------------------------------------ 清理
 

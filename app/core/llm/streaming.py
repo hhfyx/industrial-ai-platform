@@ -99,6 +99,12 @@ async def stream_chat(
     started = time.perf_counter()
     response = await client.chat.completions.create(**payload)
 
+    # generation span（W13）：流式调用的真 ttft 在首个内容块处写（见下）。
+    from app.core.tracing import generation_span, record_usage, set_ttft
+
+    gen_ctx = generation_span("llm.stream", model=model, streaming=True)
+    gen_rec = gen_ctx.__enter__()
+    gen_closed = False
     try:
         async for chunk in response:
             stats.chunk_count += 1
@@ -110,6 +116,19 @@ async def stream_chat(
                     "completion_tokens": chunk.usage.completion_tokens,
                     "total_tokens": chunk.usage.total_tokens,
                 }
+                record_usage(
+                    gen_rec,
+                    prompt_tokens=chunk.usage.prompt_tokens,
+                    completion_tokens=chunk.usage.completion_tokens,
+                )
+                # 直录 + 成本基线（对账锚点）
+                from app.core.metrics import compute_cost, observe_call_cost, observe_call_usage
+
+                observe_call_usage(endpoint="llm.stream", response=chunk)
+                observe_call_cost(
+                    "llm.stream",
+                    compute_cost(chunk.usage.prompt_tokens, chunk.usage.completion_tokens),
+                )
 
             if not chunk.choices:
                 continue
@@ -131,13 +150,20 @@ async def stream_chat(
                 # 任何真实发生过的耗时至少记 1ms，语义才不含糊。
                 stats.ttft_ms = max(int((time.perf_counter() - started) * 1000), 1)
                 stats.first_token_index = stats.chunk_count
+                set_ttft(gen_rec, stats.ttft_ms)
 
             stats.text_chars += len(delta)
             yield delta
+    except BaseException as exc:
+        gen_ctx.__exit__(type(exc), exc, exc.__traceback__)
+        gen_closed = True
+        raise
     finally:
         # `total_ms` 放在 finally：调用方提前 break（用户点"停止生成"）时也要有值，
         # 否则统计里会缺掉最需要看的那一类请求（被中断的请求）。
         stats.total_ms = max(int((time.perf_counter() - started) * 1000), 1)
+        if not gen_closed:
+            gen_ctx.__exit__(None, None, None)
 
 
 async def collect_stream(

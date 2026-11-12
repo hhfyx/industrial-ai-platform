@@ -197,6 +197,20 @@ async def decompose_task(
         usage_sink["total_tokens"] = usage_sink.get("total_tokens", 0) + (
             response.usage.total_tokens or 0
         )
+    # 直录（对账锚点，W13 周二）：decompose 是 judge/guard 类调用的代表，
+    # 对账三漏之一——它不走 structured/stream/qa 任一入口，不单独挂
+    # 这行就会从账本里消失（而钱已经烧了）。
+    from app.core.metrics import compute_cost, observe_call_cost, observe_call_usage
+
+    observe_call_usage(endpoint="llm.plan_decompose", response=response)
+    if getattr(response, "usage", None) is not None:
+        observe_call_cost(
+            "llm.plan_decompose",
+            compute_cost(
+                response.usage.prompt_tokens or 0,
+                response.usage.completion_tokens or 0,
+            ),
+        )
 
     content = (response.choices[0].message.content or "").strip()
     try:

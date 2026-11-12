@@ -338,7 +338,32 @@ class LlmExtractor:
             }
 
         async def _call() -> Any:
-            return await self._client.chat.completions.create(**payload)
+            """带 generation span + 直录的调用（对账锚点，W13 周二补）。
+
+            extract 是第五个 LLM 入口（自建 _request，不走 structured.py）。
+            20 条验证的对账缺口就是它——不补，extract 成本整体低估。
+            """
+            from app.core.metrics import compute_cost, observe_call_cost, observe_call_usage
+            from app.core.tracing import generation_span, record_usage
+
+            with generation_span("llm.extract", model=self._model, streaming=False) as gen_rec:
+                resp = await self._client.chat.completions.create(**payload)
+                u = getattr(resp, "usage", None)
+                if u is not None:
+                    record_usage(
+                        gen_rec,
+                        prompt_tokens=int(getattr(u, "prompt_tokens", 0) or 0),
+                        completion_tokens=int(getattr(u, "completion_tokens", 0) or 0),
+                    )
+                    observe_call_usage(endpoint="llm.extract", response=resp)
+                    observe_call_cost(
+                        "llm.extract",
+                        compute_cost(
+                            int(getattr(u, "prompt_tokens", 0) or 0),
+                            int(getattr(u, "completion_tokens", 0) or 0),
+                        ),
+                    )
+                return resp
 
         try:
             response = await with_retry(_call, policy=self._retry_policy, label="extract")

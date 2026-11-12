@@ -227,7 +227,10 @@ async def search_only(
     if not CACHE_OFF:
         cached = cache.get_retrieval(key)
         if cached is not None:
-            chunks = [retriever.store.get_by_content_id(cid) for cid in cached.chunk_ids]
+            from app.core.tracing import span as trace_span
+
+            with trace_span("rag.cache_hit", key_head=key[:16]):
+                chunks = [retriever.store.get_by_content_id(cid) for cid in cached.chunk_ids]
             if chunks and all(c is not None for c in chunks):
                 elapsed = max(int((time.perf_counter() - started) * 1000), 1)
                 hits = [
@@ -243,7 +246,11 @@ async def search_only(
                 return SearchResponse(request_id=rid, hits=hits, elapsed_ms=elapsed)
             logger.info("cold 端点缓存命中但回查失败，降级全链路: %s", payload.query[:40])
 
+    # rag.embed / rag.vector 的 span 在 Retriever.retrieve 内部（见 retrieval.py）：
+    # 埋点放在两步实际发生的地方，三个调用方（QAEngine / cold 端点 / 评测）
+    # 自动全覆盖，且不会出现"外层预调 embed 导致 bge 下双倍编码"的观测开销。
     result = retriever.retrieve(payload.query, k=payload.k)
+    elapsed = max(int((time.perf_counter() - started) * 1000), 1)
     elapsed = max(int((time.perf_counter() - started) * 1000), 1)
     # 写缓存（与 CachedQAEngine 同一形状；空结果也写 = 负缓存语义）
     if not CACHE_OFF:

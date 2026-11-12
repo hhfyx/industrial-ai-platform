@@ -94,6 +94,7 @@ def metrics() -> dict[str, object]:
     """
     from app.core.logging import error_counts, get_request_id
     from app.core.security import get_rate_limiter
+    from app.core.tracing import trace_stats
 
     limiter = get_rate_limiter()
     return {
@@ -105,6 +106,50 @@ def metrics() -> dict[str, object]:
             "total": sum(limiter.rejected_by_key.values()),
             "by_key_fingerprint": dict(limiter.rejected_by_key),
         },
+        # trace 观测自身健康度（W13）：积压/丢帧是"观测成了瓶颈"的哨兵——
+        # queue_depth 持续增长 = 落盘跟不上，dropped/write_errors > 0 = 观测在丢数据
+        "tracing": trace_stats(),
+    }
+
+
+@app.get("/metrics/cost", tags=["ops"])
+def metrics_cost() -> dict[str, object]:
+    """成本对账视图（W13 周二）。
+
+    聚合侧（trace_summary）vs 直录侧（usage_ledger）逐 token 比对；
+    误差 >5% 给出三类漏记的自动 signature。对账是所有成本数字的
+    唯一真值锚点——重试、judge 调用、流式 usage 三类漏记每一项都能
+    让成本低估 30%（docs/metrics-layer.md §四）。
+    """
+    import os
+    from pathlib import Path
+
+    from app.core.metrics import reconcile
+
+    trace_dir = Path(os.environ.get("TRACE_DIR", "data/traces"))
+    if not (trace_dir / "traces.db").exists():
+        return {"status": "no_data", "hint": "还没有 trace 落盘；打几条请求后再来"}
+    return reconcile(trace_dir)
+
+
+@app.get("/metrics/hourly", tags=["ops"])
+def metrics_hourly() -> dict[str, object]:
+    """小时聚合视图（面板数据源）：流量/质量/成本三层，按接口拆行。"""
+    import os
+    from pathlib import Path
+
+    from app.core.metrics import hourly_report
+    from app.core.security import get_rate_limiter
+
+    trace_dir = Path(os.environ.get("TRACE_DIR", "data/traces"))
+    if not (trace_dir / "traces.db").exists():
+        return {"status": "no_data"}
+    hours = hourly_report(trace_dir)
+    limiter = get_rate_limiter()
+    return {
+        "hours": hours,
+        "rate_limit_rejections_total": sum(limiter.rejected_by_key.values()),
+        "queue_depth_note": "生成队列深度见 GenerationQueue（W12），不进本表（进程内存态）",
     }
 
 

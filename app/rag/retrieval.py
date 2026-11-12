@@ -203,10 +203,18 @@ class Retriever:
         # （"为这个句子生成表示以用于检索相关文章："），passage 侧不加。
         # 忘加不会有任何报错，只会让命中率低一点 —— 而"低一点"最容易被
         # 归因到切分/top_k/模型不行。所以把前缀这件事放进接口，调用方碰不到。
-        query_vector = self.embedder.embed_query([text])[0]
+        #
+        # rag.embed span（W13）：埋在两步实际发生的地方——retrieve() 的所有
+        # 调用方（QAEngine / cold 端点 / 评测脚本）自动全覆盖，且不会出现
+        # "外层包一层又各自预调 embed"的双倍编码开销。无活跃 trace 时零开销。
+        from app.core.tracing import span as _trace_span
+
+        with _trace_span("rag.embed", embedder=self.embedder.name):
+            query_vector = self.embedder.embed_query([text])[0]
 
         # ②③ 相似度 + TopK 由 store 一次完成（store 才知道怎么做相似度）
-        hits = self.store.search(query_vector, top_k=k_value, where=checked_where or None)
+        with _trace_span("rag.vector", top_k=k_value):
+            hits = self.store.search(query_vector, top_k=k_value, where=checked_where or None)
 
         result = RetrievalResult(
             query=query,

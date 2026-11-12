@@ -473,16 +473,38 @@ async def generate_answer(
     prompt = ANSWER_PROMPT.format(context=context, question=question, available=available_ids)
 
     async def _ask(user_prompt: str) -> str:
-        response = await client.chat.completions.create(  # type: ignore[attr-defined]
-            model=model,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=0.0,
-            max_tokens=max_tokens,
-            **(extra_request or {}),
-        )
+        from app.core.tracing import generation_span, record_usage
+
+        with generation_span("llm.qa_answer", model=model, streaming=False) as gen_rec:
+            response = await client.chat.completions.create(  # type: ignore[attr-defined]
+                model=model,
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.0,
+                max_tokens=max_tokens,
+                **(extra_request or {}),
+            )
+            u = getattr(response, "usage", None)
+            if u is not None:
+                record_usage(
+                    gen_rec,
+                    prompt_tokens=int(getattr(u, "prompt_tokens", 0) or 0),
+                    completion_tokens=int(getattr(u, "completion_tokens", 0) or 0),
+                )
+            # 直录 + 成本基线（对账锚点，W13 周二）
+            from app.core.metrics import compute_cost, observe_call_cost, observe_call_usage
+
+            observe_call_usage(endpoint="llm.qa_answer", response=response)
+            if u is not None:
+                observe_call_cost(
+                    "llm.qa_answer",
+                    compute_cost(
+                        int(getattr(u, "prompt_tokens", 0) or 0),
+                        int(getattr(u, "completion_tokens", 0) or 0),
+                    ),
+                )
         return (response.choices[0].message.content or "").strip()
 
     text = await _ask(prompt)

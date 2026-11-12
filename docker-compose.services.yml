@@ -31,6 +31,11 @@ services:
     container_name: w12-api-rag
     command:
       ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    env_file:
+      # W13 修复：LLM_API_KEY 等 LLM_ 前缀配置只在 .env 里；缺了它容器启动即
+      # ValidationError（LLMSettings.api_key missing）—— W12"真反代链路联调未做"
+      # 的直接代价。environment 显式项仍覆盖 env_file（LLM_BASE_URL/鉴权 key）。
+      - .env
     environment:
       LLM_BASE_URL: http://host.docker.internal:8326/v1
       PORT: "8000"
@@ -61,6 +66,8 @@ services:
     container_name: w12-api-gen
     command:
       ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    env_file:
+      - .env # 同 api-rag：LLM_API_KEY 必须注入，否则启动即崩
     environment:
       LLM_BASE_URL: http://host.docker.internal:8326/v1
       PORT: "8001"

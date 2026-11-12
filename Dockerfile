@@ -85,7 +85,7 @@ RUN set -eux; \
 # uid 10001 进程写 sqlite 直接 (code: 14) unable to open database file（实测）。
 RUN groupadd --gid 10001 app \
  && useradd --uid 10001 --gid 10001 --create-home --shell /usr/sbin/nologin app \
- && mkdir -p /app/data/chroma /app/data/sessions /app/data/uploads \
+ && mkdir -p /app/data/chroma /app/data/sessions /app/data/uploads /app/data/generated \
  && chown -R 10001:10001 /app/data
 
 # ---------------------------------------------------------------- runtime

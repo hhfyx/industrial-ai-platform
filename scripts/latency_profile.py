@@ -215,35 +215,51 @@ def main(argv: list[str] | None = None) -> int:
 
     def _run(name: str, note: str, *, candidates: int, do_rerank: bool) -> RunResult:
         result = RunResult(name=name, note=note)
+        # W13 周一：评测脚本也开 trace（rag.bm25 / rag.fusion / rag.rerank /
+        # rag.compress 四层的 span 只在这里出现——在线链路默认关）。
+        from app.core.tracing import span as trace_span
+        from app.core.tracing import trace_scope
+
         for item in answerable:
-            timing = StageTiming()
-            started = time.perf_counter()
-            vector = embedder.embed_query([item.question])[0]
-            timing.embed_ms = _ms(started)
-
-            started = time.perf_counter()
-            vec_hits = store.search(vector, top_k=candidates)
-            timing.search_ms = _ms(started)
-
-            started = time.perf_counter()
-            bm25_hits = bm25.retrieve(item.question, top_k=candidates)
-            timing.bm25_ms = _ms(started)
-
-            fused, _ = merge_rankings(
-                [hit.chunk.id for hit in vec_hits],
-                [hit.chunk.id for hit in bm25_hits],
-                config=fusion_cfg,
-            )
-            ids = [hit.chunk_id for hit in fused]
-
-            if do_rerank:
+            with trace_scope(
+                root_name="rag.recall_chain",
+                root_attrs={"profile": name, "query_head": item.question[:60]},
+            ):
+                timing = StageTiming()
                 started = time.perf_counter()
-                candidates_list = [
-                    (cid, chunks_by_id[cid].text) for cid in ids if cid in chunks_by_id
-                ]
-                scores, _report = reranker.rerank(item.question, candidates_list, top_k=candidates)
-                timing.rerank_ms = _ms(started)
-                ids = [score.chunk_id for score in scores]
+                with trace_span("rag.embed", embedder="bge-small-zh"):
+                    vector = embedder.embed_query([item.question])[0]
+                timing.embed_ms = _ms(started)
+
+                started = time.perf_counter()
+                with trace_span("rag.vector", top_k=candidates):
+                    vec_hits = store.search(vector, top_k=candidates)
+                timing.search_ms = _ms(started)
+
+                started = time.perf_counter()
+                with trace_span("rag.bm25", top_k=candidates):
+                    bm25_hits = bm25.retrieve(item.question, top_k=candidates)
+                timing.bm25_ms = _ms(started)
+
+                with trace_span("rag.fusion", mode=fusion_cfg.label()):
+                    fused, _ = merge_rankings(
+                        [hit.chunk.id for hit in vec_hits],
+                        [hit.chunk.id for hit in bm25_hits],
+                        config=fusion_cfg,
+                    )
+                ids = [hit.chunk_id for hit in fused]
+
+                if do_rerank:
+                    started = time.perf_counter()
+                    with trace_span("rag.rerank", candidates=candidates):
+                        candidates_list = [
+                            (cid, chunks_by_id[cid].text) for cid in ids if cid in chunks_by_id
+                        ]
+                        scores, _report = reranker.rerank(
+                            item.question, candidates_list, top_k=candidates
+                        )
+                    timing.rerank_ms = _ms(started)
+                    ids = [score.chunk_id for score in scores]
 
             hit = _hit_at(ids, item.gold_chunk_ids, TOP_K)
             result.hits += int(hit)

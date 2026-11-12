@@ -453,13 +453,43 @@ async def _request(
         "response_format": {"type": "json_object"},
     }
 
+    # generation span（W13）：extract/summarize/decompose 的每次 LLM 调用
+    # 都过这里，一个 span = 一次调用（含一次性格式重试）。无活跃 trace
+    # 时为 no-op；观测失败不影响主路径（span 内部不抛）。
+    from app.core.tracing import generation_span, record_usage
+
+    async def _create(p: dict[str, Any]) -> Any:
+        with generation_span("llm.structured", model=model, streaming=False) as gen_rec:
+            response = await client.chat.completions.create(**p)
+            u = getattr(response, "usage", None)
+            if u is not None:
+                record_usage(
+                    gen_rec,
+                    prompt_tokens=int(getattr(u, "prompt_tokens", 0) or 0),
+                    completion_tokens=int(getattr(u, "completion_tokens", 0) or 0),
+                )
+            # 直录（对账锚点，W13 周二）：span 会按采样丢弃，账本一行不丢，
+            # 对账才有"另一侧"可比。登记成本给缓存省钱口径做基线。
+            from app.core.metrics import compute_cost, observe_call_cost, observe_call_usage
+
+            observe_call_usage(endpoint="llm.structured", response=response)
+            if u is not None:
+                observe_call_cost(
+                    "llm.structured",
+                    compute_cost(
+                        int(getattr(u, "prompt_tokens", 0) or 0),
+                        int(getattr(u, "completion_tokens", 0) or 0),
+                    ),
+                )
+        return response
+
     try:
-        response = await client.chat.completions.create(**payload)
+        response = await _create(payload)
     except Exception as exc:  # noqa: BLE001
         if _looks_like_format_rejected(exc):
             logger.warning("网关拒绝 response_format，去掉后重试：%s", exc)
             payload.pop("response_format", None)
-            response = await client.chat.completions.create(**payload)
+            response = await _create(payload)
         else:
             raise
 
