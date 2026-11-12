@@ -36,6 +36,8 @@ readiness 的实现不假设"模型"是哪一个：构造极重的组件（SD �
 
 from __future__ import annotations
 
+import logging
+import os
 import time
 from typing import Any, Final
 
@@ -44,6 +46,20 @@ from pydantic import BaseModel, Field
 
 from app.core.errors import AppError
 from app.core.security import remaining_header_for, require_api_key
+
+logger = logging.getLogger(__name__)
+
+# 归因实验开关（W12 周四）：正文实现瘦身 120 / 缓存恒开；
+# SEARCH_SUMMARY_CHARS / SEARCH_CACHE_OFF 只为归因矩阵能分批测
+# （scripts/attribution_experiment.py），默认值 = 正式形态。
+SUMMARY_CHARS: Final[int] = int(os.environ.get("SEARCH_SUMMARY_CHARS", "120"))
+CACHE_OFF: Final[bool] = os.environ.get("SEARCH_CACHE_OFF", "") == "1"
+
+# 归因实验开关（W12 周四）：正文实现瘦身 120 / 缓存恒开；
+# SEARCH_SUMMARY_CHARS / SEARCH_CACHE_OFF 只为归因矩阵能分批测
+# （scripts/attribution_experiment.py），默认值 = 正式形态。
+SUMMARY_CHARS: Final[int] = int(os.environ.get("SEARCH_SUMMARY_CHARS", "120"))
+CACHE_OFF: Final[bool] = os.environ.get("SEARCH_CACHE_OFF", "") == "1"
 
 router = APIRouter(prefix="/api/v2", tags=["v2"])
 
@@ -131,13 +147,22 @@ class SearchRequest(BaseModel):
 
 
 class SearchHitItem(BaseModel):
-    """单条命中。text 截断到 500 字（与 real_tools 的工具出口同口径）。"""
+    """单条命中（**瘦身版**，W12 周四优化一）。
+
+    ## 为什么 text 从 500 字缩到 120 字摘要
+
+    压测分段表（docs/performance.md §四）的最大段是序列化/中间件 ~50% ——
+    响应体里 3 条 × 500 字的 chunk 全文是序列化成本的大头。检索-only 的
+    主要用途（压测标定 / 命中质量探针 / 热端点开销对比）只需要"命中的是
+    什么"的判断依据，不需要全文；**全文另接口**（GET /search/chunk/{id}，
+    回查 get_by_content_id）—— "列表轻、详情重"是列表页的标准形态。
+    """
 
     id: str
     source: str
     page: int | None = None
     score: float
-    text: str
+    text: str = Field(description="摘要（前 120 字）；全文走 GET /search/chunk/{id}")
 
 
 class SearchResponse(BaseModel):
@@ -177,12 +202,60 @@ async def search_only(
     """
     from app.core.deps import get_request_id
     from app.core.llm.real_tools import get_shared_retriever
+    from app.rag.result_cache import (
+        CachedRetrieval,
+        ResultCache,
+        fingerprint_from_rag_config,
+        get_result_cache,
+    )
 
     rid = get_request_id(request)
     started = time.perf_counter()
     retriever = get_shared_retriever()
+
+    # 结果缓存接入（W12 周四优化二）：cold 端点此前每次都走全链路
+    # embed+search，QAEngine 路径有检索层缓存而这里没有 —— 两个入口
+    # 一个有缓存一个没有，就是"压测口径与服务口径不一致"的来源。
+    # key 与 CachedQAEngine 同一构造（规范化 query + 配置指纹 + k），
+    # 命中回查 store（同一条降级纪律：回查失败降级全链路）。
+    # CACHE_OFF 开关只服务归因实验，正文恒开。
+    config = retriever.config
+    cache: ResultCache = get_result_cache()
+    config_fp = fingerprint_from_rag_config(config, embedder_name=retriever.embedder.name)
+    key = ResultCache.retrieval_key(payload.query, config_fingerprint=config_fp, k=payload.k)
+
+    if not CACHE_OFF:
+        cached = cache.get_retrieval(key)
+        if cached is not None:
+            chunks = [retriever.store.get_by_content_id(cid) for cid in cached.chunk_ids]
+            if chunks and all(c is not None for c in chunks):
+                elapsed = max(int((time.perf_counter() - started) * 1000), 1)
+                hits = [
+                    SearchHitItem(
+                        id=chunk.id,
+                        source=chunk.source,
+                        page=chunk.page,
+                        score=round(score, 4),
+                        text=chunk.text[:SUMMARY_CHARS],
+                    )
+                    for chunk, score in zip(chunks, cached.scores, strict=True)
+                ]
+                return SearchResponse(request_id=rid, hits=hits, elapsed_ms=elapsed)
+            logger.info("cold 端点缓存命中但回查失败，降级全链路: %s", payload.query[:40])
+
     result = retriever.retrieve(payload.query, k=payload.k)
     elapsed = max(int((time.perf_counter() - started) * 1000), 1)
+    # 写缓存（与 CachedQAEngine 同一形状；空结果也写 = 负缓存语义）
+    if not CACHE_OFF:
+        cache.put_retrieval(
+            key,
+            CachedRetrieval(
+                chunk_ids=tuple(h.chunk.id for h in result.hits),
+                scores=tuple(result.scores()),
+                top_k=result.top_k,
+                where=tuple(sorted((k2, str(v)) for k2, v in (result.where or {}).items())),
+            ),
+        )
 
     hits = [
         SearchHitItem(
@@ -190,7 +263,7 @@ async def search_only(
             source=hit.chunk.source,
             page=hit.chunk.page,
             score=round(hit.score, 4),
-            text=hit.chunk.text[:500],
+            text=hit.chunk.text[:SUMMARY_CHARS],
         )
         for hit in result.hits
     ]
