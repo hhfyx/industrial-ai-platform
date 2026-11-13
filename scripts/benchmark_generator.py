@@ -78,7 +78,10 @@ def _diffusers_stack() -> tuple[Any, Any]:
 
     t0 = time.perf_counter()
     pipe = StableDiffusionPipeline.from_pretrained(
-        base, torch_dtype=torch.float16, safety_checker=None
+        base,
+        torch_dtype=torch.float16,
+        safety_checker=None,
+        variant="fp16",  # 权重按 fp16 变体下载（体积减半），加载时必须显式指定
     ).to("cuda")
     # 内存优化按 6GB 卡的量级开：attention slicing 几乎无损、xformers 可选
     pipe.enable_attention_slicing()
