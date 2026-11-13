@@ -78,3 +78,6 @@ app/core/llm/_qa_demo.sqlite
 
 # W11 Mon: tool side-effect artifacts (runtime data, never commit)
 reports/
+
+# W13 Fri: MCP fs server allowlist root (e2e演练产物，不入库)
+mcp_fs_root/

@@ -98,3 +98,12 @@ python -X utf8 scripts/mock_notify_receiver.py --port 8920
 - 队列深度告警未进 RULES：它是进程内存态，跨进程评估读不到——
   进程内告警（W12 queue_observe 的延伸）留给部署周；
 - bge 口径阈值未定（alert-thresholds.md §二），切 bge 后需重测改表。
+
+## 八、局限（任务书周六要求的"局限"四条，如实）
+
+| 局限 | 影响 | 补偿 |
+| --- | --- | --- |
+| **采样丢帧**：TRACE_SAMPLE_RATE<1 时正常 trace 可能未落 JSONL | 下钻偶尔"聚合行在、明细无"（看板如实标注） | 错误 trace 100% 保留；账本（usage_ledger）不受采样影响 |
+| **自建非标准**：span 形状刻意贴近 OTel 语义但不是 OTLP | 不能直接接 Grafana/Jaeger 等现成后端 | 导出时写 JSONL→OTLP 转换器即可，埋点不用改 |
+| **单实例**：所有计数器/聚合/告警状态在进程内 | 重启清零；多实例会各自记账 | 上 Prometheus 的时机 = 有第二个实例那天（W8 定的边界不变） |
+| **阈值仅 hashing 口径** | bge 部署形态下检索基线移一个量级，阈值需重测 | alert-thresholds.md §二已留锚点与复测命令 |

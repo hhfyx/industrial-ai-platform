@@ -1,4 +1,4 @@
-# industrial-ai-platform
+﻿# industrial-ai-platform
 
 **一个从"调模型"长到"能查、能引、能拒答"的文档知识库平台。**
 **（W6 实测后正式改名：语料是技术文档，不是工业文档 —— 见下方「关于 industrial 这个名字」）**
@@ -240,6 +240,28 @@ POST /api/v1/extract
     scripts/analyze_round.py   六项指标 + 两张归因表 + 编造核查
     scripts/compare_rounds.py  配对胜负 + 边际收益
     eval/agent/tasks-20.jsonl  冻结的判据数据集（20 行）
+
+  ★ W13 新增：观测层（三级 trace · 指标 · 告警）   app/core/
+    tracing.py         trace→span→generation 三级模型；trace_id=request_id；
+                       contextvars 贯穿 + 后台线程落盘 JSONL/SQLite +
+                       采样（错误 100%）；12 个 span 覆盖 HTTP/检索/LLM/Agent
+    metrics.py         唯一成本公式（2/8 元每百万）+ usage_ledger 逐笔直录
+                       （对账锚点，只 INSERT）+ metrics_hourly 聚合 +
+                       reconcile 对账（>5% 报三类漏记 signature）
+    alerts.py          4 条规则（P95/错误率/重试占比/日成本），阈值全部
+                       取自 W12 拐点（docs/alert-thresholds.md）；静默期 + 恢复
+    middleware.py      X-Trace-Id 响应头 + chaos 注入层（演练用，默认关）
+    /metrics/cost      对账视图；/metrics/hourly 小时聚合（看板数据源）
+    app/ui/observability_board.py
+                       四块看板 + 聚合→trace→span 下钻（docs/observability.md）
+
+  ★ W13 新增：MCP 层（能力以标准协议发布）        scripts/
+    mcp_min_server.py  最小 Server（协议探针：hello/ping/add）
+    mcp_handwritten_client.py  手写逐帧 client（原始 JSON-RPC 留档）
+    mcp_fs_server.py   文件系统 Server：4 工具 + fs:// 资源 + 总结模板；
+                       五道闸路径安全（resolve 后白名单校验，防 ../ 与
+                       符号链接逃逸）；写能力默认禁用（.mcp-writable 标记）
+    docs/mcp-server.md 原始帧留档 + Host/Client/Server 分工 + MCP vs FC 对比表
 ```
 
 ### Agent 层基线（W9 · 10 任务 · trae/qwen-3.5）
@@ -456,7 +478,7 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 | Recall@5 | **40.0%**（16/40） | 当时语料 **1288 段 / 1365 块** + 50 条评测集 |
 
 > ⚠️ **上面这个 1365 块是历史快照，不是当前值。** 当前是
-> **26 篇 / 495 段 / 878 块**（检索口径）/ **1236 块**（延迟口径）
+> **26 篇 / 495 段 / 886 块**（检索口径）/ **1244 块**（延迟口径）
 > （`chunk_chars=500, overlap=50`），
 > 用 `python -X utf8 scripts/corpus_stats.py` 现算。
 >
@@ -580,6 +602,58 @@ P95≤8ms，错误率 0%，两轮复现差 <4%）；50 并发需求 67 QPS 时�
 api-spec v2.0 写明）；③ 检索缓存命中率随多实例稀释但不出错
 （key 含配置指纹）；④ 完整链路的 QPS 上限在 LLM 网关侧，
 服务侧只有缓存与更快模型两条路。
+
+## 系统可观测性（W13，v1.5.0）
+
+> 完整设计：[docs/observability.md](docs/observability.md)（指标清单 +
+> 告警阈值依据）与 [docs/alert-thresholds.md](docs/alert-thresholds.md)
+> （阈值唯一合法来源：W12 拐点数据）。
+
+**三级 trace**：`trace（一次请求）→ span（一段操作）→ generation（一次
+LLM 调用）`。trace_id = request_id（W8 日志链不另起编号）。为什么三级：
+span 描述"系统做了什么"，generation 描述"模型做了什么"——合成一级就
+回答不了"这次请求贵在检索还是贵在生成"。12 个 span 覆盖 HTTP 根 /
+检索（embed/vector/cache_hit/bm25/fusion/rerank/compress）/ LLM
+（structured/stream/qa_answer/extract）/ Agent（model_step/tool）。
+
+**对账**：六个 LLM 入口每次调用的 `response.usage` 原样落
+`usage_ledger`（只 INSERT），与 trace 聚合侧逐 token 比对，误差 >5%
+自动报三类漏记 signature（漏重试 / 漏 judge / 流式 usage 未开）。
+20 条验证实测抓出并修复：extract 漏埋点（成本低估 45%）+ 两套单价公式。
+
+**告警阈值不抄行业默认值**：本系统检索 P95 基线 10ms——套用"P95>3s"
+永不触发 = 自称有监控。4 条规则每条 rationale 指向 W12 实测出处；
+静默期（同小时同规则一次）+ 恢复通知；演练 5 条全过。
+
+**看板**：`streamlit run app/ui/observability_board.py`——四块（概览 /
+延迟分布 / 成本 / 错误告警）+ 聚合→trace→span 下钻。三问 30 秒可答：
+哪里慢（延迟序列）、哪里贵（成本排行+重试单列）、在失败什么（告警状态）。
+
+## MCP 能力（W13，v1.5.0）
+
+> 完整记录：[docs/mcp-server.md](docs/mcp-server.md)（7 帧原始 JSON-RPC
+> 留档 + Host/Client/Server 分工 + MCP vs Function Calling 对比表）。
+
+**定位**：MCP 与 Function Calling 是上下层不是竞争——MCP 标准化
+**能力的发现与调用**（tools/list → tools/call 的帧格式），模型怎么决定
+调用是 Function Calling 的事。同一个"读文件"能力：FC 只在你的 Agent
+代码里能用；MCP 写一个 Server，任何支持 MCP 的 Host 都能发现并调用。
+
+**两个 Server**：
+- `scripts/mcp_min_server.py`——协议探针（hello/ping/add），7 帧原始
+  交互留档（initialize 协商 → notification → list → call）；
+- `scripts/mcp_fs_server.py`——文件系统 Server：4 工具（list_dir /
+  read_file / search_files / **write_file 默认禁用**）+ fs:// 只读资源
+  （分页）+ summarize_file 提示模板。
+
+**安全（本周最重要的 20 行代码）**：路径校验必须 `resolve()` 之后再做——
+`..` 与符号链接在字符串层面看不出来，`startswith(白名单)` 会通过代码
+评审却挡不住 `白名单/../etc`。五道闸全在一个入口，5 条攻击测试
+（../ 逃逸 / 绝对路径 / 符号链接 / 超大文件 / 越权写）全部被拒且
+error_type 可读（W11 错误契约同构）。
+
+**端到端**：`scripts/mcp_fs_e2e_host.py` 自写 host 完成"读 md 并总结
+要点"，7 次调用无多余——决策在 Host，执行与安全兜底在 Server。
 
 ## v1 已知问题
 
