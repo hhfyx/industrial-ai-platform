@@ -12,6 +12,8 @@
 from __future__ import annotations
 
 import logging
+import os
+import random
 import time
 import uuid
 
@@ -84,9 +86,44 @@ def register_middlewares(app: FastAPI) -> None:
     app.middleware("http")(request_context_middleware)
 
 
+async def chaos_middleware(request: Request, call_next):
+    """演练注入开关（W13 周三）：CHAOS_DELAY_MS / CHAOS_ERROR_RATE 环境变量。
+
+    慢请求与 5xx 注入是告警演练的唯一诚实手段——不注入就只能在
+    生产等事故。默认关（变量不设 = 零开销两行判断）；开了也只是
+    演练环境的事，生产配置不设这两个变量。
+    """
+    import asyncio as _asyncio
+
+    delay = os.environ.get("CHAOS_DELAY_MS", "")
+    if delay.isdigit() and int(delay) > 0:
+        await _asyncio.sleep(int(delay) / 1000)
+    rate = os.environ.get("CHAOS_ERROR_RATE", "")
+    try:
+        if rate and random.random() < float(rate):
+            from app.core.errors import AppError
+
+            raise AppError(
+                code="CHAOS_INJECTED",
+                message="演练注入的 5xx（CHAOS_ERROR_RATE 开关）",
+                status_code=500,
+            )
+    except ValueError:
+        pass
+    return await call_next(request)
+
+
+def register_chaos_middleware(app: FastAPI) -> None:
+    """演练注入层。register_middlewares 之后调用（更内层，能包住业务异常）。"""
+    if os.environ.get("CHAOS_DELAY_MS", "") or os.environ.get("CHAOS_ERROR_RATE", ""):
+        app.middleware("http")(chaos_middleware)
+
+
 __all__ = [
     "ELAPSED_HEADER",
     "MODEL_HEADER",
+    "chaos_middleware",
+    "register_chaos_middleware",
     "register_middlewares",
     "request_context_middleware",
 ]

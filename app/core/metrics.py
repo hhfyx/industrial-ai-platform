@@ -379,14 +379,15 @@ def aggregate_hourly(trace_dir: Path) -> int:
             durs = sorted(b["durs"])
             conn.execute(
                 "INSERT OR REPLACE INTO metrics_hourly (hour, request_path, kind,"
-                " requests, errors, p50_ms, p95_ms, p99_ms,"
-                " prompt_tokens, completion_tokens, cost) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                " requests, errors, degraded, p50_ms, p95_ms, p99_ms,"
+                " prompt_tokens, completion_tokens, cost) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     hour,
                     path,
                     "trace",
                     b["requests"],
                     b["errors"],
+                    0,  # degraded：trace 级暂无降级标记，见 metrics-layer.md §五映射表
                     _pct(durs, 0.50),
                     _pct(durs, 0.95),
                     _pct(durs, 0.99),

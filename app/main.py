@@ -70,6 +70,9 @@ app.add_middleware(
 )
 
 register_middlewares(app)
+from app.core.middleware import register_chaos_middleware  # noqa: E402 - 需在 register_middlewares 后
+
+register_chaos_middleware(app)  # 演练注入层：CHAOS_* 变量不设时零注册
 register_exception_handlers(app)
 app.include_router(v1_router)
 # v2（W12 周一）：鉴权 + 限流的新接口线。v1 端点一行不改 —— 契约冻结规则。
