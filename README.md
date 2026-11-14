@@ -1,14 +1,16 @@
-﻿# industrial-ai-platform
+# industrial-ai-platform
 
-**一个从"调模型"长到"能查、能引、能拒答"的文档知识库平台。**
-**（W6 实测后正式改名：语料是技术文档，不是工业文档 —— 见下方「关于 industrial 这个名字」）**
+**一个从"调模型"长到"能查、能引、能拒答、能对账"的文档知识库平台。**
 
-> **本仓库有两个项目**（同一套工程底座，部署独立）：
+![演示：上传 → 索引 → 流式问答 → 中断](docs/demo/streaming_summary.gif)
+
+> **本仓库有两个项目**（同一套工程底座：统一错误体 / request_id 贯穿 / 契约冻结纪律；部署独立）：
 >
 > | | 入口 | README |
 > | --- | --- | --- |
 > | **项目二：文档知识库 RAG 平台**（本文件） | `app/ui/streamlit_app.py` · `POST /api/v1/*` | 就在这里 |
 > | **项目一：缺陷图像生成服务**（SD+LoRA · FastAPI 异步队列） | `POST /api/v1/generate*` | [docs/README-generator.md](docs/README-generator.md) |
+> | **数字台账**（每个数字的 n/口径/复现命令） | —— | [docs/w14-number-ledger.md](docs/w14-number-ledger.md) |
 > | **部署变体口径**（哪版数字对应哪版系统） | —— | [docs/deploy-variant.md](docs/deploy-variant.md) |
 
 > ### 关于 `industrial` 这个名字（**必读**）
@@ -53,21 +55,25 @@
 | 项目 | 值 |
 | --- | --- |
 | 端点 | `extract` · `extract/stream` · `chat/stream` · `summarize/stream` · `generate`（项目一） |
-| Web UI | Streamlit（`:8501`）· 免费层**自动降级**为字面检索（见 [deploy-notes](docs/deploy-notes.md)） |
+| Web UI | Streamlit（`:8501`）· [公网 demo](https://industrial-ai-platform-9mxgvsbziodwgcqxnepcwm.streamlit.app)（免费层**自动降级**为字面检索，见 [deploy-notes](docs/deploy-notes.md)） |
 | 核心契约 | `POST /api/v1/extract`，`v1.1`（冻结；新增可选字段 `degraded`） |
-| 测试 | **1047 个，全离线**（拔网线也全绿） |
+| 测试 | **1386 个，全离线**（拔网线也全绿；实测于 2026-11-14） |
+| 服务化 | 双容器 compose · 鉴权（X-API-Key）· 双层令牌桶限流 · 三层缓存 · nginx 反代（W12） |
+| 可观测 | trace 三级（12 span/请求）· usage_ledger 成本对账 · 4 条告警规则（阈值全部有实测出处）· 看板下钻（W13） |
+| MCP | 自写 Server + 逐帧 client · 五道闸路径安全（5 条攻击全拒）· 任何 MCP Host 可接入（W13） |
 | 检索 | bge-small-zh（512 维）· ChromaDB · cosine · **可选：BM25 / RRF 融合 / Cross-Encoder 精排 / 上下文压缩（四层全部默认关闭，理由见下）** |
 | **W8 新增：引用完整性** | 答案编号双向校验（越界重答一次→仍越界标 degraded）· 上下文去重（chunk_id + overlap 近重复，带计数）· 编号重排无空洞 |
 | **W8 新增：会话持久化** | sessions/turns 两表 sqlite · UI 刷新按 session_id 恢复 · turns 列与 message dict 零转换 |
 | 运行时 | Python 3.11 + uvicorn + Streamlit，非 root（uid 10001） |
-| 当前版本 | **v1.0.0**（W8：多轮改写 + 引用完整性 + 生成服务 + 双线部署） |
+| 当前版本 | **v1.5.0**（W13：可观测 + MCP；W14：投递周，只组织不改代码） |
 
 ---
 
-### 📊 评测结果摘要（W7，2026-12-05）
+### 📊 评测结果摘要（W7 全量 · 2026-12-05）
 
 > 120 条黄金评测集（80 事实 + 20 多跳 + 20 拒答），与调参集物理隔离 + 机器门禁。
-> 完整报告：[docs/evaluation.md](docs/evaluation.md)（含口径、CI、复现命令）。
+> 完整报告：[docs/evaluation.md](docs/evaluation.md)（含口径、CI、复现命令）；
+> 数字总台账：[docs/w14-number-ledger.md](docs/w14-number-ledger.md)。
 
 | 指标 | 值 | 口径 |
 | --- | ---: | --- |
@@ -416,13 +422,14 @@ docs/                api-spec.md（冻结契约 v1.1）· cost.md · sse.md · S
 ## 快速开始（三条命令）
 
 ```powershell
-uv sync                                                      # ① 装依赖
+uv sync                                                      # ① 装依赖（Python 3.11）
 Copy-Item .env.example .env                                  # ② 填 LLM_API_KEY / BASE_URL / MODEL
 uv run streamlit run app/ui/streamlit_app.py                 # ③ 打开 http://localhost:8501
 ```
 
 打开后：上传 `tests/fixtures/sample50.pdf` → 点「索引」→ 问「违约金怎么算」
-→ 展开「参考来源」看原文高亮。
+→ 展开「参考来源」看原文高亮。**没有 LLM key？** `streamlit_app` 的检索/索引
+链路仍可演示；完整问答需要 `②` 的端点。
 
 <details>
 <summary>API 侧（可选）</summary>
