@@ -81,3 +81,7 @@ reports/
 
 # W13 Fri: MCP fs server allowlist root (e2e演练产物，不入库)
 mcp_fs_root/
+
+# Model weight files (SD1.5 etc.). NEVER commit: 3.4GB of binaries would enter git history permanently.
+# Note: models--* (HF cache) is covered above; this covers the plain models/ dir.
+models/
