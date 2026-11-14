@@ -4,6 +4,8 @@
 生成 512²/768² 的工业缺陷图像，SD1.5 + 每类别一个 LoRA 适配器，
 FastAPI 封装成同步 + 异步两个端点，**单 worker 串行消费**保护 GPU。
 
+![演示：提交 202+task_id（5ms）→ 状态机轮询 → 出图落盘](generator-demo.gif)
+
 > 这是本仓库的**项目一**。项目二（文档知识库 RAG 平台）见[主 README](../README.md)。
 > 两个项目共享一个仓库（同一套工程底座：统一错误体、request_id 贯穿、契约冻结纪律），
 > 但**部署完全独立**——Dockerfile、compose、端口（8001 vs 8000）互不干扰。

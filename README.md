@@ -431,6 +431,12 @@ uv run streamlit run app/ui/streamlit_app.py                 # ③ 打开 http:/
 → 展开「参考来源」看原文高亮。**没有 LLM key？** `streamlit_app` 的检索/索引
 链路仍可演示；完整问答需要 `②` 的端点。
 
+> **编辑 `.env` 的一条警告**（来自真实 clone 验证的卡点）：`Copy-Item` 复制
+> 没问题；但**用 PowerShell 重定向/`Set-Content` 手写 `.env` 会落成 ANSI/GBK
+> 编码**，dotenv 按 UTF-8 读取时直接 `UnicodeDecodeError`（报错位置在中文注释
+> 行，看起来像库的 bug）。用编辑器（VS Code 右下角确认 UTF-8）编辑，
+> 或写入后执行 `[System.IO.File]::ReadAllText("$PWD\.env")` 能无异常读通即可。
+
 <details>
 <summary>API 侧（可选）</summary>
 

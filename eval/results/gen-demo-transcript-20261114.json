@@ -1,0 +1,56 @@
+{
+  "meta": {
+    "date": "2026-11-14T12:35:33",
+    "impl": "fake",
+    "note": "fake 实现但状态机/落盘/HTTP 全链路真实"
+  },
+  "transcript": [
+    {
+      "call": "GET /health",
+      "ms": 39.6,
+      "resp": {
+        "status": "ok"
+      }
+    },
+    {
+      "call": "POST /api/v1/generate/async",
+      "ms": 4.6,
+      "resp": {
+        "request_id": "eae281c8-5260-492a-82d8-63dd4855a296",
+        "task_id": "4c66f69ff4dd464e",
+        "status": "queued",
+        "reused": false
+      }
+    },
+    {
+      "call": "GET /api/v1/generate/tasks/…",
+      "ms": 4.5,
+      "resp": {
+        "task_id": "4c66f69ff4dd464e",
+        "status": "succeeded",
+        "progress": "2/2",
+        "progress_percent": 100,
+        "images_done": 2,
+        "queue_position": null,
+        "result": {
+          "images": [
+            {
+              "path": "data/generated/划痕_512_42.png",
+              "size": 512,
+              "seed": 42
+            },
+            {
+              "path": "data/generated/划痕_512_43.png",
+              "size": 512,
+              "seed": 43
+            }
+          ],
+          "elapsed_ms": 14,
+          "model": "fake-generator"
+        },
+        "error": null,
+        "created_at": 1794630932.8650844
+      }
+    }
+  ]
+}
