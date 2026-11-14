@@ -124,3 +124,7 @@ run-eval:  ## 全量 120 条评测：检索 + 生成 + judge（花钱，约 15 �
 	@$(PY) $(UTF8) scripts/tasks.py run-eval --questions eval/questions-120.jsonl
 eval-smoke:  ## CI 同款：20 条 slice 只跑检索（零成本）
 	@$(PY) $(UTF8) scripts/tasks.py run-eval --questions eval/questions-slice20.jsonl --skip-generation --no-write
+
+# ------------------------------------------------------------------ W14 周二：数字台账
+report-numbers:  ## 数字台账一键复现：读产物 + 本地实算 + 一致性判定（零成本）
+	@$(PY) $(UTF8) scripts/tasks.py report-numbers

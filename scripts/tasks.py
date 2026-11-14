@@ -170,6 +170,11 @@ TASKS: dict[str, tuple[str, list[str]]] = {
         "黄金集校验：格式 + 锚点反查 + 泄题 + 拒答证据（坏数据当场报错）",
         ["scripts/validate_golden.py"],
     ),
+    # ---- W14 周二：数字台账一键复现 ----
+    "report-numbers": (
+        "数字台账一键复现：读各产物 + 本地实算，打印台账格式并做一致性判定（零成本）",
+        ["scripts/report_numbers.py"],
+    ),
 }
 
 

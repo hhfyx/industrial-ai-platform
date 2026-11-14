@@ -1,0 +1,40 @@
+{
+  "meta": {
+    "date": "2026-11-13T09:00:14+00:00",
+    "steps": 25,
+    "scheduler": "PNDMScheduler",
+    "attention_slicing": true,
+    "lora_loaded": false,
+    "gpu": "NVIDIA GeForce RTX 4050 Laptop GPU",
+    "vram_total_gb": 6.44,
+    "torch": "2.9.0+cu128",
+    "cuda": "12.8",
+    "precision": "fp16"
+  },
+  "model_load_seconds": 3.3,
+  "lora_load_seconds": 0.0,
+  "cold_start_ms": 5941,
+  "warm_median_ms": 4878,
+  "warm_p95_ms": 4875,
+  "warm_all_ms": [
+    4875,
+    4882
+  ],
+  "peak_vram_gb_512": 2.806,
+  "throughput": {
+    "1": {
+      "wall_ms": 4882,
+      "images_per_sec": 0.205,
+      "peak_vram_gb": 2.806
+    },
+    "4": {
+      "wall_ms": 25022,
+      "images_per_sec": 0.16,
+      "peak_vram_gb": 4.317
+    }
+  },
+  "baseline": {
+    "说明": "对照基线：同硬件、同精度(FP16)、同 steps、batch=1 的『逐张生成』",
+    "per_image_warm_ms": 4878
+  }
+}
