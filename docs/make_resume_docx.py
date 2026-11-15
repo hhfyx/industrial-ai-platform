@@ -92,7 +92,9 @@ r = p.add_run("黄浩锋"); r.font.size = Pt(17); r.bold = True; r.font.color.rg
 
 p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_after = Pt(1)
-mixed(p, [("男  |  15989527280  |  1792472354@qq.com  |  求职意向：AI 应用开发实习生  |  期望城市：广州", False, GRAY)])
+mixed(p, [("男  |  15989527280  |  1792472354@qq.com  |  ", False, GRAY),
+          ("github.com/hhfyx/industrial-ai-platform", True, BLUE),
+          ("  |  求职意向：AI 应用开发实习生  |  期望城市：广州", False, GRAY)])
 
 # ============ 教育经历 ============
 heading("教育经历")

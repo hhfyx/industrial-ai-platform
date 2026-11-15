@@ -7,7 +7,7 @@
 ---
 
 黄浩锋
-男 | 15989527280 | 1792472354@qq.com
+男 | 15989527280 | 1792472354@qq.com | github.com/hhfyx/industrial-ai-platform
 求职意向：AI 应用开发实习生 | 期望城市：广州
 
 ## 教育经历
@@ -97,6 +97,7 @@ Python / FastAPI / diffusers / PEFT（LoRA）/ Docker（GPU 直通）/ SD1.5
 | 8 | CI 三 job | CI 接入 | 实际 workflow 是单 job + matrix，"三 job"不成立 |
 | 9 | 期望薪资 6-11K | **删除**（自定） | 薪资期望在平台设置里填即可，简历上写死会提前筛掉机会；若平台要求可恢复 |
 | 10 | judge+人工校准 | 补 **30/30** | 校准率是这个技能点的全部含金量，有实测就该写数 |
+| 11 | 无 GitHub 链接 | **基本信息行加 github.com/hhfyx/industrial-ai-platform** | 简历全部数字的可信度建立在"点进去能验证"上；仓库已确认 public（2026-11-15 API 探测），local 与 remote 同步在 5a01050 |
 
 **未改动但面试前要背熟的口径**（都在台账里）：
 - 70–100% 是区间，最好一轮 100% 是一次抽样（#29–30）
