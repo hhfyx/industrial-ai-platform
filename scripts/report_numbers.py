@@ -149,7 +149,21 @@ def main() -> int:
 
     # ---------- 5. 检索基线（50 条集最近一次） ----------
     section("[5] 50 条检索基线（最近一次落盘产物）")
-    r = load(latest("retrieval-*.json").name)
+    # 踩坑记录（第二变种，2026-11-15）：slice20 评测也会落 retrieval-*.json，
+    # 只按 mtime 取最新会把 20 条 slice 当成 50 条基线 —— 产物选择必须校验
+    # meta.questions_file / total_questions，文件名模式不够。
+    r = None
+    for p in sorted(EVAL.glob("retrieval-*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        if "baseline" in p.name or not any(ch.isdigit() for ch in p.stem):
+            continue
+        j = json.loads(p.read_text(encoding="utf-8"))
+        qf = str(j.get("meta", {}).get("questions_file", ""))
+        if "questions-50" in qf or j.get("metrics", {}).get("total_questions") == 50:
+            r = j
+            print(f"    产物    : {p.name}")
+            break
+    if r is None:
+        raise FileNotFoundError("无 questions-50 产评产物（先跑 run_retrieval_eval.py）")
     m = r["metrics"]
     print(
         f"    Recall@5: {m['recall']['recall@5']['rate']:.1%}"
