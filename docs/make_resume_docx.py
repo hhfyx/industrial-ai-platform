@@ -117,7 +117,8 @@ heading("项目经历")
 p = para(space_after=0)
 mixed(p, [("项目一｜文档知识库 RAG 平台：检索 → Agent → 可观测（个人）", True, None)])
 p = para(space_after=2)
-mixed(p, [("Python / FastAPI / LangGraph / bge / rank_bm25 / ChromaDB / Streamlit / Docker", False, GRAY)])
+mixed(p, [("github.com/hhfyx/industrial-ai-platform", True, BLUE),
+          ("    Python / FastAPI / LangGraph / bge / rank_bm25 / ChromaDB / Streamlit / Docker", False, GRAY)])
 
 para("从零构建“切分→混合检索→精排→引用生成”全链路并服务化（鉴权 / 限流 / 缓存 / 双容器编排），"
      "自建 120 条黄金集完成量化评测与失败归因；公网 demo 在线（免费层降级为字面检索，降级显式可见）。",
@@ -147,7 +148,8 @@ for parts in bullets1:
 p = para(space_after=0, space_before=4)
 mixed(p, [("项目二｜缺陷图像生成服务：SD+LoRA · 异步队列（个人）", True, None)])
 p = para(space_after=2)
-mixed(p, [("Python / FastAPI / diffusers / PEFT（LoRA）/ Docker（GPU 直通）/ SD1.5", False, GRAY)])
+mixed(p, [("github.com/hhfyx/industrial-ai-platform/blob/main/docs/README-generator.md", True, BLUE),
+          ("    Python / FastAPI / diffusers / PEFT（LoRA）/ Docker（GPU 直通）/ SD1.5", False, GRAY)])
 
 para("给缺陷检测数据集做数据增广：产线大图 YOLO 裁剪出 3,323 张、6 类缺陷切片（多源合并 +84%），"
      "SD1.5 + 每类别一个 LoRA 适配器（只训练 2.18M 低秩参数，基座冻结），FastAPI 封装为同步 + 异步端点，"
