@@ -112,6 +112,18 @@ for label, body in skills:
     p = para(bullet=True, space_after=1)
     mixed(p, [(label, True, None), (body, False, None)])
 
+# ============ 个人特长 ============
+heading("个人特长")
+strengths = [
+    ("工程自觉：", "习惯先立口径再写代码——每个数字标 n / 配置 / 复现命令（自建数字台账 31 项，一键复现脚本核对 4/4）；知道系统哪里不好与知道哪里好同等重要"),
+    ("实验纪律：", "结论必须过对照——消融严格累加、显著性检验（p>0.05 不声称显著）、负结果如实入报告（混合检索 −5pp、batch 反降 19%）；对账/审计验证验证手段本身（曾抓出自己漏埋点致成本低估 45%）"),
+    ("交付意识：", "从原型到服务化全链路经验：鉴权/限流/缓存/异步队列/容器部署/CI，1300+ 离线测试；文档与代码同步演进（84 篇技术文档、13 篇周复盘，随 commit 入库可回溯）"),
+    ("自驱学习：", "14 周全栈路线自主推进（RAG → Agent → 服务化 → 可观测 → MCP），每周末复盘沉淀方法论；中英文一手资料阅读（官方文档/论文）"),
+]
+for label, body in strengths:
+    p = para(bullet=True, space_after=1)
+    mixed(p, [(label, True, None), (body, False, None)])
+
 # ============ 项目一 ============
 heading("项目经历")
 p = para(space_after=0)
