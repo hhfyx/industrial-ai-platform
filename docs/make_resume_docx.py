@@ -117,7 +117,7 @@ mixed(p, [("男 | 15989527280 | 1792472354@qq.com | ", False, GRAY),
 
 # ============ 教育 ============
 heading("教育经历")
-para(space_after=0)
+p = para(space_after=0)
 mixed(p, [("广州城市理工学院", True, None), ("    本科 · 人工智能    2023 – 2027", False, GRAY)])
 
 # ============ 技能 ============
@@ -178,19 +178,9 @@ p = para(space_after=1.5)
 mixed(p, [("MySQL 8 / SQLAlchemy 2.0 / Alembic / FastAPI", False, GRAY)])
 
 bullet([("5 表建模：", True, None),
-        ("客户/合同/审批节点/审计日志/幂等键——金额用「分」存整数、version 乐观锁、审计日志只 INSERT；5 态状态机纯函数实现（非法迁移 409），金额阈值路由审批链（≥10 万两级）", True, None)])
+        ("客户/合同/审批节点/审计日志/幂等键——金额用「分」存整数、version 乐观锁、审计日志只 INSERT；5 态状态机纯函数实现（非法迁移 409），金额阈值路由审批链（≥10 万两级）", False, None)])
 bullet([("并发正确性实测：", True, None),
-        ("单事务改三表 + expected_version 校验——20 并发 approve 恰好 1 成功、19×409、日志只多 1 条（MySQL 活体测试）；报表按月×客户 GROUP BY 聚合 + CSV 导出（UTF-8 BOM）", True, None)])
-
-# ============ 特长 ============
-heading("个人特长")
-strengths = [
-    ("口径先行：", "每个数字标 n/配置/复现命令（自建数字台账 + 一键复现脚本）"),
-    ("负结果也是结果：", "不显著不声称、无效优化如实写——压测报告里没有失败的优化等于没做实验"),
-    ("文档随代码走：", "84 篇技术文档、13 篇周复盘随 commit 入库，可回溯"),
-]
-for label, body in strengths:
-    bullet([(label, True, None), (body, False, None)])
+        ("单事务改三表 + expected_version 校验——20 并发 approve 恰好 1 成功、19×409、日志只多 1 条（MySQL 活体测试）；报表按月×客户 GROUP BY 聚合 + CSV 导出（UTF-8 BOM）", False, None)])
 
 out = r"D:\git\网页\industrial-ai-platform\docs\resume-final-w14.docx"
 doc.save(out)
