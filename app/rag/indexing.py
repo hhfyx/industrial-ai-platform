@@ -32,10 +32,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from app.rag import Document
+from app.rag.chunking.base import ChunkingStrategy
 from app.rag.embedding import Embedder, get_embedder
 from app.rag.loaders import load_document
 from app.rag.schema import Chunk
-from app.rag.splitters import ChunkSize, RecursiveSplitter, Splitter
+from app.rag.splitters import Splitter
 from app.rag.stores import VectorStore
 
 logger = logging.getLogger(__name__)
@@ -119,10 +120,30 @@ class Indexer:
         splitter: Splitter | None = None,
         embedder: Embedder | None = None,
         store: VectorStore | None = None,
+        strategy: ChunkingStrategy | None = None,
     ) -> None:
-        self.splitter = splitter or RecursiveSplitter(ChunkSize())
+        self.splitter = splitter
+        """显式 splitter（旧接口）。**默认 None 而不是预先构造 recursive**：
+
+        预构造会让 `_split_with_routing` 的"显式 splitter 优先"分支永远命中
+        （实测：2026-11-20 路由首跑全部走了旧 recursive 路径，路由成了死代码
+        ——正是"默认值写在哪一层"这种错误最隐蔽的形态）。默认策略的构造
+        移到 `_split_with_routing` 的路由分支里。
+        """
         self.embedder = embedder or get_embedder()
         self.store = store  # 允许为 None：先 index_documents 再 assign_store
+        self.strategy = strategy
+        """显式策略（优先）或 None（按文档结构自动路由）。
+
+        **为什么默认 None 而不是固定 recursive**（缺口 2，2026-11-20）：
+        三策略实测的结论应该变成生产机制——有真实标题的文档走 heading
+        （"不该切的节一个字都不切"），无结构的落 recursive。规则本身就是
+        实验的产物，见 `chunking/router.py`。
+
+        **显式传 splitter 的调用方不受影响**：`splitter=` 是旧接口，优先级
+        高于路由（测试与实验脚本依赖它注入固定策略，不能被路由偷换）。
+        只有"既没传 splitter 也没传 strategy"的调用方才走自动路由。
+        """
 
     def index_file(self, path: str | Path, *, on_stage: OnStage | None = None) -> IndexReport:
         """从磁盘文件索引。解析失败会抛 `ValueError`（那是真失败）。
@@ -180,7 +201,7 @@ class Indexer:
         # ② 切分
         stage = time.perf_counter()
         _notify(on_stage, "split", 0.0, f"切分 {report.pages} 页")
-        chunks = self.splitter.split(documents)
+        chunks = self._split_with_routing(documents)
         report.split_ms = _elapsed_ms(stage)
         report.chunks = len(chunks)
         if not chunks:
@@ -240,6 +261,52 @@ class Indexer:
     def assign_store(self, store: VectorStore) -> None:
         """事后绑定 store。检索侧拿到同一个 store 实例时必须走这个口子。"""
         self.store = store
+
+    def _split_with_routing(self, documents: Sequence[Document]) -> list[Chunk]:
+        """按装配情况选 splitter：显式注入 > 显式策略 > 按结构路由。
+
+        三级的优先顺序写在 `__init__` 的 `strategy` docstring 里，
+        这里是唯一实现点：
+
+        1. **显式 `splitter`**（旧接口，测试/实验脚本注入固定策略）——不动；
+        2. **显式 `strategy`**（调用方明确说"就要这个策略"）——
+           从 `ChunkingStrategy` 适配成 `Splitter`（策略接口收
+           `(docs, cfg)`，用 `ChunkingConfig()` 默认参数桥接）；
+        3. **自动路由**（默认）：`chunking/router.route_strategy` 按这批
+           `Document` 的实际结构选 heading 或 recursive。
+
+        **路由结果要进 metadata**：块上带 `routed_strategy`，排查"这批
+        向量是哪版策略切的"时不用翻日志——与 `Chunk.metadata["splitter"]`
+        同一个用途，不合并是为了保留"显式注入"与"自动路由"的区分。
+        """
+        if self.splitter is not None:
+            return self.splitter.split(documents)
+
+        from app.rag.chunking.base import ChunkingConfig
+        from app.rag.chunking.factory import from_config
+        from app.rag.chunking.router import route_strategy
+
+        if self.strategy is not None:
+            chosen, name = self.strategy, self.strategy.name
+        else:
+            name = route_strategy(documents)
+            chosen = from_config(name)
+
+        chunks = chosen.chunk(list(documents), ChunkingConfig())
+        # 路由来源写进每块的 metadata（Chunk 是 frozen 的，重建而非改字段）。
+        # id 显式透传：内容没变，id 也不能变。
+        return [
+            Chunk(
+                text=c.text,
+                page=c.page,
+                source=c.source,
+                metadata={**c.metadata, "routed_strategy": name},
+                index=c.index,
+                pages=c.pages,
+                id=c.id,
+            )
+            for c in chunks
+        ]
 
 
 def _elapsed_ms(started: float) -> int:

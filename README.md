@@ -491,7 +491,7 @@ curl.exe -s -X POST http://127.0.0.1:8000/api/v1/extract `
 | Recall@5 | **40.0%**（16/40） | 当时语料 **1288 段 / 1365 块** + 50 条评测集 |
 
 > ⚠️ **上面这个 1365 块是历史快照，不是当前值。** 当前是
-> **26 篇 / 495 段 / 886 块**（检索口径）/ **1244 块**（延迟口径）
+> **26 篇 / 498 段 / 892 块**（检索口径）/ **1251 块**（延迟口径）
 > （`chunk_chars=500, overlap=50`），
 > 用 `python -X utf8 scripts/corpus_stats.py` 现算。
 >
@@ -1149,6 +1149,55 @@ CI 在 [`.github/workflows/ci.yml`](.github/workflows/ci.yml)：
 Python 3.11 → `uv sync` → `ruff check` → `ruff format --check` → `pytest`。
 **不需要真实 API key** —— 所有测试都用假 client 离线跑，这正是"服务层不依赖
 fastapi、抽取器接受注入 client"的直接收益。
+
+---
+
+## 企业业务侧：合同审批模块（W14，v1.6.0）
+
+补企业信息化能力（JD 第 6/9 条）的完整业务模块：MySQL 8 + SQLAlchemy 2.0
+的 5 表建模、5 态审批状态机、乐观锁并发控制、报表聚合与 CSV 导出。
+设计文档：[docs/module-contract-approval.md](docs/module-contract-approval.md)。
+
+### 五张表（每张对应一个可讲的设计决定）
+
+| 表 | 职责 | 设计点 |
+| --- | --- | --- |
+| `customers` | 客户，外键目标 | name 唯一 |
+| `contracts` | 合同主表 | `amount_cents` 用「分」存整数（FLOAT 有 0.1+0.2≠0.3 误差）；`version` 乐观锁 |
+| `approval_nodes` | 审批节点 | 金额路由：<10 万一级（manager），≥10 万两级（+director） |
+| `approval_logs` | 审计日志 | 只 INSERT 不改不删 —— 塞主表 JSON 等于"改合同等于改历史" |
+| `idempotency_keys` | 幂等键 | sha256(key) 主键，同 key 重放首次结果 |
+
+### 并发正确性（本模块区分度最高的部分）
+
+审批在一个事务里改三张表（节点 + 主合同 + 审计日志）；请求体必填
+`expected_version` 做乐观锁校验，`with_for_update` 辅助杜绝校验窗口双写。
+**实测（tests/test_approve_concurrency.py）**：20 并发同时 approve
+→ 恰好 1 个成功、19 个 409 `VERSION_CONFLICT`、`approval_logs` 只多 1 条
+（失败事务全部回滚，无半提交）。**必须 MySQL 验证** —— SQLite 默认串行化
+写入，"只有一个成功"根本测不出来。
+
+### 快速开始
+
+```powershell
+docker compose -f docker-compose.biz.yml up -d mysql   # MySQL 8（端口 3307）
+$env:BIZ_DB_URL = "mysql+aiomysql://biz:biz_dev@127.0.0.1:3307/biz_contracts"
+uv run alembic upgrade head                             # 建 5 张表
+uv run uvicorn app.main:app --reload                    # API 挂在 /api/v2/*
+```
+
+### 分层纪律（延续"契约冻结"思路）
+
+```
+app/biz/state_machine.py    纯函数：5 态 7 条合法迁移，非法一律 409（不 import DB）
+app/biz/approval_rules.py   纯函数：金额阈值 → 节点链（不 import DB）
+app/biz/service.py          事务边界全部在这里（行锁读 + 版本校验 + 三表写入）
+app/biz/repository.py       读路径 + 报表 SQL（GROUP BY 月 × 客户在数据库聚合）
+app/api/v2/contracts.py     HTTP 形状：5 类端点，错误体/鉴权/幂等头沿用 v2 契约
+```
+
+纯函数测试（28 条）毫秒级离线跑；DB 测试（并发/幂等/报表）容器不在时
+自动 skip，离线套件永远绿。
 
 ---
 

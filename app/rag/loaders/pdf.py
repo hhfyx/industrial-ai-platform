@@ -31,6 +31,13 @@ pypdf 抽表格是**按阅读顺序铺平**的：一行单元格会变成好几�
 "抽不出文本"和"这一页是空白"在上层看起来完全一样，但处理方式完全不同：
 前者要 OCR，后者什么都不用做。静默跳过 = 用户以为这份文档没内容。
 判据取 `< 20 字符/页`（见 `SCAN_PAGE_CHARS`），理由在常量旁边。
+
+## 2026-11-20 升级：检测之后还有兜底（缺口 1）
+
+warning 之上加了一层**可选** OCR 兜底（`ocr_fallback.py`）：装了引擎就自动
+抽取扫描页文本，metadata 标 `source="ocr"`，引用时 UI 提示识别误差。
+**引擎未安装时行为与之前完全一致**（warning 照旧，一个字都不多抽）——
+OCR 是增量能力，不是新依赖绑架。三条既有扫描件测试守着这条回归红线。
 """
 
 from __future__ import annotations
@@ -392,6 +399,22 @@ def load_pdf(
     if not result.documents:
         result.warnings.append(
             f"{file_path.name} 整份文档都没有可提取文本 —— 很可能是纯扫描件，需要 OCR 才能处理"
+        )
+
+    # ---------------------------------------------------------------- ⑧ OCR 兜底（可选）
+    # 检测到扫描页/空页时尝试 OCR 引擎：装了就兜，没装保持既有行为（warning 照旧）。
+    # 编排逻辑在 `ocr_fallback.py`；引擎未安装时这一步是**零操作**，回归红线
+    # （原有 3 条扫描件测试）由此保证。
+    from app.rag.loaders.ocr_fallback import get_ocr_engine, ocr_fallback_for_scanned_pages
+
+    _engine = get_ocr_engine()
+    if _engine is not None and (scan_pages or empty_pages or not result.documents):
+        result = ocr_fallback_for_scanned_pages(
+            result,
+            scanned_pages=scan_pages,
+            empty_pages=empty_pages,
+            pdf_path=file_path,
+            engine=_engine,
         )
 
     return result

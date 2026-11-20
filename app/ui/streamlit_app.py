@@ -523,6 +523,11 @@ def _render_sources(contexts: list[Any], answer: Any) -> None:
             else:
                 where = ""
             st.markdown(f"**[{citation.index}]** `{citation.source}` · {where}".rstrip(" ·"))
+            # OCR 块的误差提示（缺口 1 闭环的最后一环）：metadata["source"]="ocr"
+            # 由 ocr_fallback 写入。误差事实必须跟着引用走到最终读者眼前 ——
+            # 只在索引时打 warning，后续每个提问者都看不到。
+            if str(getattr(chunk, "metadata", {}).get("source", "")) == "ocr":
+                st.caption("⚠️ 本段文本由 OCR 从扫描页提取，可能有识别误差；核对原文以图像为准。")
             _render_chunk_with_evidence(chunk, answer.text)
             st.divider()
 
