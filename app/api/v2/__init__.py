@@ -17,12 +17,17 @@ from fastapi import APIRouter
 
 from app.api.v2.agent_tasks import router as agent_tasks_router
 from app.api.v2.cold import router as cold_router
+from app.api.v2.contracts import router as contracts_router
 from app.api.v2.extract_v2 import router as extract_v2_router
+from app.api.v2.reports import router as reports_router
 
 router = APIRouter()
 router.include_router(extract_v2_router)
 router.include_router(cold_router)
 # Agent 任务接口（W12 周三）：提交 / 六字段进度 / 协作式取消
 router.include_router(agent_tasks_router)
+# 合同审批模块（W14）：5 表 / 状态机 / 乐观锁 / 报表（docs/module-contract-approval.md）
+router.include_router(contracts_router)
+router.include_router(reports_router)
 
 __all__ = ["router"]

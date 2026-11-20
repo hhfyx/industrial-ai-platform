@@ -1,0 +1,45 @@
+# 合同审批模块的 MySQL 8 容器（docs/module-contract-approval.md §八 Day1）。
+#
+# 用法：
+#   docker compose -f docker-compose.biz.yml up -d mysql
+#   docker compose -f docker-compose.biz.yml down        # 不带 -v：保留数据卷
+#   docker compose -f docker-compose.biz.yml down -v     # 连数据卷一起清（重置测试库）
+#
+# 为什么单独一个 compose 文件：主 docker-compose.yml 是 app 服务的部署编排，
+# biz 模块只需要一个 MySQL —— 合进去会让"起个数据库跑测试"变成"起整个平台"。
+#
+# 端口 3307 而不是 3306：本机可能已装 MySQL 占用 3306，
+# 演示容器不与宿主机服务抢端口。
+#
+# 为什么不用 mysql:8-oracle 之类的变体：无关紧要，8.0+ 才有
+# CHECK 约束与窗口函数；固定小版本号保证团队/CI 拉到同一镜像。
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: biz-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: biz_root_dev   # 仅本地演示容器；生产凭据不进仓库
+      MYSQL_DATABASE: biz_contracts       # 迁移直接跑在这个库上
+      MYSQL_USER: biz
+      MYSQL_PASSWORD: biz_dev
+      TZ: Asia/Shanghai                   # 报表按月聚合的月份桶跟本地日历对齐
+    ports:
+      - "3307:3306"
+    volumes:
+      - biz_mysql_data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      # 事务隔离级别：审批的乐观锁语义在 REPEATABLE READ（MySQL 默认）下验证，
+      # 显式写出来是防止有人改了全局配置后并发测试悄悄失去代表性
+      - --transaction-isolation=REPEATABLE-READ
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-ubiz", "-pbiz_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  biz_mysql_data:
