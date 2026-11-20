@@ -194,7 +194,9 @@ def ocr_fallback_for_scanned_pages(
             ocr = engine.recognize_page(pdf_path, page)
         except Exception as exc:  # noqa: BLE001 - 单页失败继续下一页
             logger.warning("第 %d 页 OCR 失败（%s: %s）", page, type(exc).__name__, exc)
-            result.warnings.append(f"第 {page} 页 OCR 兜底失败（{type(exc).__name__}），该页保持无文本")
+            result.warnings.append(
+                f"第 {page} 页 OCR 兜底失败（{type(exc).__name__}），该页保持无文本"
+            )
             continue
 
         if not ocr.text or ocr.confidence < min_confidence:

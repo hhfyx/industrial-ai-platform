@@ -30,7 +30,7 @@ def test_docs_with_real_headings_route_to_heading() -> None:
 
 
 def test_docs_with_atx_first_line_route_to_heading() -> None:
-    """"标题 + 正文合一块"（首行 ATX）也算有标题——与 heading.py 同一判据。"""
+    """ "标题 + 正文合一块"（首行 ATX）也算有标题——与 heading.py 同一判据。"""
     docs = [_doc("# 标题行\n\n正文段落")]
     assert route_strategy(docs) == ROUTED_STRATEGY
 

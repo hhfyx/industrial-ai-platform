@@ -74,12 +74,22 @@ def test_no_engine_returns_result_unchanged() -> None:
 def test_engine_fills_scanned_pages_with_ocr_metadata(tmp_path: Path) -> None:
     """成功兜底：产出 Document，metadata 带三件事实（tag/引擎/置信度）。"""
     engine = FakeOcrEngine(
-        {p: OcrPageResult(text=f"第 {p} 页识别文本，合同编号 HT-2026-00{p}", confidence=0.87, engine="fake-ocr")
-         for p in (1, 2, 3)}
+        {
+            p: OcrPageResult(
+                text=f"第 {p} 页识别文本，合同编号 HT-2026-00{p}",
+                confidence=0.87,
+                engine="fake-ocr",
+            )
+            for p in (1, 2, 3)
+        }
     )
     result = _result()
     out = ocr_fallback_for_scanned_pages(
-        result, scanned_pages=[], empty_pages=[1, 2, 3], pdf_path=tmp_path / "扫描件.pdf", engine=engine
+        result,
+        scanned_pages=[],
+        empty_pages=[1, 2, 3],
+        pdf_path=tmp_path / "扫描件.pdf",
+        engine=engine,
     )
     assert [d.page for d in out.documents] == [1, 2, 3]
     for doc in out.documents:
@@ -111,8 +121,12 @@ def test_low_confidence_page_stays_empty(tmp_path: Path) -> None:
     保留"无文本"状态：拒答层的分数阈值对它仍然有效。
     """
     engine = FakeOcrEngine(
-        {1: OcrPageResult(text=" RANDOM GARBAGE ", confidence=OCR_MIN_CONFIDENCE - 0.1, engine="fake-ocr"),
-         2: OcrPageResult(text="正常识别的文本，置信度达标", confidence=0.85, engine="fake-ocr")},
+        {
+            1: OcrPageResult(
+                text=" RANDOM GARBAGE ", confidence=OCR_MIN_CONFIDENCE - 0.1, engine="fake-ocr"
+            ),
+            2: OcrPageResult(text="正常识别的文本，置信度达标", confidence=0.85, engine="fake-ocr"),
+        },
     )
     result = _result()
     out = ocr_fallback_for_scanned_pages(
@@ -130,7 +144,9 @@ def test_normal_pages_are_never_reread(tmp_path: Path) -> None:
     from app.rag import Document
 
     result.documents.append(
-        Document(source="s.pdf", page=1, text="正常文本层内容", metadata={"page_chars": 100}, pages=(1,))
+        Document(
+            source="s.pdf", page=1, text="正常文本层内容", metadata={"page_chars": 100}, pages=(1,)
+        )
     )
     result.warnings.append("有 1 页没有可提取文本（扫描件或空白页）：第 2 页")
     out = ocr_fallback_for_scanned_pages(
